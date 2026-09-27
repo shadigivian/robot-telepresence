@@ -1,0 +1,115 @@
+# Robot Telepresence
+
+Two web apps that pair by serial number, over the internet:
+
+| App | Opened on | Does |
+|---|---|---|
+| **Robot Station** (`robot.html`) | Robot laptop, Chrome or Edge | Streams the webcam, goes online under a serial number, drives the ESP32 over USB, shows the invite link |
+| **Robot Control** (`user.html`) | Anyone's browser, from the invite link | Watch the robot's video full screen, drive with the D-pad or keyboard |
+
+Both pages are hosted for free on **GitHub Pages**. The robot and the user can be anywhere, on any network.
+
+```
+ Driver's browser        GitHub Pages (hosts both pages)        Robot laptop's browser       ESP32
+ ┌──────────────┐                                              ┌──────────────────┐  USB  ┌────────┐
+ │ user.html    │   ┌────────────────────────────────────┐     │ robot.html       │ ────▶ │ motors │
+ │ ?serial=RB-… │──▶│ Matchmaking (PeerJS): finds robot  │◀────│ webcam           │       └────────┘
+ │              │   └────────────────────────────────────┘     │                  │
+ │              │ ◀══════════ video ════════════════════════════│                  │
+ │  D-pad       │ ═══════════ commands ════════════════════════▶│                  │
+ └──────────────┘   direct, or through the Metered relay        └──────────────────┘
+                    (TURN) when the networks can't connect directly
+```
+
+## One-time setup (about 15 minutes)
+
+You need: this folder on the robot laptop, [Node.js](https://nodejs.org) and [Git for Windows](https://git-scm.com/download/win). These are only needed to publish; nobody needs them to use the apps.
+
+**1. GitHub account and repository**
+1. Create a free account at https://github.com/signup.
+2. Create a repository at https://github.com/new: name it `robot-telepresence`, choose **Public**, and **don't** tick "Add a README". Press **Create repository**.
+
+**2. Relay account (Metered, free tier)**
+1. Sign up at https://www.metered.ca/stun-turn.
+2. In the dashboard, open **TURN Server** and create a credential if none exists.
+3. Copy the **API URL** that returns the ICE servers. It looks like
+   `https://YOUR-APP.metered.live/api/v1/turn/credentials?apiKey=XXXX`
+
+**3. Publish**
+1. Double-click **`deploy-github.bat`**.
+2. Type your GitHub username, press Enter to accept the repository name, and paste the Metered URL.
+3. If a GitHub sign-in window opens, sign in. The window ends with **Published** and your robot page address.
+
+**4. Turn the site on (first time only)**
+1. Open `https://github.com/YOUR-NAME/robot-telepresence/settings/pages`.
+2. Under **Build and deployment**, set Source to **Deploy from a branch**, Branch to **gh-pages** and **/ (root)**, and press **Save**.
+3. Wait about a minute.
+
+## Every day
+
+**Robot laptop**
+1. In Chrome or Edge, open `https://YOUR-NAME.github.io/robot-telepresence/robot.html` and bookmark it.
+2. Press **Start camera** (allow the camera), then **Go online**. The status turns green: `Online · RB-XXXXXX`.
+3. Optional: **Connect ESP32** and choose its COM port.
+4. Press **Copy link** in the **Invite link** box and send the link (WhatsApp, email...).
+
+The link stays the same as long as the serial number does, so a user can keep it and reuse it.
+
+**User**
+Open the link. It connects straight to the robot, with nothing to install, in any modern browser, on any network. Hold an arrow to drive; releasing it stops. Keyboard: arrows or WASD, Space to stop.
+
+**After changing anything** in `public/` (for example `config.js`), double-click `deploy-github.bat` again. It remembers your answers.
+
+## Without GitHub (local mode)
+
+`start-robot.bat` runs the robot page from the laptop itself (`http://localhost:3000/robot`). Without a published site, it tries to create a temporary public link through a Cloudflare quick tunnel. That link changes every restart and doesn't work on networks that block outbound port 7844, which includes many phone hotspots. `start-user.bat` runs the user page locally.
+
+## The connection stays up until you end it
+
+- **User side:** only the red hang-up button ends the session. If the link drops (Wi-Fi blip, network change, robot page reloaded), the screen shows *Reconnecting…* and retries until the link is back.
+- **Robot side:** it stays online until you press **Go offline**. If the matchmaking server drops, it reconnects by itself. If the robot page reloads or the browser restarts while online, it turns the camera back on and goes online again automatically.
+- **Keep-alive:** both sides ping each other every second, so a dead link is noticed within 6 seconds. Both laptops' screens are also kept awake while the apps are open.
+- **Motors stop whenever the link is down**, and resume on the next command after reconnecting.
+
+## Relay (TURN) server
+
+The laptops first try to connect **directly**, which works on most home and office networks. On phone hotspots, 4G/5G and strict firewalls, the video goes through the **Metered relay** instead. The robot page shows **Relay (TURN): Configured** when it's set up, and the user's top bar shows **Via relay** when it's in use.
+
+- Relayed video uses roughly 0.5–1 GB per hour. Check the free allowance in your Metered dashboard.
+- The relay URL is saved in `public/config.js` (`turnCredentialsUrl`). Any other TURN provider works too: list it under `turnServers`.
+- To check the relay works, set `relayOnly: true` temporarily and republish.
+
+## Status indicators (user screen, top right)
+
+| Indicator | Meaning |
+|---|---|
+| `Direct` / `Via relay` | Video goes straight between the laptops, or through the TURN relay |
+| `ESP32 connected` / `Simulation` | Whether the robot has an ESP32 attached |
+| `45 ms` | Round-trip time for commands |
+
+## ESP32
+
+Upload `esp32/robot_controller/robot_controller.ino` with the Arduino IDE (ESP32 board package installed). The L298N wiring is listed at the top of the file. On a bare board, the built-in LED lights while a move command is active.
+
+Serial protocol (115200 baud, one command per line): `F 200` forward, `B 200` backward, `L 200` spin left, `R 200` spin right (speed 0 to 255), `S` stop. The ESP32 replies `OK <cmd>` when the command changes, and it stops by itself if no command arrives for 500 ms.
+
+## Files
+
+```
+start-robot.bat                    local mode: run the robot page from this laptop
+start-user.bat                     optional: run the user app locally
+deploy-github.bat, deploy.js       publish both pages to GitHub Pages (asks for GitHub + relay)
+server.js                          local web server + temporary public link
+bin/cloudflared.exe                Cloudflare tunnel tool (downloaded automatically)
+public/config.js                   matchmaking, relay and invite-link settings
+public/robot.html, robot.js        Robot Station
+public/user.html, user.js          Robot Control
+public/common.js                   connection helpers, D-pad, keyboard
+public/vendor/peerjs.min.js        PeerJS 1.5.4 (WebRTC + matchmaking client)
+esp32/robot_controller/            Arduino sketch
+```
+
+## Notes for later
+
+- **Own matchmaking server:** the public PeerJS server is free and needs no account, but it's shared and has no uptime guarantee. For production, run your own (`npx peer --port 9000` on any public host) and set `peerServer` in `config.js`.
+- **Security:** anyone who knows a serial number can connect. The random 6-character serials are hard to guess, but add a PIN before real-world use.

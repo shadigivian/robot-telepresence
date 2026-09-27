@@ -1,0 +1,9 @@
+{
+  "name": "robot-telepresence",
+  "version": "1.0.0",
+  "description": "User + Robot web apps: pair by serial number, WebRTC video, on-screen controls, ESP32 over Web Serial",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

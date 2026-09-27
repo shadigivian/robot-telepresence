@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Robot Control</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect x=%224%22 y=%228%22 width=%2216%22 height=%2211%22 rx=%223%22 fill=%22%233b82f6%22/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { overflow: hidden; }
+
+    /* ---------- Join screen ---------- */
+    #join {
+      position: fixed; inset: 0; display: grid; place-items: center; padding: 16px;
+      background: radial-gradient(1200px 600px at 50% -10%, rgb(59 130 246 / .18), transparent 60%), var(--bg);
+    }
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel); border: 1px solid var(--border); border-radius: 20px;
+      padding: 30px 28px; display: grid; gap: 18px;
+      box-shadow: 0 20px 60px rgb(0 0 0 / .4);
+    }
+    .card .icon { width: 52px; height: 52px; border-radius: 14px; background: rgb(59 130 246 / .15); color: var(--accent); display: grid; place-items: center; }
+    .card .icon svg { width: 28px; height: 28px; }
+    .card h1 { font-size: 24px; }
+    .card label { font-size: 13px; font-weight: 600; color: var(--muted); display: grid; gap: 8px; }
+    .card .btn { padding: 13px; font-size: 16px; }
+    .error { color: #fca5a5; font-size: 14px; background: rgb(239 68 68 / .1); border: 1px solid rgb(239 68 68 / .3); padding: 10px 12px; border-radius: 10px; }
+
+    /* ---------- Call screen ---------- */
+    #call { position: fixed; inset: 0; background: #000; }
+    #remote { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+    .waiting {
+      position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+      color: var(--text); gap: 14px; align-content: center; padding: 24px;
+      background: rgb(0 0 0 / .6); backdrop-filter: blur(3px);
+    }
+    .waiting small { color: var(--muted); }
+    .spinner { width: 42px; height: 42px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .topbar {
+      position: absolute; left: 0; right: 0; top: 0;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 14px 18px;
+      background: linear-gradient(rgb(0 0 0 / .7), transparent);
+    }
+    .topbar .spacer { flex: 1; }
+    .topbar .name { font-weight: 700; font-size: 16px; }
+    .pill { font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px; background: rgb(0 0 0 / .45); border: 1px solid rgb(255 255 255 / .12); backdrop-filter: blur(6px); }
+    .pill.sim { color: var(--warn); }
+    .pill.hw { color: var(--ok); }
+
+    .hud-cmd {
+      position: absolute; left: 50%; top: 70px; transform: translateX(-50%);
+      background: rgb(59 130 246 / .9); color: #fff; font-weight: 700;
+      padding: 6px 16px; border-radius: 999px; font-size: 14px; letter-spacing: .04em;
+      transition: opacity .15s;
+    }
+    .hud-cmd[data-cmd="S"] { opacity: 0; }
+
+    .controls {
+      position: absolute; right: 24px; bottom: 24px;
+      display: grid; gap: 14px; justify-items: center;
+      --key: 82px;
+    }
+    .speed {
+      display: flex; align-items: center; gap: 10px;
+      background: rgb(15 20 28 / .62); backdrop-filter: blur(10px);
+      border: 1px solid rgb(255 255 255 / .15); border-radius: 12px; padding: 8px 14px;
+      font-size: 13px; font-weight: 600; width: 100%;
+    }
+    .speed input { flex: 1; accent-color: var(--accent); }
+    .speed output { width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    .callbar {
+      position: absolute; left: 24px; bottom: 24px;
+      display: flex; gap: 12px; align-items: center;
+    }
+    .round {
+      width: 56px; height: 56px; border-radius: 50%; border: 1px solid rgb(255 255 255 / .18);
+      background: rgb(15 20 28 / .62); backdrop-filter: blur(10px); color: #fff;
+      display: grid; place-items: center; cursor: pointer;
+    }
+    .round:hover { background: rgb(40 48 60 / .8); }
+    .round svg { width: 24px; height: 24px; }
+    .round.hangup { background: var(--danger); border-color: var(--danger); width: 64px; }
+    .round.hangup:hover { background: #dc2626; }
+    .keys-hint { font-size: 12px; color: rgb(255 255 255 / .6); max-width: 190px; line-height: 1.35; }
+
+    .toast {
+      position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%);
+      background: rgb(15 20 28 / .85); border: 1px solid rgb(255 255 255 / .12);
+      padding: 8px 14px; border-radius: 10px; font-size: 13px; max-width: 80%;
+      font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+      transition: opacity .3s;
+    }
+
+    @media (max-width: 700px) {
+      .controls { --key: 68px; right: 16px; bottom: 16px; }
+      .callbar { left: 16px; bottom: 16px; flex-direction: column; align-items: flex-start; }
+      .keys-hint { display: none; }
+      .topbar { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Join -->
+  <section id="join">
+    <form class="card" id="joinForm">
+      <div class="icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M8 22v-3M16 22v-3"/><circle cx="12" cy="3" r="1"/></svg>
+      </div>
+      <div>
+        <h1 id="joinTitle">Connect to a robot</h1>
+        <p class="muted" style="margin-top:6px" id="joinHint">Enter the serial number shown on the robot's screen.</p>
+      </div>
+      <label>
+        Robot serial number
+        <input type="text" id="serialInput" placeholder="RB-XXXXXX" maxlength="32" spellcheck="false" autocomplete="off" required autofocus>
+      </label>
+      <div class="error" id="joinError" hidden></div>
+      <button class="btn primary" id="joinBtn" type="submit">Connect</button>
+    </form>
+  </section>
+
+  <!-- Call -->
+  <section id="call" hidden>
+    <video id="remote" autoplay playsinline muted></video>
+
+    <div class="waiting" id="waiting">
+      <div class="spinner"></div>
+      <p id="waitingText">Connecting to the robot…</p>
+    </div>
+
+    <div class="topbar">
+      <span class="name mono" id="robotName">—</span>
+      <span class="status" id="linkStatus" data-state="wait">Connecting</span>
+      <div class="spacer"></div>
+      <span class="pill" id="espPill" hidden></span>
+      <span class="pill" id="routePill" hidden></span>
+      <span class="pill mono" id="rttPill" hidden>— ms</span>
+    </div>
+
+    <div class="hud-cmd" id="hudCmd" data-cmd="S">STOP</div>
+    <div class="toast" id="toast" style="opacity:0"></div>
+
+    <div class="callbar">
+      <button class="round hangup" id="hangupBtn" title="Disconnect" aria-label="Disconnect">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.956.956 0 0 1 0-1.36C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.72c.18.18.29.43.29.71 0 .28-.11.53-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+      </button>
+      <button class="round" id="fullBtn" title="Full screen" aria-label="Full screen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      </button>
+      <p class="keys-hint">Hold an arrow to drive. Keyboard: arrow keys or WASD, Space to stop.</p>
+    </div>
+
+    <div class="controls">
+      <div id="dpad"></div>
+      <label class="speed">
+        Speed
+        <input type="range" id="speed" min="80" max="255" value="200">
+        <output id="speedOut">200</output>
+      </label>
+    </div>
+  </section>
+
+  <script src="vendor/peerjs.min.js"></script>
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script src="user.js"></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Station</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect x=%224%22 y=%228%22 width=%2216%22 height=%2211%22 rx=%223%22 fill=%22%233b82f6%22/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+    header {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      padding: 14px 22px; border-bottom: 1px solid var(--border); background: var(--panel);
+    }
+    header .spacer { flex: 1; }
+    .badge { font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--accent); background: rgb(59 130 246 / .12); padding: 3px 9px; border-radius: 6px; }
+
+    main {
+      flex: 1; display: grid; gap: 18px; padding: 18px 22px;
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+    @media (max-width: 960px) { main { grid-template-columns: 1fr; padding: 16px; } .stage { position: relative; top: 0; } }
+
+    .stage {
+      position: relative; background: #000; border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border); aspect-ratio: 16 / 9; align-self: start;
+      position: sticky; top: 18px;
+      display: grid; place-items: center;
+    }
+    .stage video { width: 100%; height: 100%; object-fit: contain; position: absolute; inset: 0; }
+    .stage .placeholder { color: var(--muted); text-align: center; padding: 20px; display: grid; gap: 12px; justify-items: center; }
+    .stage .placeholder svg { width: 48px; height: 48px; opacity: .5; }
+    .overlay { position: absolute; left: 14px; top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { background: rgb(0 0 0 / .6); backdrop-filter: blur(6px); border-radius: 8px; padding: 5px 10px; font-size: 13px; font-weight: 600; }
+    .live { background: var(--danger); color: #fff; }
+
+    .cmd-display {
+      position: absolute; right: 14px; bottom: 14px;
+      background: rgb(0 0 0 / .65); backdrop-filter: blur(6px);
+      border-radius: 14px; padding: 12px 16px; min-width: 150px;
+      display: grid; gap: 2px;
+    }
+    .cmd-display small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+    .cmd-display strong { font-size: 22px; }
+    .cmd-display[data-cmd="S"] strong { color: var(--muted); }
+    .cmd-display:not([data-cmd="S"]) strong { color: #93c5fd; }
+    .cmd-display .src { font-size: 12px; color: var(--muted); }
+
+    aside { display: flex; flex-direction: column; gap: 14px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row > * { flex: 1; }
+    select {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; width: 100%;
+    }
+    .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13.5px; margin: 0; }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; text-align: right; font-weight: 600; }
+    .test { display: flex; justify-content: center; --key: 52px; }
+    .test .dpad button { background: var(--panel-2); backdrop-filter: none; border-color: var(--border); }
+    .test .dpad button svg { width: 22px; height: 22px; }
+    .test .dpad [data-cmd="S"] { font-size: 10px; background: rgb(239 68 68 / .85); }
+    .test .dpad button.active { background: var(--accent); }
+    .log-panel { height: 240px; }
+    .share .link {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 12px; font-size: 13px; word-break: break-all; color: #93c5fd; min-height: 42px;
+    }
+    .share .link.dim { color: var(--muted); }
+    .note { font-size: 12.5px; color: var(--muted); }
+    .note.warn { color: var(--warn); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Robot Station</h1>
+    <span class="badge">ROBOT SIDE</span>
+    <div class="spacer"></div>
+    <span id="netStatus" class="status" data-state="idle">Offline</span>
+    <span id="espStatus" class="status" data-state="idle">ESP32 not connected</span>
+  </header>
+
+  <main>
+    <section class="stage">
+      <div class="placeholder" id="placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
+        <p>Camera is off. Choose a camera on the right and press <b>Start camera</b>.</p>
+      </div>
+      <video id="preview" autoplay playsinline muted hidden></video>
+      <div class="overlay">
+        <span class="chip live" id="liveChip" hidden>● LIVE TO USER</span>
+        <span class="chip mono" id="serialChip" hidden></span>
+      </div>
+      <div class="cmd-display" id="cmdDisplay" data-cmd="S">
+        <small>Motor command</small>
+        <strong id="cmdText">Stop</strong>
+        <span class="src" id="cmdSrc">idle</span>
+      </div>
+    </section>
+
+    <aside>
+      <div class="panel">
+        <h2>1 · Camera</h2>
+        <select id="cameraSelect"><option value="">Default camera</option></select>
+        <button class="btn" id="cameraBtn">Start camera</button>
+      </div>
+
+      <div class="panel">
+        <h2>2 · Serial number</h2>
+        <div class="row">
+          <input type="text" id="serialInput" maxlength="32" spellcheck="false" autocomplete="off" aria-label="Robot serial number">
+          <button class="btn" id="randomBtn" style="flex:none" title="Generate a new serial">↻</button>
+        </div>
+        <button class="btn primary" id="onlineBtn" disabled>Go online</button>
+        <p class="note" id="onlineNote">Start the camera first. Then type this number into the User app to connect.</p>
+      </div>
+
+      <div class="panel share">
+        <h2>Invite link</h2>
+        <div class="link mono" id="shareLink">—</div>
+        <div class="row">
+          <button class="btn primary" id="copyBtn" disabled>Copy link</button>
+          <button class="btn" id="shareBtn" disabled hidden>Share…</button>
+        </div>
+        <p class="note" id="shareNote">Checking…</p>
+      </div>
+
+      <div class="panel">
+        <h2>3 · ESP32 (USB)</h2>
+        <div class="row">
+          <select id="baudSelect" style="flex:none; width:auto" aria-label="Baud rate">
+            <option>9600</option><option>57600</option><option selected>115200</option>
+          </select>
+          <button class="btn" id="espBtn">Connect ESP32</button>
+        </div>
+        <p class="note" id="serialNote">No ESP32? The robot runs in simulation mode, and every command still shows on screen.</p>
+        <div class="test"><div id="testPad"></div></div>
+        <p class="note" style="text-align:center">Test the motors here, or with the arrow keys</p>
+      </div>
+
+      <div class="panel">
+        <dl class="kv">
+          <dt>User</dt><dd id="userState">—</dd>
+          <dt>Video link</dt><dd id="rtcState">—</dd>
+          <dt>Commands received</dt><dd id="cmdCount">0</dd>
+          <dt>Relay (TURN)</dt><dd id="relayState">—</dd>
+        </dl>
+      </div>
+
+      <div class="panel log-panel">
+        <h2>Activity</h2>
+        <ul class="log" id="log"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <script src="vendor/peerjs.min.js"></script>
+  <script src="config.js"></script>
+  <script src="common.js"></script>
+  <script src="robot.js"></script>
+</body>
+</html>
