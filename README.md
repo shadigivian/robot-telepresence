@@ -102,7 +102,16 @@ The laptops first try to connect **directly**, which works on most home and offi
 
 Upload `esp32/robot_controller/robot_controller.ino` with the Arduino IDE (ESP32 board package installed). The L298N wiring is listed at the top of the file. On a bare board, the built-in LED lights while a move command is active.
 
-Serial protocol (115200 baud, one command per line): `F 200` forward, `B 200` backward, `L 200` spin left, `R 200` spin right (speed 0 to 255), `S` stop. The ESP32 replies `OK <cmd>` when the command changes, and it stops by itself if no command arrives for 500 ms.
+Serial protocol (115200 baud, one command per line): `F 200` forward, `B 200` backward, `L 200` spin left, `R 200` spin right (speed 0 to 255), `S` stop. `?` makes it reply `READY robot_controller`; the robot page sends it on connect to check the sketch is running. The ESP32 replies `OK <cmd>` when the command changes, and it stops by itself if no command arrives for 500 ms.
+
+**If the robot page can't reach the ESP32:**
+
+| What you see | Cause and fix |
+|---|---|
+| The ESP32 isn't in the port list | No USB driver. In Device Manager it shows as *CP2102 USB to UART Bridge Controller* with a warning sign. Install the [CP210x driver](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) (or the CH340 driver for boards with that chip). Also try another cable: some USB cables only charge. |
+| Only *Bluetooth* COM ports are offered | Same as above. Bluetooth ports can't reach the ESP32. |
+| *ESP32 not answering* | The port works but the robot sketch isn't on the board (new boards run factory firmware). Upload `robot_controller.ino` with the Arduino IDE: board **ESP32 Dev Module**, the ESP32's COM port. |
+| Arduino IDE can't install *esp32* boards (`403 Forbidden`) | `downloads.arduino.cc` is blocked from some connections. Use a VPN for the install.
 
 ## Files
 

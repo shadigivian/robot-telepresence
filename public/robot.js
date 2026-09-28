@@ -391,7 +391,7 @@ function sendDC(msg) {
 
 function sendStatus() {
   const mic = !!stream && stream.getAudioTracks().length > 0 && !micMuted;
-  sendDC({ t: 'status', esp: !!port, cmd: currentCmd, mic });
+  sendDC({ t: 'status', esp: !!port && espAnswered, cmd: currentCmd, mic });
 }
 
 let cmdCount = 0;
@@ -456,23 +456,74 @@ if (!('serial' in navigator)) {
   els.serialNote.classList.add('warn');
 }
 
+// USB-to-serial chips used on ESP32 boards. Listing only these keeps
+// Bluetooth and other COM ports out of the chooser.
+const USB_SERIAL_CHIPS = [
+  { usbVendorId: 0x10c4 }, // Silicon Labs CP210x
+  { usbVendorId: 0x1a86 }, // WCH CH340 / CH9102
+  { usbVendorId: 0x0403 }, // FTDI
+  { usbVendorId: 0x303a }, // Espressif native USB (S2, S3, C3...)
+];
+let showAllPorts = false;  // after an empty chooser, offer every port next time
+let espAnswered = false;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function connectESP() {
   try {
-    port = await navigator.serial.requestPort();
+    port = await navigator.serial.requestPort(showAllPorts ? {} : { filters: USB_SERIAL_CHIPS });
     await port.open({ baudRate: Number(els.baudSelect.value) });
   } catch (err) {
     port = null;
-    if (err.name !== 'NotFoundError') logLine(els.log, `Serial error: ${err.message}`, 'err');
+    if (err.name === 'NotFoundError') {
+      // Chooser closed with nothing picked: often no driver, or a charge-only cable
+      showAllPorts = true;
+      els.serialNote.textContent = 'No ESP32 selected. If it was not in the list: use a USB cable that carries data (some are charge-only) ' +
+        'and install the driver for its USB chip, CP210x (silabs.com) or CH340 (wch-ic.com). Press Connect ESP32 again to see every port.';
+      els.serialNote.classList.add('warn');
+    } else {
+      logLine(els.log, `Serial error: ${err.message}`, 'err');
+    }
     return;
   }
+  // Release the reset lines so the board runs its sketch rather than staying in reset
+  try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch {}
   writer = port.writable.getWriter();
-  setStatus(els.espStatus, 'ESP32 connected', 'ok');
+  setStatus(els.espStatus, 'ESP32 connecting…', 'wait');
   els.espBtn.textContent = 'Disconnect ESP32';
   els.baudSelect.disabled = true;
-  logLine(els.log, `ESP32 connected @ ${els.baudSelect.value} baud`);
+  logLine(els.log, `Serial port open @ ${els.baudSelect.value} baud. Checking the ESP32 answers…`);
+  readLoop();
+  helloESP();
+}
+
+// Ask the sketch to identify itself. No answer means something else is on the
+// port: factory firmware, a different sketch, the wrong baud rate.
+async function helloESP() {
+  const p = port;
+  espAnswered = false;
+  for (const wait of [300, 1500, 1500]) { // the board may be restarting after the port opened
+    await sleep(wait);
+    if (port !== p || espAnswered) return;
+    writeSerial('?');
+  }
+  await sleep(1500);
+  if (port !== p || espAnswered) return;
+  setStatus(els.espStatus, 'ESP32 not answering', 'error');
+  els.serialNote.textContent = 'The port is open, but the ESP32 is not answering. Upload esp32/robot_controller/robot_controller.ino ' +
+    'to it with the Arduino IDE, and check the baud rate is 115200. Commands still show here in the meantime.';
+  els.serialNote.classList.add('warn');
+  logLine(els.log, 'ESP32 is not answering: is robot_controller.ino uploaded?', 'err');
+}
+
+function onESPAnswer() {
+  if (espAnswered) return;
+  espAnswered = true;
+  showAllPorts = false;
+  setStatus(els.espStatus, 'ESP32 connected', 'ok');
+  els.serialNote.textContent = 'ESP32 ready. Commands go to the motors.';
+  els.serialNote.classList.remove('warn');
   writeSerial('S');
   sendStatus();
-  readLoop();
 }
 
 let closingESP = false;
@@ -488,6 +539,7 @@ async function disconnectESP() {
   try { await p.close(); } catch {}
   writer = null;
   reader = null;
+  espAnswered = false;
   setStatus(els.espStatus, 'ESP32 not connected', 'idle');
   els.espBtn.textContent = 'Connect ESP32';
   els.baudSelect.disabled = false;
@@ -521,6 +573,7 @@ async function readLoop() {
         while ((i = buffer.indexOf('\n')) >= 0) {
           const line = buffer.slice(0, i).trim();
           buffer = buffer.slice(i + 1);
+          if (/^(READY|OK|ERR|TIMEOUT)\b/.test(line)) onESPAnswer();
           if (line) {
             logLine(els.log, `ESP32: ${line}`, 'rx');
             sendDC({ t: 'esp', line });

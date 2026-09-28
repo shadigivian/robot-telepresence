@@ -7,6 +7,7 @@
     L <speed>   turn left  (spin in place)
     R <speed>   turn right (spin in place)
     S           stop
+    ?           replies "READY robot_controller" (the web app checks this)
 
   Safety: while moving, the web app repeats the command every 150 ms.
   If nothing arrives for 500 ms, the motors stop on their own.
@@ -83,6 +84,10 @@ void handleLine(String s) {
   s.trim();
   if (s.length() == 0) return;
   char cmd = toupper(s.charAt(0));
+  if (cmd == '?') {
+    Serial.println("READY robot_controller");
+    return;
+  }
   int speed = DEFAULT_SPEED;
   if (s.length() > 2) speed = constrain(s.substring(2).toInt(), 0, 255);
 
