@@ -88,6 +88,7 @@
     .round.hangup { background: var(--danger); border-color: var(--danger); width: 64px; }
     .round.hangup:hover { background: #dc2626; }
     .round.off { background: rgb(255 255 255 / .9); color: #111; }
+    .round.sharing { background: var(--accent); border-color: var(--accent); }
 
     /* This laptop's own camera, mirrored like a mirror */
     #selfView {
@@ -95,6 +96,7 @@
       object-fit: cover; transform: scaleX(-1); background: #000;
       border-radius: 12px; border: 1px solid rgb(255 255 255 / .25);
     }
+    #selfView.screen { transform: none; object-fit: contain; aspect-ratio: 16 / 10; }
     .sound-btn {
       position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
       background: var(--accent); color: #fff; border: 0; border-radius: 999px;
@@ -153,6 +155,7 @@
       <span class="name mono" id="robotName">—</span>
       <span class="status" id="linkStatus" data-state="wait">Connecting</span>
       <div class="spacer"></div>
+      <span class="pill sim" id="robotMicPill" hidden title="Someone at the robot turned its microphone off">Robot mic off</span>
       <span class="pill" id="espPill" hidden></span>
       <span class="pill" id="routePill" hidden></span>
       <span class="pill mono" id="rttPill" hidden>— ms</span>
@@ -168,6 +171,7 @@
       </button>
       <button class="round" id="micBtn" hidden aria-label="Microphone"></button>
       <button class="round" id="camBtn" hidden aria-label="Camera"></button>
+      <button class="round" id="shareBtn" hidden aria-label="Share screen"></button>
       <button class="round" id="fullBtn" title="Full screen" aria-label="Full screen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
       </button>

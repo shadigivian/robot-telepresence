@@ -36,6 +36,7 @@
       inset: auto; right: 14px; top: 14px; width: 24%; height: auto; aspect-ratio: 16 / 9;
       object-fit: cover; border-radius: 10px; border: 1px solid rgb(255 255 255 / .25); background: #000;
     }
+    .stage.sharing #preview { display: none; }
     .overlay { position: absolute; left: 14px; top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
     .chip { background: rgb(0 0 0 / .6); backdrop-filter: blur(6px); border-radius: 8px; padding: 5px 10px; font-size: 13px; font-weight: 600; }
     .live { background: var(--danger); color: #fff; }
@@ -103,6 +104,7 @@
       <div class="overlay">
         <span class="chip live" id="liveChip" hidden>● LIVE TO USER</span>
         <span class="chip mono" id="serialChip" hidden></span>
+        <span class="chip" id="screenChip" hidden>🖥 User's screen</span>
       </div>
       <div class="cmd-display" id="cmdDisplay" data-cmd="S">
         <small>Motor command</small>
@@ -116,6 +118,7 @@
         <h2>1 · Camera and microphone</h2>
         <select id="cameraSelect"><option value="">Default camera</option></select>
         <button class="btn" id="cameraBtn">Start camera</button>
+        <button class="btn" id="micBtn" hidden>Mute microphone</button>
       </div>
 
       <div class="panel">

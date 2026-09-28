@@ -28,9 +28,12 @@ const els = {
   soundBtn: $('#soundBtn'),
   micBtn: $('#micBtn'),
   camBtn: $('#camBtn'),
+  shareBtn: $('#shareBtn'),
+  robotMicPill: $('#robotMicPill'),
 };
 
 let localStream = null;  // this laptop's camera and microphone, sent to the robot
+let screenTrack = null;  // the shared screen, sent instead of the camera while sharing
 let mediaNote = null;    // why they could not (all) be started, shown once in the call
 let peer = null;
 let conn = null;
@@ -109,6 +112,7 @@ async function startLocalMedia() {
 }
 
 function stopLocalMedia() {
+  stopScreenShare();
   if (localStream) localStream.getTracks().forEach((t) => t.stop());
   localStream = null;
   els.selfView.srcObject = null;
@@ -120,6 +124,7 @@ const ICONS = {
   micOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 5.1 2.1M19 10a7 7 0 0 1-1.2 3.9M5 10a7 7 0 0 0 11.2 5.6M12 17v5M3 3l18 18"/></svg>',
   cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>',
   camOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M13 18H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2M9 6h4a2 2 0 0 1 2 2v4M3 3l18 18"/></svg>',
+  screen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M12 13V7M9 10l3-3 3 3"/></svg>',
 };
 
 // Mute buttons switch the tracks off without ending the call
@@ -127,7 +132,11 @@ function updateMediaButtons() {
   const mic = localStream && localStream.getAudioTracks()[0];
   const cam = localStream && localStream.getVideoTracks()[0];
   els.micBtn.hidden = !mic;
-  els.camBtn.hidden = !cam;
+  els.camBtn.hidden = !cam || !!screenTrack;
+  els.shareBtn.hidden = !navigator.mediaDevices.getDisplayMedia; // phones cannot share
+  els.shareBtn.innerHTML = ICONS.screen;
+  els.shareBtn.classList.toggle('sharing', !!screenTrack);
+  els.shareBtn.title = screenTrack ? 'Stop sharing your screen' : 'Share your screen with the robot';
   if (mic) {
     els.micBtn.innerHTML = mic.enabled ? ICONS.mic : ICONS.micOff;
     els.micBtn.classList.toggle('off', !mic.enabled);
@@ -138,7 +147,13 @@ function updateMediaButtons() {
     els.camBtn.classList.toggle('off', !cam.enabled);
     els.camBtn.title = cam.enabled ? 'Turn camera off' : 'Turn camera on';
   }
-  els.selfView.hidden = !cam || !cam.enabled;
+
+  // Self view shows what the robot sees: the screen while sharing, else the camera
+  const shown = screenTrack || (cam && cam.enabled ? cam : null);
+  const current = els.selfView.srcObject && els.selfView.srcObject.getVideoTracks()[0];
+  if (shown && shown !== current) els.selfView.srcObject = new MediaStream([shown]);
+  els.selfView.hidden = !shown;
+  els.selfView.classList.toggle('screen', !!screenTrack);
 }
 
 els.micBtn.onclick = () => {
@@ -151,6 +166,62 @@ els.camBtn.onclick = () => {
   if (cam) cam.enabled = !cam.enabled;
   updateMediaButtons();
 };
+
+// ---------- Screen sharing ----------
+//
+// The shared screen replaces the camera on the robot's display. When sharing
+// stops (our button or the browser's own "Stop sharing" bar), the camera
+// comes back.
+
+// What we send the robot: our microphone, plus the screen or the camera
+function outgoingStream() {
+  const tracks = localStream ? localStream.getAudioTracks() : [];
+  const video = screenTrack || (localStream && localStream.getVideoTracks()[0]);
+  if (video) tracks.push(video);
+  return tracks.length ? new MediaStream(tracks) : undefined;
+}
+
+async function startScreenShare() {
+  let display;
+  try {
+    display = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: false });
+  } catch {
+    return; // picker cancelled
+  }
+  screenTrack = display.getVideoTracks()[0];
+  screenTrack.contentHint = 'detail'; // keep text sharp rather than smooth
+  screenTrack.onended = stopScreenShare;
+  await sendVideo(screenTrack);
+  if (conn && conn.open) conn.send({ t: 'screen', on: true });
+  updateMediaButtons();
+  toast('Sharing your screen with the robot');
+}
+
+function stopScreenShare() {
+  if (!screenTrack) return;
+  const t = screenTrack;
+  screenTrack = null;
+  t.onended = null;
+  t.stop();
+  sendVideo(localStream && localStream.getVideoTracks()[0]);
+  if (conn && conn.open) conn.send({ t: 'screen', on: false });
+  updateMediaButtons();
+}
+
+// Swap the video we send without renegotiating. Without a camera there is no
+// video slot in the call yet, so the robot is asked to call again instead.
+async function sendVideo(track) {
+  const pc = call && call.peerConnection;
+  const slot = pc && pc.getTransceivers().find((tr) =>
+    tr.receiver.track.kind === 'video' && /send/.test(tr.currentDirection || ''));
+  if (slot && track) {
+    await slot.sender.replaceTrack(track);
+  } else if (conn && conn.open) {
+    conn.send({ t: 'recall' });
+  }
+}
+
+els.shareBtn.onclick = () => (screenTrack ? stopScreenShare() : startScreenShare());
 
 // Opened from an invite link (…/user?serial=RB-XXXX): connect right away
 const invited = normalizeSerial(params.get('serial'));
@@ -178,6 +249,7 @@ function hangUp(error) {
   els.soundBtn.hidden = true;
   els.rttPill.hidden = true;
   els.espPill.hidden = true;
+  els.robotMicPill.hidden = true;
   els.routePill.hidden = true;
   showCmd('S');
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -244,6 +316,7 @@ function connect() {
     attempt = 0;
     if (!everConnected) enterCall();
     everConnected = true;
+    if (screenTrack) c.send({ t: 'screen', on: true }); // still sharing after a reconnect
     pad.setEnabled(true);
     setStatus(els.linkStatus, 'Connected', 'ok');
     if (!els.remote.srcObject || els.remote.paused) showOverlay('Waiting for video…');
@@ -276,7 +349,7 @@ async function startPeer() {
     if (p !== peer) return;
     if (call) call.close();
     call = incoming;
-    incoming.answer(localStream || undefined);
+    incoming.answer(outgoingStream());
     incoming.on('stream', (stream) => {
       if (incoming !== call) return;
       els.remote.srcObject = stream;
@@ -369,7 +442,6 @@ function enterCall() {
   els.call.hidden = false;
   els.robotName.textContent = serial;
   showOverlay('Connected. Waiting for video…');
-  els.selfView.srcObject = localStream;
   updateMediaButtons();
   if (mediaNote) toast(mediaNote);
 }
@@ -410,6 +482,7 @@ function onRobotMessage(msg) {
       els.espPill.hidden = false;
       els.espPill.textContent = msg.esp ? 'ESP32 connected' : 'Simulation (no ESP32)';
       els.espPill.className = `pill ${msg.esp ? 'hw' : 'sim'}`;
+      els.robotMicPill.hidden = msg.mic !== false;
       break;
     case 'esp':
       toast(`ESP32: ${msg.line}`);

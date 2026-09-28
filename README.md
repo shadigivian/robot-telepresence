@@ -4,8 +4,8 @@ Two web apps that pair by serial number, over the internet:
 
 | App | Opened on | Does |
 |---|---|---|
-| **Robot Station** (`robot.html`) | Robot laptop, Chrome or Edge | Streams the webcam, goes online under a serial number, drives the ESP32 over USB, shows the invite link |
-| **Robot Control** (`user.html`) | Anyone's browser, from the invite link | Watch the robot's video full screen, drive with the D-pad or keyboard |
+| **Robot Station** (`robot.html`) | Robot laptop, Chrome or Edge | Streams the webcam and microphone, shows the user's camera or shared screen with their voice, goes online under a serial number, drives the ESP32 over USB, shows the invite link |
+| **Robot Control** (`user.html`) | Anyone's browser, from the invite link | Watch and hear the robot full screen, talk back with camera and microphone, share the screen, drive with the D-pad or keyboard |
 
 Both pages are hosted for free on **GitHub Pages**. The robot and the user can be anywhere, on any network.
 
@@ -15,7 +15,8 @@ Both pages are hosted for free on **GitHub Pages**. The robot and the user can b
  │ user.html    │   ┌────────────────────────────────────┐     │ robot.html       │ ────▶ │ motors │
  │ ?serial=RB-… │──▶│ Matchmaking (PeerJS): finds robot  │◀────│ webcam           │       └────────┘
  │              │   └────────────────────────────────────┘     │                  │
- │              │ ◀══════════ video ════════════════════════════│                  │
+ │              │ ◀═════ robot's video + sound ═════════════════│                  │
+ │              │ ══════ user's video/screen + sound ══════════▶│                  │
  │  D-pad       │ ═══════════ commands ════════════════════════▶│                  │
  └──────────────┘   direct, or through the Metered relay        └──────────────────┘
                     (TURN) when the networks can't connect directly
@@ -49,14 +50,23 @@ You need: this folder on the robot laptop, [Node.js](https://nodejs.org) and [Gi
 
 **Robot laptop**
 1. In Chrome or Edge, open `https://YOUR-NAME.github.io/robot-telepresence/robot.html` and bookmark it.
-2. Press **Start camera** (allow the camera), then **Go online**. The status turns green: `Online · RB-XXXXXX`.
+2. Press **Start camera** (allow the camera and microphone), then **Go online**. The status turns green: `Online · RB-XXXXXX`.
 3. Optional: **Connect ESP32** and choose its COM port.
 4. Press **Copy link** in the **Invite link** box and send the link (WhatsApp, email...).
+5. Optional: press **Full screen** on the video so the robot's screen shows the user's face.
 
 The link stays the same as long as the serial number does, so a user can keep it and reuse it.
 
 **User**
-Open the link. It connects straight to the robot, with nothing to install, in any modern browser, on any network. Hold an arrow to drive; releasing it stops. Keyboard: arrows or WASD, Space to stop.
+Open the link and allow the camera and microphone. It connects straight to the robot, with nothing to install, in any modern browser, on any network. Hold an arrow to drive; releasing it stops. Keyboard: arrows or WASD, Space to stop.
+
+## Sound, video and screen sharing
+
+- **Both ways:** the user sees and hears the robot; the robot's screen shows the user's camera (full size, with the robot's own camera as a small preview in the corner) and plays their voice. Either side can go without a camera or microphone; the call still works with whatever is available.
+- **Buttons at the bottom left of the user screen:** hang up, mute microphone, camera off, **share screen**, full screen.
+- **Screen sharing** (computers only, not phones): pick a screen, window or tab. The robot's display switches to it, labelled *User's screen*, and switches back to the camera when you press the button again or the browser's *Stop sharing*.
+- **Robot microphone:** people near the robot can press **Mute microphone** for privacy. The user sees *Robot mic off*.
+- **No sound?** If the browser blocks sound until the page is clicked, a *Click to hear…* button appears; press it once. Use headphones on the user side if there is echo.
 
 **After changing anything** in `public/` (for example `config.js`), double-click `deploy-github.bat` again. It remembers your answers.
 
@@ -85,6 +95,7 @@ The laptops first try to connect **directly**, which works on most home and offi
 |---|---|
 | `Direct` / `Via relay` | Video goes straight between the laptops, or through the TURN relay |
 | `ESP32 connected` / `Simulation` | Whether the robot has an ESP32 attached |
+| `Robot mic off` | Someone at the robot muted its microphone |
 | `45 ms` | Round-trip time for commands |
 
 ## ESP32

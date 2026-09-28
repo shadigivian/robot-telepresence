@@ -10,6 +10,8 @@ const els = {
   userVideo: $('#userVideo'),
   soundBtn: $('#soundBtn'),
   fullBtn: $('#fullBtn'),
+  micBtn: $('#micBtn'),
+  screenChip: $('#screenChip'),
   placeholder: $('#placeholder'),
   liveChip: $('#liveChip'),
   serialChip: $('#serialChip'),
@@ -98,6 +100,7 @@ async function startCamera() {
     }
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = newStream;
+    applyMic();
     if (userCall && !sameKinds) startVideo();
 
     els.preview.srcObject = stream;
@@ -115,6 +118,25 @@ async function startCamera() {
     alert(`Could not start the camera: ${err.message}`);
   }
 }
+
+// Privacy: people near the robot can switch its microphone off. The user
+// is told, so silence isn't mistaken for a broken link.
+let micMuted = false;
+
+function applyMic() {
+  const mics = stream ? stream.getAudioTracks() : [];
+  mics.forEach((t) => (t.enabled = !micMuted));
+  els.micBtn.hidden = !mics.length;
+  els.micBtn.textContent = micMuted ? 'Turn microphone on' : 'Mute microphone';
+  els.micBtn.classList.toggle('danger', micMuted);
+  sendStatus();
+}
+
+els.micBtn.onclick = () => {
+  micMuted = !micMuted;
+  applyMic();
+  logLine(els.log, micMuted ? 'Microphone muted' : 'Microphone on');
+};
 
 els.cameraBtn.onclick = startCamera;
 els.cameraSelect.onchange = () => stream && startCamera();
@@ -311,6 +333,15 @@ function hideUser() {
   els.stage.classList.remove('with-user');
 }
 
+// The user's shared screen takes the whole stage (the robot's own preview is
+// hidden so it doesn't cover what they are showing)
+function showSharing(on) {
+  if (on === els.stage.classList.contains('sharing')) return;
+  els.stage.classList.toggle('sharing', on);
+  els.screenChip.hidden = !on;
+  logLine(els.log, on ? 'The user is sharing their screen' : 'The user stopped sharing their screen');
+}
+
 els.fullBtn.onclick = () => {
   if (document.fullscreenElement) document.exitFullscreen();
   else els.stage.requestFullscreen().catch(() => {});
@@ -339,6 +370,7 @@ function dropUser(reason, notify = false) {
   if (call) call.close();
   if (conn) setTimeout(() => conn.close(), notify ? 300 : 0);
   hideUser();
+  if (conn) showSharing(false);
   els.liveChip.hidden = true;
   els.rtcState.textContent = '—';
   if (wantOnline) els.userState.textContent = 'Waiting…';
@@ -358,7 +390,8 @@ function sendDC(msg) {
 }
 
 function sendStatus() {
-  sendDC({ t: 'status', esp: !!port, cmd: currentCmd });
+  const mic = !!stream && stream.getAudioTracks().length > 0 && !micMuted;
+  sendDC({ t: 'status', esp: !!port, cmd: currentCmd, mic });
 }
 
 let cmdCount = 0;
@@ -369,6 +402,10 @@ function onControl(msg) {
     drive(msg.c, 'user', msg.v);
   } else if (msg.t === 'ping') {
     sendDC({ t: 'pong', ts: msg.ts });
+  } else if (msg.t === 'recall') {
+    startVideo(); // the user's camera or screen came or went: call again to carry it
+  } else if (msg.t === 'screen') {
+    showSharing(!!msg.on);
   }
 }
 
