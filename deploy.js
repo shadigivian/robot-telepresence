@@ -54,6 +54,11 @@ function copyDir(from, to) {
     console.log('  - an EMPTY PUBLIC repository https://github.com/new  (for example "robot-telepresence", no README)\n');
     settings.user = await ask('Your GitHub username: ');
     settings.repo = (await ask('Repository name [robot-telepresence]: ')) || 'robot-telepresence';
+    // A relay URL pasted here one question early: use the default name and keep the URL for the relay question
+    if (/^https?:\/\//.test(settings.repo)) {
+      answers.unshift(settings.repo);
+      settings.repo = 'robot-telepresence';
+    }
     if (!/^[A-Za-z0-9-]+$/.test(settings.user) || !/^[A-Za-z0-9._-]+$/.test(settings.repo)) {
       console.log('That username or repository name is not valid.');
       process.exit(1);
