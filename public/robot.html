@@ -30,9 +30,18 @@
     .stage video { width: 100%; height: 100%; object-fit: contain; position: absolute; inset: 0; }
     .stage .placeholder { color: var(--muted); text-align: center; padding: 20px; display: grid; gap: 12px; justify-items: center; }
     .stage .placeholder svg { width: 48px; height: 48px; opacity: .5; }
+    .stage:fullscreen { aspect-ratio: auto; border: 0; border-radius: 0; }
+    /* The user's camera fills the stage; the robot's own camera shrinks to a corner */
+    .stage.with-user #preview {
+      inset: auto; right: 14px; top: 14px; width: 24%; height: auto; aspect-ratio: 16 / 9;
+      object-fit: cover; border-radius: 10px; border: 1px solid rgb(255 255 255 / .25); background: #000;
+    }
     .overlay { position: absolute; left: 14px; top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
     .chip { background: rgb(0 0 0 / .6); backdrop-filter: blur(6px); border-radius: 8px; padding: 5px 10px; font-size: 13px; font-weight: 600; }
     .live { background: var(--danger); color: #fff; }
+    .stage-btns { position: absolute; left: 14px; bottom: 14px; display: flex; gap: 8px; }
+    .stage-btns button { border: 1px solid rgb(255 255 255 / .2); color: #fff; cursor: pointer; }
+    .stage-btns .sound { background: var(--accent); }
 
     .cmd-display {
       position: absolute; right: 14px; bottom: 14px;
@@ -80,12 +89,17 @@
   </header>
 
   <main>
-    <section class="stage">
+    <section class="stage" id="stage">
       <div class="placeholder" id="placeholder">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
         <p>Camera is off. Choose a camera on the right and press <b>Start camera</b>.</p>
       </div>
+      <video id="userVideo" autoplay playsinline hidden></video>
       <video id="preview" autoplay playsinline muted hidden></video>
+      <div class="stage-btns">
+        <button class="chip sound" id="soundBtn" hidden>🔊 Click to hear the user</button>
+        <button class="chip" id="fullBtn" title="Show on the whole screen">⛶ Full screen</button>
+      </div>
       <div class="overlay">
         <span class="chip live" id="liveChip" hidden>● LIVE TO USER</span>
         <span class="chip mono" id="serialChip" hidden></span>
@@ -99,7 +113,7 @@
 
     <aside>
       <div class="panel">
-        <h2>1 · Camera</h2>
+        <h2>1 · Camera and microphone</h2>
         <select id="cameraSelect"><option value="">Default camera</option></select>
         <button class="btn" id="cameraBtn">Start camera</button>
       </div>

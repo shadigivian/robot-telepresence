@@ -72,6 +72,27 @@ function keepAwake() {
   request();
 }
 
+// Microphone settings for both apps: the speakers play the other side, so
+// echo cancellation keeps it from being sent straight back
+const MIC = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+
+// Plays a remote video with its sound. Browsers block sound until the page
+// has been clicked; then it plays muted and `soundBtn` asks for one click.
+function playWithSound(video, soundBtn) {
+  soundBtn.onclick = () => {
+    video.muted = false;
+    video.play().catch(() => {});
+    soundBtn.hidden = true;
+  };
+  video.muted = false;
+  video.play().then(() => (soundBtn.hidden = true)).catch((err) => {
+    if (err.name !== 'NotAllowedError') return; // e.g. replaced by a newer stream
+    video.muted = true;
+    video.play().catch(() => {});
+    soundBtn.hidden = false;
+  });
+}
+
 function $(sel) { return document.querySelector(sel); }
 
 function setStatus(el, text, state) {

@@ -1,10 +1,15 @@
-// Robot side: streams the camera to the user over WebRTC, receives movement
-// commands on a data channel and forwards them to the ESP32 via Web Serial.
+// Robot side: streams the camera and microphone to the user over WebRTC,
+// shows the user's camera and plays their sound, receives movement commands
+// on a data channel and forwards them to the ESP32 via Web Serial.
 
 const els = {
   netStatus: $('#netStatus'),
   espStatus: $('#espStatus'),
+  stage: $('#stage'),
   preview: $('#preview'),
+  userVideo: $('#userVideo'),
+  soundBtn: $('#soundBtn'),
+  fullBtn: $('#fullBtn'),
   placeholder: $('#placeholder'),
   liveChip: $('#liveChip'),
   serialChip: $('#serialChip'),
@@ -69,17 +74,31 @@ async function startCamera() {
     ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
   };
   try {
-    const newStream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+    let newStream;
+    try {
+      newStream = await navigator.mediaDevices.getUserMedia({ video, audio: MIC });
+    } catch (err) {
+      // No microphone, or it is blocked: carry on with video only
+      newStream = await navigator.mediaDevices.getUserMedia({ video, audio: false });
+      logLine(els.log, `Microphone unavailable (${err.message}). Sending video without sound.`, 'err');
+    }
     newStream.getVideoTracks().forEach((t) => (t.contentHint = 'motion'));
 
-    // Switching camera mid-call: swap the track without renegotiating
+    // Switching camera mid-call: swap the tracks without renegotiating.
+    // If the microphone came or went, place the call again instead.
     const hadStream = !!stream;
-    if (userCall) {
-      const sender = userCall.peerConnection.getSenders().find((s) => s.track && s.track.kind === 'video');
-      if (sender) await sender.replaceTrack(newStream.getVideoTracks()[0]);
+    const kinds = (s) => s.getTracks().map((t) => t.kind).sort().join();
+    const sameKinds = hadStream && kinds(stream) === kinds(newStream);
+    if (userCall && sameKinds) {
+      for (const sender of userCall.peerConnection.getSenders()) {
+        if (!sender.track) continue;
+        const next = newStream.getTracks().find((t) => t.kind === sender.track.kind);
+        if (next) await sender.replaceTrack(next);
+      }
     }
     if (stream) stream.getTracks().forEach((t) => t.stop());
     stream = newStream;
+    if (userCall && !sameKinds) startVideo();
 
     els.preview.srcObject = stream;
     els.preview.hidden = false;
@@ -89,7 +108,7 @@ async function startCamera() {
     if (!hadStream) startVideo(); // a user was already waiting for video
     if (!wantOnline) els.onlineNote.textContent = 'Type this number into the User app to connect.';
     const s = stream.getVideoTracks()[0].getSettings();
-    logLine(els.log, `Camera on (${s.width}×${s.height})`);
+    logLine(els.log, `Camera on (${s.width}×${s.height})${stream.getAudioTracks().length ? ' with microphone' : ''}`);
     await listCameras();
   } catch (err) {
     logLine(els.log, `Camera error: ${err.message}`, 'err');
@@ -264,11 +283,38 @@ function startVideo() {
       describeRoute(pc).then((route) => logLine(els.log, `Video streaming to user (${route})`));
     }
   });
+  // The user answers with their own camera and microphone (if they allowed them)
+  call.on('stream', (remote) => { if (call === userCall) showUser(remote); });
   call.on('close', () => {
-    if (call === userCall) { userCall = null; els.liveChip.hidden = true; els.rtcState.textContent = '—'; }
+    if (call === userCall) { userCall = null; els.liveChip.hidden = true; els.rtcState.textContent = '—'; hideUser(); }
   });
   call.on('error', (err) => logLine(els.log, `Video error: ${err.message || err.type}`, 'err'));
 }
+
+// ---------- The user's camera and sound ----------
+
+function showUser(remote) {
+  // Fires once per incoming track, with the same stream
+  const first = els.userVideo.srcObject !== remote;
+  els.userVideo.srcObject = remote;
+  const hasVideo = remote.getVideoTracks().length > 0;
+  els.userVideo.hidden = !hasVideo;
+  els.stage.classList.toggle('with-user', hasVideo);
+  playWithSound(els.userVideo, els.soundBtn);
+  if (first) logLine(els.log, 'Receiving the user\'s camera and sound');
+}
+
+function hideUser() {
+  els.userVideo.srcObject = null;
+  els.userVideo.hidden = true;
+  els.soundBtn.hidden = true;
+  els.stage.classList.remove('with-user');
+}
+
+els.fullBtn.onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else els.stage.requestFullscreen().catch(() => {});
+};
 
 // Direct (same network or punched through NAT) or relayed via TURN
 async function describeRoute(pc) {
@@ -292,6 +338,7 @@ function dropUser(reason, notify = false) {
   userCall = null;
   if (call) call.close();
   if (conn) setTimeout(() => conn.close(), notify ? 300 : 0);
+  hideUser();
   els.liveChip.hidden = true;
   els.rtcState.textContent = '—';
   if (wantOnline) els.userState.textContent = 'Waiting…';

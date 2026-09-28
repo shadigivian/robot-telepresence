@@ -1,6 +1,7 @@
-// User side: finds the robot by serial number, shows its camera and sends
-// movement commands. Once connected, the session stays up until the user
-// presses hang up: any drop triggers automatic reconnection.
+// User side: finds the robot by serial number, shows its camera and plays its
+// sound, sends back this laptop's camera and microphone, and sends movement
+// commands. Once connected, the session stays up until the user presses hang
+// up: any drop triggers automatic reconnection.
 
 const els = {
   join: $('#join'),
@@ -23,8 +24,14 @@ const els = {
   fullBtn: $('#fullBtn'),
   speed: $('#speed'),
   speedOut: $('#speedOut'),
+  selfView: $('#selfView'),
+  soundBtn: $('#soundBtn'),
+  micBtn: $('#micBtn'),
+  camBtn: $('#camBtn'),
 };
 
+let localStream = null;  // this laptop's camera and microphone, sent to the robot
+let mediaNote = null;    // why they could not (all) be started, shown once in the call
 let peer = null;
 let conn = null;
 let call = null;
@@ -57,7 +64,7 @@ function userPeerId(fresh = false) {
 const params = new URLSearchParams(location.search);
 try { els.serialInput.value = params.get('serial') || localStorage.getItem('lastRobot') || ''; } catch {}
 
-els.joinForm.onsubmit = (e) => {
+els.joinForm.onsubmit = async (e) => {
   e.preventDefault();
   serial = normalizeSerial(els.serialInput.value);
   if (!isValidSerial(serial)) {
@@ -67,11 +74,82 @@ els.joinForm.onsubmit = (e) => {
   try { localStorage.setItem('lastRobot', serial); } catch {}
   showJoinError(null);
   els.joinBtn.disabled = true;
+  els.joinBtn.textContent = 'Starting camera…';
+  await startLocalMedia();
   els.joinBtn.textContent = 'Finding robot…';
   wantConnected = true;
   everConnected = false;
   attempt = 0;
   connect();
+};
+
+// Camera and microphone. Either may be missing or blocked; the call still
+// works, the robot just gets less.
+async function startLocalMedia() {
+  if (localStream) return;
+  const video = { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } };
+  mediaNote = null;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video, audio: MIC });
+  } catch {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: MIC });
+      mediaNote = 'Camera not available: the robot hears you but cannot see you.';
+    } catch {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video });
+        mediaNote = 'Microphone not available: the robot sees you but cannot hear you.';
+      } catch {
+        localStream = null;
+        mediaNote = 'Camera and microphone not available: the robot cannot see or hear you.';
+      }
+    }
+  }
+  updateMediaButtons();
+}
+
+function stopLocalMedia() {
+  if (localStream) localStream.getTracks().forEach((t) => t.stop());
+  localStream = null;
+  els.selfView.srcObject = null;
+  els.selfView.hidden = true;
+}
+
+const ICONS = {
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/></svg>',
+  micOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9.3V5a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 5.1 2.1M19 10a7 7 0 0 1-1.2 3.9M5 10a7 7 0 0 0 11.2 5.6M12 17v5M3 3l18 18"/></svg>',
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>',
+  camOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M13 18H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2M9 6h4a2 2 0 0 1 2 2v4M3 3l18 18"/></svg>',
+};
+
+// Mute buttons switch the tracks off without ending the call
+function updateMediaButtons() {
+  const mic = localStream && localStream.getAudioTracks()[0];
+  const cam = localStream && localStream.getVideoTracks()[0];
+  els.micBtn.hidden = !mic;
+  els.camBtn.hidden = !cam;
+  if (mic) {
+    els.micBtn.innerHTML = mic.enabled ? ICONS.mic : ICONS.micOff;
+    els.micBtn.classList.toggle('off', !mic.enabled);
+    els.micBtn.title = mic.enabled ? 'Mute microphone' : 'Unmute microphone';
+  }
+  if (cam) {
+    els.camBtn.innerHTML = cam.enabled ? ICONS.cam : ICONS.camOff;
+    els.camBtn.classList.toggle('off', !cam.enabled);
+    els.camBtn.title = cam.enabled ? 'Turn camera off' : 'Turn camera on';
+  }
+  els.selfView.hidden = !cam || !cam.enabled;
+}
+
+els.micBtn.onclick = () => {
+  const mic = localStream && localStream.getAudioTracks()[0];
+  if (mic) mic.enabled = !mic.enabled;
+  updateMediaButtons();
+};
+els.camBtn.onclick = () => {
+  const cam = localStream && localStream.getVideoTracks()[0];
+  if (cam) cam.enabled = !cam.enabled;
+  updateMediaButtons();
 };
 
 // Opened from an invite link (…/user?serial=RB-XXXX): connect right away
@@ -95,7 +173,9 @@ function hangUp(error) {
   sendCommand('S');
   closeLink();
   if (peer) { peer.destroy(); peer = null; }
+  stopLocalMedia();
   els.remote.srcObject = null;
+  els.soundBtn.hidden = true;
   els.rttPill.hidden = true;
   els.espPill.hidden = true;
   els.routePill.hidden = true;
@@ -190,16 +270,17 @@ async function startPeer() {
   // Also fires after a matchmaking reconnect; only dial if the link is down
   p.on('open', () => { if (p === peer && !linkUp) connect(); });
 
-  // The robot calls us with its video once the control channel is open
+  // The robot calls us with its video and sound once the control channel is
+  // open; we answer with our own camera and microphone
   p.on('call', (incoming) => {
     if (p !== peer) return;
     if (call) call.close();
     call = incoming;
-    incoming.answer(); // receive only, we send no camera
+    incoming.answer(localStream || undefined);
     incoming.on('stream', (stream) => {
       if (incoming !== call) return;
       els.remote.srcObject = stream;
-      els.remote.play().catch(() => {});
+      playWithSound(els.remote, els.soundBtn);
     });
     incoming.peerConnection.addEventListener('connectionstatechange', () => {
       if (incoming !== call) return;
@@ -288,6 +369,9 @@ function enterCall() {
   els.call.hidden = false;
   els.robotName.textContent = serial;
   showOverlay('Connected. Waiting for video…');
+  els.selfView.srcObject = localStream;
+  updateMediaButtons();
+  if (mediaNote) toast(mediaNote);
 }
 
 function showOverlay(html) {
