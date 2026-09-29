@@ -113,6 +113,25 @@ Serial protocol (115200 baud, one command per line): `F 200` forward, `B 200` ba
 | *ESP32 not answering* | The port works but the robot sketch isn't on the board (new boards run factory firmware). Upload `robot_controller.ino` with the Arduino IDE: board **ESP32 Dev Module**, the ESP32's COM port. |
 | Arduino IDE can't install *esp32* boards (`403 Forbidden`) | `downloads.arduino.cc` is blocked from some connections. Use a VPN for the install.
 
+## Arduino Uno instead of the ESP32
+
+`arduino/robot_controller_uno/robot_controller_uno.ino` is the same controller for an Arduino Uno. The robot page works unchanged.
+
+1. Arduino IDE: open the sketch, choose board **Arduino Uno** and the Uno's COM port, press **Upload**.
+2. Robot page: **Connect ESP32**, pick the Uno (*Arduino Uno* or *USB-SERIAL CH340*). The Uno restarts when connected and answers about 2 seconds later.
+
+| L298N | Uno pin |
+|---|---|
+| ENA (left speed) | 5 (PWM) |
+| IN1 (left forward) | 7 |
+| IN2 (left backward) | 8 |
+| ENB (right speed) | 6 (PWM) |
+| IN3 (right forward) | 11 |
+| IN4 (right backward) | 12 |
+| GND | GND |
+
+With no motors, the **L** LED (pin 13) lights while moving. Clone Unos use a CH340 chip: if Windows doesn't show a COM port for it, install the [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html).
+
 ## Files
 
 ```

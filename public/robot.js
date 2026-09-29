@@ -463,6 +463,8 @@ const USB_SERIAL_CHIPS = [
   { usbVendorId: 0x1a86 }, // WCH CH340 / CH9102
   { usbVendorId: 0x0403 }, // FTDI
   { usbVendorId: 0x303a }, // Espressif native USB (S2, S3, C3...)
+  { usbVendorId: 0x2341 }, // Arduino (genuine Uno, Mega...)
+  { usbVendorId: 0x2a03 }, // Arduino (arduino.org boards)
 ];
 let showAllPorts = false;  // after an empty chooser, offer every port next time
 let espAnswered = false;
