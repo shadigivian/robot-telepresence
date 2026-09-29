@@ -471,6 +471,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function connectESP() {
   try {
     port = await navigator.serial.requestPort(showAllPorts ? {} : { filters: USB_SERIAL_CHIPS });
+    // Bluetooth COM ports have no USB id: they can never be the ESP32
+    if (port.getInfo().usbVendorId === undefined) {
+      port = null;
+      els.serialNote.textContent = 'That is a Bluetooth port, not the ESP32. The ESP32 is not reaching this laptop: ' +
+        'plug it in with a USB cable that carries data (many only charge), check its red power light is on, then press Connect ESP32 ' +
+        'and pick "CP2102 USB to UART Bridge Controller".';
+      els.serialNote.classList.add('warn');
+      return;
+    }
     await port.open({ baudRate: Number(els.baudSelect.value) });
   } catch (err) {
     port = null;
