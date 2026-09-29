@@ -456,22 +456,24 @@ if (!('serial' in navigator)) {
   els.serialNote.classList.add('warn');
 }
 
-// USB-to-serial chips used on ESP32 boards. Listing only these keeps
-// Bluetooth and other COM ports out of the chooser.
+// USB-to-serial chips used on ESP32 boards. The chooser only ever lists
+// these: Bluetooth devices (headphones, phones) also appear as serial ports,
+// and picking one looked like a connected ESP32.
 const USB_SERIAL_CHIPS = [
   { usbVendorId: 0x10c4 }, // Silicon Labs CP210x
   { usbVendorId: 0x1a86 }, // WCH CH340 / CH9102
   { usbVendorId: 0x0403 }, // FTDI
   { usbVendorId: 0x303a }, // Espressif native USB (S2, S3, C3...)
+  { usbVendorId: 0x067b }, // Prolific PL2303
+  { usbVendorId: 0x2341 }, // Arduino
 ];
-let showAllPorts = false;  // after an empty chooser, offer every port next time
 let espAnswered = false;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function connectESP() {
   try {
-    port = await navigator.serial.requestPort(showAllPorts ? {} : { filters: USB_SERIAL_CHIPS });
-    // Bluetooth COM ports have no USB id: they can never be the ESP32
+    port = await navigator.serial.requestPort({ filters: USB_SERIAL_CHIPS });
+    // Second line of defence: a port without a USB id is Bluetooth, never the ESP32
     if (port.getInfo().usbVendorId === undefined) {
       port = null;
       els.serialNote.textContent = 'That is a Bluetooth port, not the ESP32. The ESP32 is not reaching this laptop: ' +
@@ -484,10 +486,10 @@ async function connectESP() {
   } catch (err) {
     port = null;
     if (err.name === 'NotFoundError') {
-      // Chooser closed with nothing picked: often no driver, or a charge-only cable
-      showAllPorts = true;
-      els.serialNote.textContent = 'No ESP32 selected. If it was not in the list: use a USB cable that carries data (some are charge-only) ' +
-        'and install the driver for its USB chip, CP210x (silabs.com) or CH340 (wch-ic.com). Press Connect ESP32 again to see every port.';
+      // Chooser closed with nothing picked, or it was empty: the board is not reaching the laptop
+      els.serialNote.textContent = 'No ESP32 found. Plug it in with a USB cable that carries data (many only charge), ' +
+        'check its red power light is on, and install the driver for its USB chip if needed: CP210x (silabs.com) or CH340 (wch-ic.com). ' +
+        'Then press Connect ESP32 again.';
       els.serialNote.classList.add('warn');
     } else {
       logLine(els.log, `Serial error: ${err.message}`, 'err');
@@ -527,7 +529,6 @@ async function helloESP() {
 function onESPAnswer() {
   if (espAnswered) return;
   espAnswered = true;
-  showAllPorts = false;
   setStatus(els.espStatus, 'ESP32 connected', 'ok');
   els.serialNote.textContent = 'ESP32 ready. Commands go to the motors.';
   els.serialNote.classList.remove('warn');
