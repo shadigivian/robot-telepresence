@@ -4,13 +4,13 @@ Two web apps that pair by serial number, over the internet:
 
 | App | Opened on | Does |
 |---|---|---|
-| **Robot Station** (`robot.html`) | Robot laptop, Chrome or Edge | Streams the webcam and microphone, shows the user's camera or shared screen with their voice, goes online under a serial number, drives the ESP32 over USB, shows the invite link |
+| **Robot Station** (`robot.html`) | Robot laptop, Chrome or Edge | Streams the webcam and microphone, shows the user's camera or shared screen with their voice, goes online under a serial number, drives the Arduino Uno over USB, shows the invite link |
 | **Robot Control** (`user.html`) | Anyone's browser, from the invite link | Watch and hear the robot full screen, talk back with camera and microphone, share the screen, drive with the D-pad or keyboard |
 
 Both pages are hosted for free on **GitHub Pages**. The robot and the user can be anywhere, on any network.
 
 ```
- Driver's browser        GitHub Pages (hosts both pages)        Robot laptop's browser       ESP32
+ Driver's browser        GitHub Pages (hosts both pages)        Robot laptop's browser     Arduino Uno
  ┌──────────────┐                                              ┌──────────────────┐  USB  ┌────────┐
  │ user.html    │   ┌────────────────────────────────────┐     │ robot.html       │ ────▶ │ motors │
  │ ?serial=RB-… │──▶│ Matchmaking (PeerJS): finds robot  │◀────│ webcam           │       └────────┘
@@ -51,7 +51,7 @@ You need: this folder on the robot laptop, [Node.js](https://nodejs.org) and [Gi
 **Robot laptop**
 1. In Chrome or Edge, open `https://YOUR-NAME.github.io/robot-telepresence/robot.html` and bookmark it.
 2. Press **Start camera** (allow the camera and microphone), then **Go online**. The status turns green: `Online · RB-XXXXXX`.
-3. Optional: **Connect ESP32** and choose its COM port.
+3. Plug in the Arduino Uno and press **Connect Arduino** (the first time, pick the Uno in the list). After that it connects by itself whenever the page opens or the Uno is plugged in.
 4. Press **Copy link** in the **Invite link** box and send the link (WhatsApp, email...).
 5. Optional: press **Full screen** on the video so the robot's screen shows the user's face.
 
@@ -94,43 +94,50 @@ The laptops first try to connect **directly**, which works on most home and offi
 | Indicator | Meaning |
 |---|---|
 | `Direct` / `Via relay` | Video goes straight between the laptops, or through the TURN relay |
-| `ESP32 connected` / `Simulation` | Whether the robot has an ESP32 attached |
+| `Arduino connected` / `Simulation` | Whether the robot has its Arduino Uno attached |
 | `Robot mic off` | Someone at the robot muted its microphone |
 | `45 ms` | Round-trip time for commands |
 
-## ESP32
+## Arduino Uno
 
-Upload `esp32/robot_controller/robot_controller.ino` with the Arduino IDE (ESP32 board package installed). The L298N wiring is listed at the top of the file. On a bare board, the built-in LED lights while a move command is active.
+The robot page drives the motors through an **Arduino Uno** on the robot laptop's USB port.
 
-Serial protocol (115200 baud, one command per line): `F 200` forward, `B 200` backward, `L 200` spin left, `R 200` spin right (speed 0 to 255), `S` stop. `?` makes it reply `READY robot_controller`; the robot page sends it on connect to check the sketch is running. The ESP32 replies `OK <cmd>` when the command changes, and it stops by itself if no command arrives for 500 ms.
+**Upload the sketch (once)**
+1. Plug the Uno into the laptop. Windows shows it as *Arduino Uno (COMx)*, or *USB-SERIAL CH340 (COMx)* for most clones.
+2. In the Arduino IDE, open `arduino/robot_controller_uno/robot_controller_uno.ino`, choose board **Arduino Uno** and the Uno's COM port, and press **Upload**.
 
-**If the robot page can't reach the ESP32:**
+**Connect it to the robot page:** press **Connect Arduino** and pick the Uno. The page restarts the Uno and turns green (*Arduino connected*) about a second later. From then on it connects by itself when the page opens or the Uno is plugged in.
+
+**Wiring** (L298N or similar dual H-bridge driver; remove its ENA/ENB jumpers so speed control works):
+
+| L298N | Uno pin | Test LED meaning |
+|---|---|---|
+| ENA | 5 (PWM) | Left motor speed |
+| IN1 | 7 | Left forward |
+| IN2 | 8 | Left backward |
+| ENB | 6 (PWM) | Right motor speed |
+| IN3 | 11 | Right forward |
+| IN4 | 12 | Right backward |
+| GND | GND | Ground, shared with the driver |
+
+![Arduino Uno LED test wiring](docs/arduino-uno-wiring.png)
+
+With no motors, the Uno's **L** LED (pin 13) lights while a move command is active. To test with LEDs instead of motors: pin → 220 Ω resistor → LED long leg; LED short leg → GND.
+
+**Serial protocol** (115200 baud, one command per line): `F 200` forward, `B 200` backward, `L 200` spin left, `R 200` spin right (speed 0 to 255), `S` stop. `?` makes it reply `READY robot_controller`; the robot page uses it to check the sketch is running. The Uno replies `OK <cmd>` when the command changes, and it stops by itself if no command arrives for 500 ms.
+
+**If the robot page can't reach the Uno:**
 
 | What you see | Cause and fix |
 |---|---|
-| The ESP32 isn't in the port list | No USB driver. In Device Manager it shows as *CP2102 USB to UART Bridge Controller* with a warning sign. Install the [CP210x driver](https://www.silabs.com/developer-tools/usb-to-uart-bridge-vcp-drivers) (or the CH340 driver for boards with that chip). Also try another cable: some USB cables only charge. |
-| Only *Bluetooth* COM ports are offered | Same as above. Bluetooth ports can't reach the ESP32. |
-| *ESP32 not answering* | The port works but the robot sketch isn't on the board (new boards run factory firmware). Upload `robot_controller.ino` with the Arduino IDE: board **ESP32 Dev Module**, the ESP32's COM port. |
-| Arduino IDE can't install *esp32* boards (`403 Forbidden`) | `downloads.arduino.cc` is blocked from some connections. Use a VPN for the install.
+| *No Arduino found* | The Uno isn't reaching the laptop. Use a USB cable that carries data (for a genuine Uno, the square "printer" USB-B cable); the green **ON** light must be lit; try another USB port. Clone boards need the [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html). |
+| *Arduino not answering* | The robot sketch isn't on the Uno. Upload `robot_controller_uno.ino` as above. |
+| *Arduino port busy* | Another program has the Uno's port: the Arduino IDE (Serial Monitor or an upload) or another Robot Station tab. Close it and press **Connect Arduino**. |
+| The Arduino IDE can't upload: port busy | The robot page has the port. Press **Disconnect Arduino** (or close the robot page) while uploading. |
 
-## Arduino Uno instead of the ESP32
+## ESP32 (alternative board)
 
-`arduino/robot_controller_uno/robot_controller_uno.ino` is the same controller for an Arduino Uno. The robot page works unchanged.
-
-1. Arduino IDE: open the sketch, choose board **Arduino Uno** and the Uno's COM port, press **Upload**.
-2. Robot page: **Connect ESP32**, pick the Uno (*Arduino Uno* or *USB-SERIAL CH340*). The Uno restarts when connected and answers about 2 seconds later.
-
-| L298N | Uno pin |
-|---|---|
-| ENA (left speed) | 5 (PWM) |
-| IN1 (left forward) | 7 |
-| IN2 (left backward) | 8 |
-| ENB (right speed) | 6 (PWM) |
-| IN3 (right forward) | 11 |
-| IN4 (right backward) | 12 |
-| GND | GND |
-
-With no motors, the **L** LED (pin 13) lights while moving. Clone Unos use a CH340 chip: if Windows doesn't show a COM port for it, install the [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html).
+`esp32/robot_controller/robot_controller.ino` is the same controller for an ESP32 (pins listed at the top of the file). The robot page accepts it too, as long as its USB chip is a CP210x or CH340. Installing the ESP32 boards in the Arduino IDE needs `downloads.arduino.cc`, which is blocked from some connections; use a VPN for that install.
 
 ## Files
 
@@ -145,7 +152,8 @@ public/robot.html, robot.js        Robot Station
 public/user.html, user.js          Robot Control
 public/common.js                   connection helpers, D-pad, keyboard
 public/vendor/peerjs.min.js        PeerJS 1.5.4 (WebRTC + matchmaking client)
-esp32/robot_controller/            Arduino sketch
+arduino/robot_controller_uno/      Arduino Uno sketch (the robot's board)
+esp32/robot_controller/            ESP32 sketch (alternative board)
 ```
 
 ## Notes for later

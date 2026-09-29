@@ -1,6 +1,6 @@
 // Shared helpers for robot.html and user.html
 
-// Movement commands shared by both apps and the ESP32 sketch
+// Movement commands shared by both apps and the Arduino sketch
 const COMMANDS = {
   F: 'Forward',
   B: 'Backward',
@@ -119,7 +119,7 @@ const ARROW = {
   R: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
 };
 
-// How often a held direction is re-sent. The ESP32 stops the motors if it
+// How often a held direction is re-sent. The Arduino stops the motors if it
 // hears nothing for 500 ms, so a dropped connection can never leave the
 // robot driving on its own.
 const REPEAT_MS = 150;

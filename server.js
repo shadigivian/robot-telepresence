@@ -7,7 +7,7 @@
 // The robot and the user find each other through a public matchmaking
 // server (see public/config.js), so they can be on different networks.
 // Opening the robot page from http://localhost matters: browsers only allow
-// the camera and Web Serial (ESP32) on secure pages, and localhost is one.
+// the camera and Web Serial (Arduino) on secure pages, and localhost is one.
 const http = require('http');
 const https = require('https');
 const fs = require('fs');

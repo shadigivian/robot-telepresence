@@ -86,7 +86,7 @@
     <span class="badge">ROBOT SIDE</span>
     <div class="spacer"></div>
     <span id="netStatus" class="status" data-state="idle">Offline</span>
-    <span id="espStatus" class="status" data-state="idle">ESP32 not connected</span>
+    <span id="boardStatus" class="status" data-state="idle">Arduino not connected</span>
   </header>
 
   <main>
@@ -142,14 +142,9 @@
       </div>
 
       <div class="panel">
-        <h2>3 · ESP32 (USB)</h2>
-        <div class="row">
-          <select id="baudSelect" style="flex:none; width:auto" aria-label="Baud rate">
-            <option>9600</option><option>57600</option><option selected>115200</option>
-          </select>
-          <button class="btn" id="espBtn">Connect ESP32</button>
-        </div>
-        <p class="note" id="serialNote">No ESP32? The robot runs in simulation mode, and every command still shows on screen.</p>
+        <h2>3 · Arduino Uno (USB)</h2>
+        <button class="btn" id="boardBtn">Connect Arduino</button>
+        <p class="note" id="serialNote">Plug in the Uno running <b>robot_controller_uno.ino</b>, then press Connect Arduino. No Arduino? The robot runs in simulation mode, and every command still shows on screen.</p>
         <div class="test"><div id="testPad"></div></div>
         <p class="note" style="text-align:center">Test the motors here, or with the arrow keys</p>
       </div>

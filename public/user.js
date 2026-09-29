@@ -15,7 +15,7 @@ const els = {
   waitingText: $('#waitingText'),
   robotName: $('#robotName'),
   linkStatus: $('#linkStatus'),
-  espPill: $('#espPill'),
+  boardPill: $('#boardPill'),
   routePill: $('#routePill'),
   rttPill: $('#rttPill'),
   hudCmd: $('#hudCmd'),
@@ -248,7 +248,7 @@ function hangUp(error) {
   els.remote.srcObject = null;
   els.soundBtn.hidden = true;
   els.rttPill.hidden = true;
-  els.espPill.hidden = true;
+  els.boardPill.hidden = true;
   els.robotMicPill.hidden = true;
   els.routePill.hidden = true;
   showCmd('S');
@@ -479,13 +479,13 @@ function onRobotMessage(msg) {
       break;
     }
     case 'status':
-      els.espPill.hidden = false;
-      els.espPill.textContent = msg.esp ? 'ESP32 connected' : 'Simulation (no ESP32)';
-      els.espPill.className = `pill ${msg.esp ? 'hw' : 'sim'}`;
+      els.boardPill.hidden = false;
+      els.boardPill.textContent = msg.board ? 'Arduino connected' : 'Simulation (no Arduino)';
+      els.boardPill.className = `pill ${msg.board ? 'hw' : 'sim'}`;
       els.robotMicPill.hidden = msg.mic !== false;
       break;
-    case 'esp':
-      toast(`ESP32: ${msg.line}`);
+    case 'board':
+      toast(`Arduino: ${msg.line}`);
       break;
     case 'busy':
       hangUp(`Robot ${serial} is already being controlled by someone else.`);

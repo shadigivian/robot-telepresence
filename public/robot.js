@@ -1,10 +1,10 @@
 // Robot side: streams the camera and microphone to the user over WebRTC,
 // shows the user's camera and plays their sound, receives movement commands
-// on a data channel and forwards them to the ESP32 via Web Serial.
+// on a data channel and forwards them to the Arduino Uno via Web Serial.
 
 const els = {
   netStatus: $('#netStatus'),
-  espStatus: $('#espStatus'),
+  boardStatus: $('#boardStatus'),
   stage: $('#stage'),
   preview: $('#preview'),
   userVideo: $('#userVideo'),
@@ -24,8 +24,7 @@ const els = {
   randomBtn: $('#randomBtn'),
   onlineBtn: $('#onlineBtn'),
   onlineNote: $('#onlineNote'),
-  baudSelect: $('#baudSelect'),
-  espBtn: $('#espBtn'),
+  boardBtn: $('#boardBtn'),
   serialNote: $('#serialNote'),
   userState: $('#userState'),
   rtcState: $('#rtcState'),
@@ -391,7 +390,7 @@ function sendDC(msg) {
 
 function sendStatus() {
   const mic = !!stream && stream.getAudioTracks().length > 0 && !micMuted;
-  sendDC({ t: 'status', esp: !!port && espAnswered, cmd: currentCmd, mic });
+  sendDC({ t: 'status', board: !!port && boardAnswered, cmd: currentCmd, mic });
 }
 
 let cmdCount = 0;
@@ -423,7 +422,7 @@ function drive(cmd, source, newSpeed) {
   const changed = cmd !== currentCmd;
   if (cmd === 'S' && !changed && source !== 'user' && source !== 'local') return;
 
-  // Always forward to the ESP32: repeats keep its safety watchdog fed
+  // Always forward to the Arduino: repeats keep its safety watchdog fed
   writeSerial(cmd === 'S' ? 'S' : `${cmd} ${speed}`);
 
   if (changed) {
@@ -443,109 +442,150 @@ setInterval(() => {
 
 createDpad($('#testPad'), (cmd) => drive(cmd, 'local'));
 
-// ---------- ESP32 over Web Serial ----------
+// ---------- Arduino Uno over Web Serial ----------
+//
+// The Uno runs arduino/robot_controller_uno/robot_controller_uno.ino and takes
+// one command per line at 115200 baud ("F 200", "S", "?"). Opening its port
+// restarts the Uno; the sketch then says READY about a second later.
 
 let port = null;
 let writer = null;
 let reader = null;
 const encoder = new TextEncoder();
 
-if (!('serial' in navigator)) {
-  els.espBtn.disabled = true;
-  els.serialNote.textContent = 'This browser has no Web Serial support. Use Chrome or Edge on the robot laptop. Simulation mode still works.';
-  els.serialNote.classList.add('warn');
-}
+const BAUD = 115200; // must match Serial.begin() in the Uno sketch
 
-// USB-to-serial chips used on ESP32 boards. Listing only these keeps
-// Bluetooth and other COM ports out of the chooser.
-const USB_SERIAL_CHIPS = [
-  { usbVendorId: 0x10c4 }, // Silicon Labs CP210x
-  { usbVendorId: 0x1a86 }, // WCH CH340 / CH9102
-  { usbVendorId: 0x0403 }, // FTDI
-  { usbVendorId: 0x303a }, // Espressif native USB (S2, S3, C3...)
-  { usbVendorId: 0x2341 }, // Arduino (genuine Uno, Mega...)
+// USB ids of Uno boards: genuine ones and the chips clones use. The chooser
+// lists only these, so Bluetooth devices (headphones, phones), which Windows
+// also shows as serial ports, never appear.
+const UNO_USB_IDS = [
+  { usbVendorId: 0x2341 }, // Arduino (genuine Uno)
   { usbVendorId: 0x2a03 }, // Arduino (arduino.org boards)
+  { usbVendorId: 0x1a86 }, // WCH CH340: most Uno clones
+  { usbVendorId: 0x0403 }, // FTDI: older boards, USB adapters
+  { usbVendorId: 0x10c4 }, // Silicon Labs CP210x: some clones
 ];
-let showAllPorts = false;  // after an empty chooser, offer every port next time
-let espAnswered = false;
+const isUno = (p) => UNO_USB_IDS.some((f) => f.usbVendorId === p.getInfo().usbVendorId);
+
+const CH340_DRIVER = '<a href="https://www.wch-ic.com/downloads/CH341SER_EXE.html" target="_blank" rel="noopener">CH340 driver</a>';
+
+let boardAnswered = false;
+let manualDisconnect = false; // "Disconnect" pressed: don't reconnect on our own
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function connectESP() {
+// Only fixed text from this file goes in here, never device data
+function boardNote(html, warn = true) {
+  els.serialNote.innerHTML = html;
+  els.serialNote.classList.toggle('warn', warn);
+}
+
+if (!('serial' in navigator)) {
+  els.boardBtn.disabled = true;
+  boardNote('This browser cannot talk to the Arduino (no Web Serial). Use <b>Chrome</b> or <b>Edge</b> on the robot laptop. Simulation mode still works.');
+}
+
+// Unos this site was allowed to use before (Bluetooth ports are skipped)
+async function knownUnos() {
+  if (!('serial' in navigator)) return [];
+  return (await navigator.serial.getPorts()).filter(isUno);
+}
+
+// The button: reuse the Uno allowed before, otherwise ask which one it is
+async function connectBoard() {
+  manualDisconnect = false;
+  const [known] = await knownUnos();
+  if (known) return openBoard(known);
+  let chosen;
   try {
-    port = await navigator.serial.requestPort(showAllPorts ? {} : { filters: USB_SERIAL_CHIPS });
-    await port.open({ baudRate: Number(els.baudSelect.value) });
-  } catch (err) {
-    port = null;
-    if (err.name === 'NotFoundError') {
-      // Chooser closed with nothing picked: often no driver, or a charge-only cable
-      showAllPorts = true;
-      els.serialNote.textContent = 'No ESP32 selected. If it was not in the list: use a USB cable that carries data (some are charge-only) ' +
-        'and install the driver for its USB chip, CP210x (silabs.com) or CH340 (wch-ic.com). Press Connect ESP32 again to see every port.';
-      els.serialNote.classList.add('warn');
-    } else {
-      logLine(els.log, `Serial error: ${err.message}`, 'err');
-    }
+    chosen = await navigator.serial.requestPort({ filters: UNO_USB_IDS });
+  } catch {
+    // Closed with nothing picked, or the list was empty: the Uno isn't reaching the laptop
+    boardNote('No Arduino found. Plug the Uno in with its USB cable (it must carry data; the green <b>ON</b> light should be lit), ' +
+      `then press <b>Connect Arduino</b> again. Clone boards also need the ${CH340_DRIVER}.`);
     return;
   }
-  // Release the reset lines so the board runs its sketch rather than staying in reset
-  try { await port.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch {}
-  writer = port.writable.getWriter();
-  setStatus(els.espStatus, 'ESP32 connecting…', 'wait');
-  els.espBtn.textContent = 'Disconnect ESP32';
-  els.baudSelect.disabled = true;
-  logLine(els.log, `Serial port open @ ${els.baudSelect.value} baud. Checking the ESP32 answers…`);
-  readLoop();
-  helloESP();
+  return openBoard(chosen);
 }
 
-// Ask the sketch to identify itself. No answer means something else is on the
-// port: factory firmware, a different sketch, the wrong baud rate.
-async function helloESP() {
+async function openBoard(p) {
+  if (port) return;
+  setStatus(els.boardStatus, 'Arduino connecting…', 'wait');
+  try {
+    await p.open({ baudRate: BAUD });
+  } catch (err) {
+    const busy = err.name === 'InvalidStateError' || /failed to open/i.test(err.message);
+    setStatus(els.boardStatus, busy ? 'Arduino port busy' : 'Arduino error', 'error');
+    boardNote(busy
+      ? 'The Arduino is in use by another program. Close the Arduino IDE (Serial Monitor or an upload) and any other Robot Station tab, then press <b>Connect Arduino</b>.'
+      : 'Could not open the Arduino port. Unplug the Uno, plug it back in, and press <b>Connect Arduino</b>.');
+    logLine(els.log, `Serial error: ${err.message}`, 'err');
+    return;
+  }
+  port = p;
+  writer = port.writable.getWriter();
+  els.boardBtn.textContent = 'Disconnect Arduino';
+  logLine(els.log, 'Arduino port open. Restarting the Uno…');
+  readLoop();
+  await restartUno();
+  helloBoard();
+}
+
+// Restart the Uno so the sketch starts fresh with the motors stopped. The
+// Uno resets when DTR switches on (the same thing the Arduino IDE does).
+async function restartUno() {
+  try {
+    await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+    await sleep(100);
+    await port.setSignals({ dataTerminalReady: true, requestToSend: true });
+  } catch {}
+}
+
+// The sketch says READY after each restart. "?" asks again, for boards that
+// did not restart. No answer means the robot sketch is not on the board.
+async function helloBoard() {
   const p = port;
-  espAnswered = false;
-  for (const wait of [300, 1500, 1500]) { // the board may be restarting after the port opened
+  boardAnswered = false;
+  for (const wait of [1200, 1500, 1500]) {
     await sleep(wait);
-    if (port !== p || espAnswered) return;
+    if (port !== p || boardAnswered) return;
     writeSerial('?');
   }
-  await sleep(1500);
-  if (port !== p || espAnswered) return;
-  setStatus(els.espStatus, 'ESP32 not answering', 'error');
-  els.serialNote.textContent = 'The port is open, but the ESP32 is not answering. Upload esp32/robot_controller/robot_controller.ino ' +
-    'to it with the Arduino IDE, and check the baud rate is 115200. Commands still show here in the meantime.';
-  els.serialNote.classList.add('warn');
-  logLine(els.log, 'ESP32 is not answering: is robot_controller.ino uploaded?', 'err');
+  await sleep(2000);
+  if (port !== p || boardAnswered) return;
+  setStatus(els.boardStatus, 'Arduino not answering', 'error');
+  boardNote('The Uno is connected, but the robot sketch is not answering. In the Arduino IDE, open ' +
+    '<b>arduino/robot_controller_uno/robot_controller_uno.ino</b>, choose board <b>Arduino Uno</b>, press <b>Upload</b>, ' +
+    'then press <b>Connect Arduino</b> again. Commands still show here in the meantime.');
+  logLine(els.log, 'Arduino is not answering: is robot_controller_uno.ino uploaded?', 'err');
 }
 
-function onESPAnswer() {
-  if (espAnswered) return;
-  espAnswered = true;
-  showAllPorts = false;
-  setStatus(els.espStatus, 'ESP32 connected', 'ok');
-  els.serialNote.textContent = 'ESP32 ready. Commands go to the motors.';
-  els.serialNote.classList.remove('warn');
+function onBoardAnswer() {
+  if (boardAnswered) return;
+  boardAnswered = true;
+  setStatus(els.boardStatus, 'Arduino connected', 'ok');
+  boardNote('Arduino ready. Commands go to the motors. Next time it connects by itself.', false);
+  logLine(els.log, 'Arduino ready');
   writeSerial('S');
   sendStatus();
 }
 
-let closingESP = false;
-async function disconnectESP() {
+let closingBoard = false;
+async function disconnectBoard() {
   const p = port;
-  if (!p || closingESP) return;
-  closingESP = true;
+  if (!p || closingBoard) return;
+  closingBoard = true;
   await writeSerial('S');
   port = null;
-  closingESP = false;
+  closingBoard = false;
   try { if (reader) await reader.cancel(); } catch {}
   try { if (writer) writer.releaseLock(); } catch {}
   try { await p.close(); } catch {}
   writer = null;
   reader = null;
-  espAnswered = false;
-  setStatus(els.espStatus, 'ESP32 not connected', 'idle');
-  els.espBtn.textContent = 'Connect ESP32';
-  els.baudSelect.disabled = false;
-  logLine(els.log, 'ESP32 disconnected');
+  boardAnswered = false;
+  setStatus(els.boardStatus, 'Arduino not connected', 'idle');
+  els.boardBtn.textContent = 'Connect Arduino';
+  logLine(els.log, 'Arduino disconnected');
   sendStatus();
 }
 
@@ -554,13 +594,13 @@ async function writeSerial(line) {
   try {
     await writer.write(encoder.encode(line + '\n'));
   } catch (err) {
-    if (closingESP) return;
+    if (closingBoard) return;
     logLine(els.log, `Serial write failed: ${err.message}`, 'err');
-    disconnectESP();
+    disconnectBoard();
   }
 }
 
-// Lines printed by the ESP32 are shown in the log and forwarded to the user
+// Lines printed by the Uno are shown in the log and forwarded to the user
 async function readLoop() {
   const decoder = new TextDecoder();
   let buffer = '';
@@ -575,27 +615,44 @@ async function readLoop() {
         while ((i = buffer.indexOf('\n')) >= 0) {
           const line = buffer.slice(0, i).trim();
           buffer = buffer.slice(i + 1);
-          if (/^(READY|OK|ERR|TIMEOUT)\b/.test(line)) onESPAnswer();
+          if (/^(READY|OK|ERR|TIMEOUT)\b/.test(line)) onBoardAnswer();
           if (line) {
-            logLine(els.log, `ESP32: ${line}`, 'rx');
-            sendDC({ t: 'esp', line });
+            logLine(els.log, `Arduino: ${line}`, 'rx');
+            sendDC({ t: 'board', line });
           }
         }
       }
     } catch {
-      // device unplugged or reader cancelled
+      // unplugged, restart noise, or reader cancelled
     } finally {
       try { reader.releaseLock(); } catch {}
     }
   }
 }
 
-els.espBtn.onclick = () => (port ? disconnectESP() : connectESP());
+els.boardBtn.onclick = () => {
+  if (port) { manualDisconnect = true; disconnectBoard(); }
+  else connectBoard();
+};
 
 if ('serial' in navigator) {
-  navigator.serial.addEventListener('disconnect', (e) => {
-    if (e.target === port) disconnectESP();
+  // Unplugged: stop, and wait for it to come back
+  navigator.serial.addEventListener('disconnect', async (e) => {
+    if (e.target !== port) return;
+    await disconnectBoard();
+    boardNote('Arduino unplugged. Plug it back in: it reconnects by itself.');
   });
+  // Plugged in (an Uno this site was allowed before): connect by itself
+  navigator.serial.addEventListener('connect', (e) => {
+    if (!port && !manualDisconnect && isUno(e.target)) openBoard(e.target);
+  });
+  // Page opened: reconnect the Uno used last time, no click needed
+  knownUnos().then(([known]) => {
+    if (known && !port) {
+      logLine(els.log, 'Connecting the Arduino used last time…');
+      openBoard(known);
+    }
+  }).catch(() => {});
 }
 
 // ---------- Invite link ----------
