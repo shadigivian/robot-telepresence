@@ -38,12 +38,11 @@ let stream = null;
 
 // ---------- Serial number ----------
 
-// The serial is the only thing needed to connect, so it comes from the
-// cryptographic generator: 8 characters from 32 = 40 bits, not guessable.
 function randomSerial() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
-  return 'RB-' + [...bytes].map((b) => chars[b % chars.length]).join('');
+  let s = 'RB-';
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
 }
 
 function loadSerial() {
@@ -65,14 +64,12 @@ async function listCameras() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const cams = devices.filter((d) => d.kind === 'videoinput');
   const current = els.cameraSelect.value;
-  // Labels come from the device, so they are set as text, never as HTML
-  els.cameraSelect.replaceChildren(new Option('Default camera', ''),
-    ...cams.map((c, i) => new Option(c.label || `Camera ${i + 1}`, c.deviceId)));
+  els.cameraSelect.innerHTML = '<option value="">Default camera</option>' +
+    cams.map((c, i) => `<option value="${c.deviceId}">${c.label || `Camera ${i + 1}`}</option>`).join('');
   els.cameraSelect.value = current;
 }
 
-// quiet: no pop-up on failure (automatic resume, nobody may be at the robot)
-async function startCamera(quiet = false) {
+async function startCamera() {
   const deviceId = els.cameraSelect.value;
   const video = {
     width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 },
@@ -118,7 +115,7 @@ async function startCamera(quiet = false) {
     await listCameras();
   } catch (err) {
     logLine(els.log, `Camera error: ${err.message}`, 'err');
-    if (!quiet) alert(`Could not start the camera: ${err.message}`);
+    alert(`Could not start the camera: ${err.message}`);
   }
 }
 
@@ -141,7 +138,7 @@ els.micBtn.onclick = () => {
   logLine(els.log, micMuted ? 'Microphone muted' : 'Microphone on');
 };
 
-els.cameraBtn.onclick = () => startCamera();
+els.cameraBtn.onclick = startCamera;
 els.cameraSelect.onchange = () => stream && startCamera();
 
 // ---------- Going online (matchmaking) ----------
@@ -202,7 +199,7 @@ function goOffline() {
 els.onlineBtn.onclick = () => (wantOnline ? goOffline() : goOnline());
 
 async function connectBroker() {
-  await refreshIce(); // the page may run for days: keep relay credentials fresh
+  await iceReady;
   if (!wantOnline) return;
   if (peer) peer.destroy();
   setStatus(els.netStatus, 'Connecting…', 'wait');
@@ -238,8 +235,6 @@ async function connectBroker() {
       return;
     } else {
       logLine(els.log, `Network: ${err.message || err.type}`, 'err');
-      // Some errors (e.g. one failed call) leave the robot online: say so
-      if (p.open) return;
       setStatus(els.netStatus, 'Reconnecting…', 'wait');
     }
     scheduleBroker();
@@ -255,10 +250,6 @@ function scheduleBroker() {
     if (!peer || peer.destroyed) connectBroker();
     else if (peer.disconnected) {
       try { peer.reconnect(); } catch { connectBroker(); }
-    } else if (peer.open) {
-      setStatus(els.netStatus, `Online · ${serial}`, 'ok'); // recovered by itself
-    } else {
-      connectBroker(); // neither open nor closed: start over
     }
   }, delay);
 }
@@ -309,12 +300,7 @@ function startVideo() {
     const st = pc.connectionState;
     els.rtcState.textContent = st;
     els.liveChip.hidden = st !== 'connected';
-    if (st === 'failed') {
-      // The video path can fail while commands still get through. The user's
-      // app pauses driving when video stops; here, place the call again.
-      logLine(els.log, hasRelay() ? 'Video to the user failed. Calling again…' : NO_PATH_HELP, 'err');
-      setTimeout(() => { if (call === userCall) startVideo(); }, 2000);
-    }
+    if (st === 'failed') logLine(els.log, hasRelay() ? 'Video could not reach the user, even through the relay.' : NO_PATH_HELP, 'err');
     if (st === 'connected') {
       describeRoute(pc).then((route) => logLine(els.log, `Video streaming to user (${route})`));
     }
@@ -410,8 +396,7 @@ function sendStatus() {
 
 let cmdCount = 0;
 function onControl(msg) {
-  if (!msg || typeof msg !== 'object') return;
-  if (msg.t === 'cmd' && Object.hasOwn(COMMANDS, msg.c)) {
+  if (msg.t === 'cmd' && COMMANDS[msg.c]) {
     cmdCount++;
     els.cmdCount.textContent = cmdCount;
     drive(msg.c, 'user', msg.v);
@@ -432,7 +417,7 @@ let speed = 200;
 
 // Every command goes through here, whether it comes from the user or the local test pad.
 function drive(cmd, source, newSpeed) {
-  if (Number.isFinite(newSpeed)) speed = Math.max(0, Math.min(255, Math.round(newSpeed)));
+  if (typeof newSpeed === 'number') speed = Math.max(0, Math.min(255, Math.round(newSpeed)));
   if (cmd !== 'S') lastMoveAt = Date.now();
 
   const changed = cmd !== currentCmd;
@@ -478,8 +463,6 @@ const USB_SERIAL_CHIPS = [
   { usbVendorId: 0x1a86 }, // WCH CH340 / CH9102
   { usbVendorId: 0x0403 }, // FTDI
   { usbVendorId: 0x303a }, // Espressif native USB (S2, S3, C3...)
-  { usbVendorId: 0x2341 }, // Arduino
-  { usbVendorId: 0x2a03 }, // Arduino (arduino.org boards)
 ];
 let showAllPorts = false;  // after an empty chooser, offer every port next time
 let espAnswered = false;
@@ -593,8 +576,7 @@ async function readLoop() {
           if (/^(READY|OK|ERR|TIMEOUT)\b/.test(line)) onESPAnswer();
           if (line) {
             logLine(els.log, `ESP32: ${line}`, 'rx');
-            // Only problems go to the user; "OK F 200" on every turn would be noise
-            if (/^(ERR|TIMEOUT)\b/.test(line)) sendDC({ t: 'esp', line });
+            sendDC({ t: 'esp', line });
           }
         }
       }
@@ -721,15 +703,5 @@ let autoOnline = false;
 try { autoOnline = localStorage.getItem('robotAutoOnline') === '1'; } catch {}
 if (autoOnline) {
   logLine(els.log, 'Resuming: the robot was online before this page closed');
-  // After a reboot the camera can be busy or not ready yet: keep trying
-  const resume = async () => {
-    if (wantOnline) return;
-    if (!stream) await startCamera(true);
-    if (stream) goOnline();
-    else {
-      setStatus(els.netStatus, 'Waiting for the camera…', 'wait');
-      setTimeout(resume, 10000);
-    }
-  };
-  resume();
+  startCamera().then(() => { if (stream && !wantOnline) goOnline(); });
 }

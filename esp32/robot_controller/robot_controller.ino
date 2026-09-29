@@ -34,7 +34,6 @@ const bool INVERT_LEFT = false;
 const bool INVERT_RIGHT = false;
 
 const unsigned long TIMEOUT_MS = 500;
-const unsigned long REVERSE_PAUSE_MS = 80;  // coast before a motor changes direction
 const int DEFAULT_SPEED = 200;
 
 char current = 'S';
@@ -63,17 +62,7 @@ void drive(int left, int right) {
   digitalWrite(LED, (left || right) ? HIGH : LOW);
 }
 
-// Direction of each motor for a command: 1 forward, -1 backward, 0 stopped
-int leftDir(char c)  { return c == 'F' || c == 'R' ? 1 : c == 'B' || c == 'L' ? -1 : 0; }
-int rightDir(char c) { return c == 'F' || c == 'L' ? 1 : c == 'B' || c == 'R' ? -1 : 0; }
-
 void apply(char cmd, int speed) {
-  // Flipping a motor straight from full forward to full reverse draws a
-  // current spike that can reset the ESP32 (brownout). Coast briefly first.
-  if (leftDir(cmd) * leftDir(current) < 0 || rightDir(cmd) * rightDir(current) < 0) {
-    drive(0, 0);
-    delay(REVERSE_PAUSE_MS);
-  }
   switch (cmd) {
     case 'F': drive(speed, speed); break;
     case 'B': drive(-speed, -speed); break;
@@ -99,11 +88,8 @@ void handleLine(String s) {
     Serial.println("READY robot_controller");
     return;
   }
-  // Speed after the letter, with or without a space: "F 200" or "F200"
   int speed = DEFAULT_SPEED;
-  String n = s.substring(1);
-  n.trim();
-  if (n.length() > 0) speed = constrain(n.toInt(), 0, 255);
+  if (s.length() > 2) speed = constrain(s.substring(2).toInt(), 0, 255);
 
   if (cmd == 'F' || cmd == 'B' || cmd == 'L' || cmd == 'R' || cmd == 'S') {
     lastCommandAt = millis();

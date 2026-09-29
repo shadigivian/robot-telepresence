@@ -56,7 +56,7 @@ function userPeerId(fresh = false) {
   let id = null;
   try { id = sessionStorage.getItem('userPeerId'); } catch {}
   if (!id || fresh) {
-    id = `${CONFIG.idPrefix}user-${[...crypto.getRandomValues(new Uint8Array(6))].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+    id = `${CONFIG.idPrefix}user-${Math.random().toString(36).slice(2, 10)}`;
     try { sessionStorage.setItem('userPeerId', id); } catch {}
   }
   return id;
@@ -317,8 +317,7 @@ function connect() {
     if (!everConnected) enterCall();
     everConnected = true;
     if (screenTrack) c.send({ t: 'screen', on: true }); // still sharing after a reconnect
-    linkUpAt = Date.now();
-    updateDriving(); // the D-pad turns on once video frames arrive
+    pad.setEnabled(true);
     setStatus(els.linkStatus, 'Connected', 'ok');
     if (!els.remote.srcObject || els.remote.paused) showOverlay('Waiting for video…');
   });
@@ -336,7 +335,7 @@ function connect() {
 }
 
 async function startPeer() {
-  await refreshIce();
+  await iceReady;
   if (peer) peer.destroy();
   const p = createPeer(userPeerId());
   peer = p;
@@ -396,7 +395,6 @@ async function startPeer() {
 
 function closeLink() {
   linkUp = false;
-  videoOk = false;
   pad.setEnabled(false);
   const c = conn;
   const k = call;
@@ -435,53 +433,7 @@ setInterval(() => {
     return;
   }
   if (conn.open) conn.send({ t: 'ping', ts: performance.now() });
-  updateDriving();
-  // Commands get through but no picture for a while: ask the robot to call again
-  const now = Date.now();
-  if (!videoOk && document.visibilityState === 'visible' &&
-      now - Math.max(lastFrameAt, linkUpAt) > VIDEO_RECALL_MS && now - lastRecallAt > VIDEO_RECALL_MS) {
-    lastRecallAt = now;
-    if (conn.open) conn.send({ t: 'recall' });
-  }
 }, PING_MS);
-
-// ---------- Video watchdog ----------
-//
-// Video and commands travel on separate connections, and the video one can
-// fail while commands still get through. Driving blind is never allowed: the
-// D-pad only works while fresh video frames keep arriving.
-const VIDEO_STALE_MS = 1500;
-const VIDEO_RECALL_MS = 8000;
-const CAN_WATCH_FRAMES = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
-let lastFrameAt = 0;
-let linkUpAt = 0;
-let lastRecallAt = 0;
-let videoOk = false;
-
-if (CAN_WATCH_FRAMES) {
-  const onFrame = () => {
-    lastFrameAt = Date.now();
-    updateDriving();
-    els.remote.requestVideoFrameCallback(onFrame);
-  };
-  els.remote.requestVideoFrameCallback(onFrame);
-}
-
-function updateDriving() {
-  const fresh = CAN_WATCH_FRAMES
-    ? Date.now() - lastFrameAt < VIDEO_STALE_MS
-    : !!els.remote.srcObject && !els.remote.paused; // older browsers: best effort
-  const ok = linkUp && fresh;
-  if (ok === videoOk) return;
-  videoOk = ok;
-  pad.setEnabled(ok);
-  if (ok) {
-    els.waiting.hidden = true;
-  } else if (linkUp) {
-    sendCommand('S');
-    showOverlay('Video paused. Driving is off until the picture comes back…');
-  }
-}
 
 // ---------- Call screen ----------
 
