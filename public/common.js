@@ -28,19 +28,26 @@ function robotPeerId(serial) {
   return CONFIG.idPrefix + normalizeSerial(serial);
 }
 
-// STUN + any TURN relays from config.js (fetched once at startup)
+// STUN + any TURN relays from config.js. Relay credentials can expire and the
+// robot page stays open for days, so they are fetched again before each new
+// connection once they are older than ICE_MAX_AGE_MS.
+const ICE_MAX_AGE_MS = 30 * 60 * 1000;
 let ICE_SERVERS = [...CONFIG.iceServers, ...CONFIG.turnServers];
-const iceReady = (async () => {
-  if (!CONFIG.turnCredentialsUrl) return;
+let iceFetchedAt = 0;
+
+async function refreshIce() {
+  if (!CONFIG.turnCredentialsUrl || Date.now() - iceFetchedAt < ICE_MAX_AGE_MS) return;
   try {
-    const res = await fetch(CONFIG.turnCredentialsUrl);
+    const res = await fetch(CONFIG.turnCredentialsUrl, { cache: 'no-store' });
     const list = await res.json();
     if (!Array.isArray(list)) throw new Error('unexpected response');
     ICE_SERVERS = [...CONFIG.iceServers, ...CONFIG.turnServers, ...list];
+    iceFetchedAt = Date.now();
   } catch (err) {
-    console.warn('Could not load TURN credentials from turnCredentialsUrl:', err);
+    console.warn('Could not load TURN credentials from turnCredentialsUrl:', err); // keep the previous ones
   }
-})();
+}
+const iceReady = refreshIce();
 
 function hasRelay() {
   return ICE_SERVERS.some((s) => [].concat(s.urls).some((u) => /^turns?:/.test(u)));
@@ -173,18 +180,27 @@ function createDpad(el, onCommand, { listenKeys = true } = {}) {
       ArrowUp: 'F', KeyW: 'F', ArrowDown: 'B', KeyS: 'B',
       ArrowLeft: 'L', KeyA: 'L', ArrowRight: 'R', KeyD: 'R', Space: 'S',
     };
+    // Keys held right now, oldest first. Releasing one falls back to the most
+    // recent key still held (hold ↑, tap ←: back to forward, not a stop).
+    let keysDown = [];
     window.addEventListener('keydown', (e) => {
       const cmd = KEYS[e.code];
       if (!cmd || e.target.matches('input, select, textarea')) return;
       if (el.querySelector('button').disabled) return;
       e.preventDefault();
       if (e.repeat) return;
+      keysDown = keysDown.filter((k) => k !== e.code).concat(e.code);
       press(cmd);
     });
     window.addEventListener('keyup', (e) => {
-      if (KEYS[e.code] && KEYS[e.code] === held) release();
+      if (!KEYS[e.code]) return;
+      keysDown = keysDown.filter((k) => k !== e.code);
+      if (KEYS[e.code] !== held) return;
+      const still = keysDown[keysDown.length - 1];
+      if (still && !el.querySelector('button').disabled) press(KEYS[still]);
+      else release();
     });
-    window.addEventListener('blur', () => release());
+    window.addEventListener('blur', () => { keysDown = []; release(); });
   }
 
   return {
