@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Robot Telepresence</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect x=%224%22 y=%228%22 width=%2216%22 height=%2211%22 rx=%223%22 fill=%22%233b82f6%22/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="product.css">
   <script>
     // An invite link to the bare site address still reaches the robot
     if (new URLSearchParams(location.search).has('serial')) location.replace('user.html' + location.search);
@@ -23,21 +24,26 @@
 <body>
   <div class="wrap">
     <div>
-      <h1 style="font-size:26px">Robot Telepresence</h1>
-      <p class="muted" style="margin-top:6px">Open one app on each laptop.</p>
+      <h1 style="font-size:26px">سامانه ربات راهنما و حضور از راه دور</h1>
+      <p class="muted" style="margin-top:6px">نمایش مراجعه‌کننده، تماس اپراتور و مدیریت سازمان در یک سامانه.</p>
     </div>
     <div class="grid">
       <a class="panel" href="robot.html">
-        <h2>On the robot</h2>
-        <h3>Robot Station →</h3>
-        <p class="muted">Streams the camera, gets a serial number and drives the Arduino Uno over USB.</p>
+        <h2>روی دستگاه ربات</h2>
+        <h3>ایستگاه ربات ←</h3>
+        <p class="muted">راهنمای مراجعه با نقشه و اعلان، یا نمایش تماس تصویری. تنظیمات دستگاه با ورود مسئول باز می‌شود.</p>
       </a>
       <a class="panel" href="user.html">
-        <h2>For the driver</h2>
-        <h3>Robot Control →</h3>
-        <p class="muted">Enter the robot's serial number to see its view and drive it.</p>
+        <h2>برای اپراتور</h2>
+        <h3>کنترل از راه دور ←</h3>
+        <p class="muted">انتخاب ربات، بررسی دوربین و صدا، تماس تصویری و کنترل دستی با مجوز جداگانه.</p>
       </a>
+      <a class="panel" href="portal.html"><h2>برای سازمان</h2><h3>پنل کارکنان و مدیر ←</h3><p class="muted">دریافت مراجعه‌ها و پاسخ به آن‌ها؛ مدیریت افراد، اتاق‌ها، مسیرها و حساب‌ها.</p></a>
     </div>
   </div>
+  <script src="config.js"></script>
+  <script src="vendor/socket.io.min.js"></script>
+  <script src="platform.js"></script>
+  <script defer src="connection.js"></script>
 </body>
 </html>
