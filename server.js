@@ -1,13 +1,13 @@
 // Local web server for the apps.
 //
 //   node server.js           serve the pages on http://localhost:3000
-//   node server.js --share   also publish the USER page on a public
-//                            temporary HTTPS link (robot laptop)
+//   node server.js --share   also expose the shared API and all app pages
+//                            over a temporary HTTPS tunnel
 //
 // The robot and the user find each other through a public matchmaking
 // server (see public/config.js), so they can be on different networks.
-// Opening the robot page from http://localhost matters: browsers only allow
-// the camera and Web Serial (Arduino) on secure pages, and localhost is one.
+// Camera and Web Serial (Arduino) need HTTPS or localhost in a supported
+// browser. Permanent Pages frontends can discover this tunnel's current URL.
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
@@ -16,6 +16,7 @@ const { spawn } = require('child_process');
 require('./lib/env').loadEnv(path.join(__dirname, '.env'));
 const { createService } = require('./lib/service');
 const { createLineParser, localhostRunOrigin } = require('./lib/tunnel');
+const { createConnectionPublisher } = require('./lib/publish-connection');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PERMANENT = (fs.readFileSync(path.join(__dirname, 'public', 'config.js'), 'utf8')
@@ -30,15 +31,25 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
 };
-const ROUTES = { '/': '/index.html', '/robot': '/robot.html', '/user': '/user.html' };
+const ROUTES = { '/': '/index.html', '/robot': '/robot.html', '/user': '/user.html', '/portal': '/portal.html' };
 
-// Only these files are reachable through the public link. The robot page
-// and the share-link endpoint stay private to this laptop.
-const PUBLIC_FILES = new Set(['/index.html', '/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/product.css', '/platform.js', '/portal.js', '/portal.html', '/vendor/peerjs.min.js', '/vendor/socket.io.min.js', '/safety.js']);
+// All product pages are public assets; their actions require authentication.
+// Private data, provider credentials and the share-link endpoint stay local.
+const PUBLIC_FILES = new Set(['/index.html', '/robot.html', '/robot.js', '/welcome.js', '/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/product.css', '/platform.js', '/connection.js', '/portal.js', '/portal.html', '/vendor/peerjs.min.js', '/vendor/socket.io.min.js', '/safety.js']);
+const connectionPublisher = createConnectionPublisher({ onStatus: message => console.log(message) });
 
 let publicUrl = null;
 let shareState = SHARE ? 'starting' : 'off'; // off | starting | ready | error
 let closing = false, tunnelProc = null, retryTimer = null, startupTimer = null, failures = 0;
+let publishTimer = null;
+async function publishConnection(origin, attempt = 0) {
+  clearTimeout(publishTimer); publishTimer = null;
+  if (closing || publicUrl !== origin || !connectionPublisher.enabled) return;
+  const result = await connectionPublisher.publish(origin);
+  if (!result.ok && !closing && publicUrl === origin && attempt < 4) {
+    publishTimer = setTimeout(() => publishConnection(origin, attempt + 1), Math.min(5000 * 2 ** attempt, 30000));
+  }
+}
 
 let service;
 const server = http.createServer(async (req, res) => {
@@ -48,7 +59,6 @@ const server = http.createServer(async (req, res) => {
   catch { res.writeHead(400); return res.end('Bad request'); }
   const viaTunnel = !!req.headers['cf-ray'] || !!(publicUrl && req.headers.host === new URL(publicUrl).host);
 
-  if (viaTunnel && url === '/') url = '/user';
   url = ROUTES[url] || url;
 
   if (url === '/share-info') {
@@ -86,7 +96,7 @@ server.on('error', (err) => {
 });
 
 server.listen(PORT, process.env.HOST || '127.0.0.1', () => {
-  console.log('\nRobot Telepresence is running. Keep this window open.\n');
+  console.log('\nRobot Telepresence is running. Keep this server and laptop running.\n');
   console.log(`  Robot page: http://localhost:${PORT}/robot`);
   if (PERMANENT) console.log(`  Invite links use your permanent page: ${PERMANENT}`);
   else if (!SHARE) console.log(`  User page:  http://localhost:${PORT}/user`);
@@ -143,13 +153,14 @@ function runTunnel() {
   const proc = spawn(command, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   tunnelProc = proc;
   const ready = origin => {
-    if (closing || tunnelProc !== proc || proc.killed || shareState === 'ready') return;
+    if (closing || tunnelProc !== proc || proc.killed || (shareState === 'ready' && publicUrl === origin)) return;
     clearTimeout(startupTimer); startupTimer = null;
     publicUrl = origin;
     failures = 0;
     shareState = 'ready';
     console.log(`\n  PUBLIC LINK for users: ${publicUrl}/user`);
     console.log('  Keep this laptop and server running. Invite users from the Robot page.\n');
+    void publishConnection(origin);
   };
   if (TUNNEL_PROVIDER === 'localhost-run') {
     const onOutput = createLineParser(line => { const origin = localhostRunOrigin(line); if (origin) ready(origin); });
@@ -198,7 +209,7 @@ function runTunnel() {
 function stopServer() {
   if (closing) return;
   closing = true;
-  clearTimeout(retryTimer); clearTimeout(startupTimer);
+  clearTimeout(retryTimer); clearTimeout(startupTimer); clearTimeout(publishTimer);
   if (tunnelProc) tunnelProc.kill();
   service.close();
   server.close(() => process.exit(0));

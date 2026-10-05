@@ -29,7 +29,7 @@ function ask(q) {
 }
 
 function git(args, cwd) {
-  return execFileSync('git', args, { cwd, stdio: 'inherit' });
+  return execFileSync('git', ['-c', `safe.directory=${cwd}`, ...args], { cwd, stdio: 'inherit', windowsHide: true });
 }
 
 function copyDir(from, to) {
@@ -66,6 +66,7 @@ function copyDir(from, to) {
     fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2));
   }
   const { user, repo } = settings;
+  if (!/^[A-Za-z0-9-]+$/.test(user) || !/^[A-Za-z0-9._-]+$/.test(repo)) throw new Error('Invalid deployment settings');
   const site = `https://${user.toLowerCase()}.github.io/${repo}`;
 
   // A static host cannot execute the authenticated API or persist visits.
@@ -84,13 +85,18 @@ function copyDir(from, to) {
     let response;
     try { response = await fetch(backend.replace(/\/$/, '') + '/api/health', { headers: { Origin: new URL(site).origin }, signal: controller.signal }); } finally { clearTimeout(timer); }
     const health = await response.json();
-    if (!response.ok || health.version !== 2 || !health.initialized) throw new Error('Backend not initialized or Pages origin not allowed');
+    if (!response.ok || health.version !== 2 || !health.initialized || response.headers.get('access-control-allow-origin') !== new URL(site).origin) throw new Error('Backend not initialized or Pages origin not allowed');
   } catch (e) { console.error('Backend is not ready. Verify HTTPS, setup and ALLOWED_ORIGINS. No site was published.'); process.exit(1); }
-  config = config.replace(/^(\s*apiBase:\s*)'[^']*'/m, (_, prefix) => prefix + "'" + backend.replace(/\/$/, '') + "'");
+  const discovery = settings.discoveryUrl || '';
+  if (discovery && discovery !== `https://raw.githubusercontent.com/${user}/${repo}/connection/connection.json`) {
+    console.error('Discovery must use the connection branch of this repository. No site was published.'); process.exit(1);
+  }
+  config = config.replace(/^(\s*apiBase:\s*)'[^']*'/m, (_, prefix) => prefix + "'" + (discovery ? '' : backend.replace(/\/$/, '')) + "'");
+  config = config.replace(/^(\s*apiDiscoveryUrl:\s*)'[^']*'/m, (_, prefix) => prefix + "'" + discovery + "'");
   fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2));
-  // Invite links from the locally run robot page also point at the hosted user page
   config = config.replace(/^(\s*publicUserPage:\s*)'[^']*'/m, `$1'${site}/user.html'`);
-  fs.writeFileSync(CONFIG, config);
+  // Configuration belongs to the copied Pages build. Leave local same-origin
+  // settings untouched so deploying cannot disconnect the robot laptop.
   if (rl) rl.close();
 
   // --- Build and push the site
@@ -105,9 +111,10 @@ function copyDir(from, to) {
     if (existing) git(['clone', '-q', '--single-branch', '--branch', 'gh-pages', remote, dir], ROOT);
     else git(['init', '-q', '-b', 'gh-pages'], dir);
     copyDir(PUBLIC, dir);
+    fs.writeFileSync(path.join(dir, 'config.js'), config);
     fs.writeFileSync(path.join(dir, '.nojekyll'), '');
     git(['add', '-A'], dir);
-    const changes = execFileSync('git', ['status', '--porcelain'], { cwd: dir, encoding: 'utf8' }).trim();
+    const changes = execFileSync('git', ['-c', `safe.directory=${dir}`, 'status', '--porcelain'], { cwd: dir, encoding: 'utf8' }).trim();
     if (changes) git([...id, 'commit', '-q', '-m', 'Publish robot platform'], dir);
     git(['push', remote, 'gh-pages'], dir);
   } catch {

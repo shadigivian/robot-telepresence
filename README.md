@@ -9,7 +9,7 @@ The Uno sketch and motor wiring are unchanged. Navigation is **manual**. Maps gu
 
 ## Run locally
 
-Use Node 22 LTS (minimum 18.18), Chrome or Edge on the robot laptop and the existing Uno sketch.
+Use Node 22 LTS (minimum 18.18) and the existing Uno sketch. The pages and account flows support modern Chromium, Firefox and WebKit browsers. Direct Arduino USB access uses Web Serial and requires a supported desktop browser such as Chrome or Edge on the robot laptop. Unsupported browsers still open the apps and show the USB limitation. Camera/microphone access needs HTTPS or localhost and the user's permission.
 
 ```powershell
 npm ci
@@ -21,6 +21,8 @@ npm start
 ```
 
 Open `http://localhost:3000/portal.html`. Setup installs **no default password** or site data. To explicitly load a fictional, labelled example, run `node scripts/setup.js --demo` instead of the first setup command. Setup refuses to overwrite an initialized database.
+
+On Windows, use `start-robot.bat` after setup. It starts the backend in a hidden process, waits for health readiness, then opens the Robot Station. Closing the launcher leaves the server running. Rerunning reuses a compatible running server. Use `start-robot.bat -NoBrowser` to start without opening a tab, or `start-robot.bat -Status` to check addresses. Private logs and PID metadata are in ignored `data/server-output.log`, `data/server-error.log` and `data/server-runtime.json`. A server started without `--share` is left running; stop it manually before relaunching to enable sharing. No service is installed: run the launcher again after reboot.
 
 1. Add floors, nodes, route edges, rooms and people; save the directory.
 2. Register the robot's stable ID/serial, mode and starting node.
@@ -91,15 +93,21 @@ For Metered, set `TURN_CREDENTIALS_URL` to `https://YOUR_APP.metered.live/api/v1
 
 STUN is configured. TURN is required when networks cannot establish direct WebRTC, including many mobile/enterprise networks. No provider credentials are fabricated or committed. `relayOnly` tests configured TURN.
 
-For same-origin hosting leave `CONFIG.apiBase` empty. For Pages set it to the shared backend's HTTPS origin, add the Pages origin to `ALLOWED_ORIGINS`, and set `publicUserPage` to the operator page. Then run `deploy-github.bat`: it requires a backend URL, publishes only `public/` and preserves `gh-pages` history. It does not deploy the backend. All frontends must point to the same API.
+For same-origin hosting leave `CONFIG.apiBase` and `CONFIG.apiDiscoveryUrl` empty. For Pages supply the shared backend's HTTPS origin in ignored `deploy.json` (`user`, `repo`, `backend`), add the Pages origin to `ALLOWED_ORIGINS`, then run `deploy-github.bat`. It publishes only `public/`, preserves `gh-pages` history and checks backend health/CORS first. Hosted configuration is generated in the copied build; local API settings are not overwritten. It does not deploy the backend.
+
+For a temporary tunnel, also set `discoveryUrl` in `deploy.json` to `https://raw.githubusercontent.com/shadigivian/robot-telepresence/connection/connection.json`. The hosted apps fetch this public registry and verify `/api/health` before authentication. They display a retry notice when offline. A changed backend hostname clears the old login and locks control; sign in again. No passwords or provider keys belong in this registry.
+
+Prepare a separate clean Git worktree at `data/connection-publish` with branch `connection` and origin `https://github.com/shadigivian/robot-telepresence.git`. Use `git clone --single-branch --branch connection` if it exists; otherwise initialize that isolated directory with `git init -b connection` and add the remote. Set its absolute path as private `CONNECTION_PUBLISH_DIR` and set `CONNECTION_PUBLISH_REPOSITORY` to that exact repository. With working Git push access, the sharing server updates only `connection.json` when the tunnel address changes. It validates branch, remote and clean state, preserves history, retries transient failures and never force-pushes.
+
+Permanent entry pages are [home](https://shadigivian.github.io/robot-telepresence/), [Robot Station / Welcome](https://shadigivian.github.io/robot-telepresence/robot.html), [remote operator](https://shadigivian.github.io/robot-telepresence/user.html) and [organization portal](https://shadigivian.github.io/robot-telepresence/portal.html). These pages remain accessible while the laptop is off; login, notifications and calls need the running backend. Browser storage denial falls back to memory for the current tab; reloading then requires another login. [Web Serial availability](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API) varies by browser.
 
 ### Temporary laptop hosting
 
-Run `npm start -- --share` (or `start-robot.bat`) to expose the shared backend and organization pages over HTTPS. The console prints the ready `/user` address and the local robot page obtains it from `/share-info`. Keep the robot browser on `http://localhost:3000/robot` for USB Web Serial. Keep the laptop, network and server running throughout remote sessions; free temporary domains change on restart and existing invite links then stop working.
+Run `npm start -- --share` (or `start-robot.bat`) to expose the shared backend and all product pages over HTTPS. The console prints the ready `/user` address and the local robot page obtains it from `/share-info`. USB Web Serial works on localhost or HTTPS in a supported desktop browser physically connected to the Arduino. Keep the laptop, network and server running throughout remote sessions. Temporary domains can change during provider renewal as well as restart; use the permanent Pages entry links with discovery to keep bookmarks usable.
 
 Set `TUNNEL_PROVIDER=cloudflare` in the private `.env` for Cloudflare's quick tunnel (default, downloads its tunnel tool into `bin/` once), or `TUNNEL_PROVIDER=localhost-run` to use account-free SSH forwarding through localhost.run. The latter requires an installed OpenSSH `ssh` command, uses its own ignored `data/tunnel-known-hosts` trust file and disables personal SSH configuration, key/agent and password authentication. It accepts a new provider host key on first use and rejects changed keys afterward. Neither option changes a hosting or Metered billing plan.
 
-The tunnel waits for an actual provider registration before announcing a URL. A startup timeout alone does not prove a blocked port. After a disconnection it retries with increasing delays and stops after five consecutive failures; check connectivity or choose the other provider, then restart. A permanent Pages frontend still needs a running HTTPS backend; explicit `--share` starts the backend tunnel even when `publicUserPage` is configured. If the backend tunnel domain changes, update the frontend's `CONFIG.apiBase` and republish, or use the tunnel's same-origin pages directly.
+The tunnel waits for an actual provider registration before announcing a URL. A startup timeout alone does not prove a blocked port. After a disconnection it retries with increasing delays and stops after five consecutive failures; check connectivity or choose the other provider, then restart. A permanent Pages frontend still needs a running HTTPS backend; explicit `--share` starts the backend tunnel even when `publicUserPage` is configured. Discovery publication needs Git network/auth access on the laptop. Without discovery, update the fixed backend URL and republish when it changes, or use the tunnel's same-origin pages directly.
 
 The data store uses atomic replacement and fsync before announcing success. It supports a small **single-process** installation. Before scaling to multiple instances, migrate data to a transactional database and share sessions/leases. The private file contains password hashes and visitor information; never publish it to GitHub/Pages.
 
@@ -109,9 +117,10 @@ The data store uses atomic replacement and fsync before announcing success. It s
 npm run check
 npm test
 npm run test:browser
+npm run test:compat
 ```
 
-Browser tests use installed Microsoft Edge on Windows. Elsewhere run `npx playwright install chromium` and set `PLAYWRIGHT_CHANNEL=chromium`. CI installs Chromium automatically.
+The WebRTC product tests use installed Microsoft Edge on Windows. Elsewhere install Chromium and set `PLAYWRIGHT_CHANNEL=chromium`. Install compatibility engines with `npx playwright install chromium firefox webkit`, then run `npm run test:compat`: it starts a fresh isolated test server for each engine. CI checks them independently. Compatibility covers page rendering, role login/logout, denied storage/media APIs, hosted backend discovery and safe hostname changes; it does not claim physical Safari/iPhone or every WebRTC device combination was tested.
 
 Coverage includes Persian lookup, multi-floor/accessible/reverse routes, invalid directory rejection, role isolation, invitations, persisted idempotent visits, delivery/seen/reply, media proofs, lease expiry, stale commands, frame freshness, local stop and actual local WebRTC between two browsers. Serial is **simulated** in browser tests. Physical Uno/motors, internet NAT traversal, provider TURN and production hosting must be verified on the installation.
 

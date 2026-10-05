@@ -168,6 +168,13 @@ async function startLocalMedia() {
   if (localStream) return;
   const video = { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 24 } };
   mediaNote = null;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    mediaNote = window.isSecureContext
+      ? 'دوربین و میکروفن در این مرورگر در دسترس نیستند؛ از مرورگر به‌روز با پشتیبانی تماس تصویری استفاده کنید.'
+      : 'برای دوربین و میکروفن، صفحه را از لینک HTTPS باز کنید؛ روی لپ‌تاپ ربات می‌توانید از localhost استفاده کنید.';
+    updateMediaButtons();
+    return;
+  }
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ video, audio: MIC });
   } catch {
@@ -209,7 +216,7 @@ function updateMediaButtons() {
   const cam = localStream && localStream.getVideoTracks()[0];
   els.micBtn.hidden = !mic;
   els.camBtn.hidden = !cam || !!screenTrack;
-  els.shareBtn.hidden = !navigator.mediaDevices.getDisplayMedia; // phones cannot share
+  els.shareBtn.hidden = !navigator.mediaDevices?.getDisplayMedia; // unavailable on some browsers and phones
   els.shareBtn.innerHTML = ICONS.screen;
   els.shareBtn.classList.toggle('sharing', !!screenTrack);
   els.shareBtn.title = screenTrack ? 'Stop sharing your screen' : 'Share your screen with the robot';

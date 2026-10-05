@@ -4,6 +4,17 @@ let activityAt = Date.now(), visitTimer = null, lookupGeneration = 0;
 const welcome = document.querySelector('#welcomeScreen');
 const wm = document.querySelector('#welcomeMessage');
 const detail = document.querySelector('#destinationDetail');
+// Keep kiosk preferences usable for this page even when browser storage is
+// disabled. These values contain only display preferences, never credentials.
+const stationPreferences = new Map();
+function readStationPreference(key) {
+  if (stationPreferences.has(key)) return stationPreferences.get(key);
+  try { return window.localStorage.getItem(key); } catch { return null; }
+}
+function writeStationPreference(key, value) {
+  stationPreferences.set(key, value);
+  try { window.localStorage.setItem(key, value); } catch {}
+}
 const statusLabels = { registered: 'مراجعه ثبت شد؛ منتظر دریافت کارکنان', delivered: 'اعلان به دستگاه مقصد تحویل شد', seen: 'فرد مقصد اعلان را دید', responded: 'فرد مقصد پاسخ داد' };
 function resetVisit() {
   lookupGeneration++;
@@ -123,7 +134,7 @@ if ('speechSynthesis' in window) {
 }
 
 function showPublic() {
-  localStorage.setItem('robotPublic', '1');
+  writeStationPreference('robotPublic', '1');
   resetVisit(); document.body.classList.add('station-public');
   welcome.hidden = document.querySelector('#stationMode').value !== 'welcome';
   document.querySelector('#stationMain').hidden = !welcome.hidden;
@@ -143,11 +154,10 @@ document.querySelector('#settingsBtn').onclick = async () => {
 document.querySelector('#unlockSettings').onsubmit = async e => {
   e.preventDefault(); const form = e.target;
   try {
-    const result = await fetch((CONFIG.apiBase || '') + '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: form.username.value, password: form.password.value }) }).then(async r => { const data = await r.json(); if (!r.ok) throw new Error(data.error); return data; });
-    const permitted = result.user.role === 'admin' || result.user.role === 'robot' && result.user.robotId === boundRobot.id;
-    await fetch((CONFIG.apiBase || '') + '/api/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + result.token } });
+    const verifiedUser = await Platform.temporaryAuth(form.username.value, form.password.value);
+    const permitted = verifiedUser.role === 'admin' || verifiedUser.role === 'robot' && verifiedUser.robotId === boundRobot.id;
     if (!permitted) throw new Error('این حساب مجوز تنظیمات دستگاه ندارد.');
-    form.password.value = ''; document.querySelector('#settingsDialog').close(); document.body.classList.remove('station-public'); welcome.hidden = true; document.querySelector('#stationMain').hidden = false; document.querySelector('#settingsBtn').hidden = true; localStorage.setItem('robotPublic', '0');
+    form.password.value = ''; document.querySelector('#settingsDialog').close(); document.body.classList.remove('station-public'); welcome.hidden = true; document.querySelector('#stationMain').hidden = false; document.querySelector('#settingsBtn').hidden = true; writeStationPreference('robotPublic', '0');
   } catch (e) { form.querySelector('[role="alert"]').textContent = e.message; }
 };
 document.querySelector('#cancelSettings').onclick = () => document.querySelector('#settingsDialog').close();
@@ -172,7 +182,7 @@ async function stationLogin(user) {
   document.querySelector('#stationHeader').hidden = false; document.querySelector('#stationMain').hidden = false;
   document.querySelector('#stationAuth').hidden = true;
   document.querySelector('#settingsBtn').hidden = true;
-  if (localStorage.getItem('robotPublic') === '1') showPublic();
-  if (localStorage.getItem('robotAutoOnline') === '1') { await startCamera(); if (stream) goOnline(); }
+  if (readStationPreference('robotPublic') === '1') showPublic();
+  if (readStationPreference('robotAutoOnline') === '1') { await startCamera(); if (stream) goOnline(); }
 }
 Platform.loginForm(document.querySelector('#stationAuth'), stationLogin, ['admin', 'robot']);

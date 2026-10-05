@@ -9,6 +9,9 @@ const CONFIG = {
   // Shared backend. Empty = same origin (npm start). GitHub Pages requires
   // an HTTPS backend here, with its Pages origin in ALLOWED_ORIGINS.
   apiBase: '',
+  // Optional public registry containing only {version:1, apiBase, updatedAt}.
+  // The Pages build sets this so temporary backend addresses can rotate.
+  apiDiscoveryUrl: '',
   // Matchmaking ("signaling") server. Empty = the free public PeerJS cloud
   // (0.peerjs.com). To use your own, run `npx peer --port 9000` on a public
   // machine and set e.g. { host: 'my-server.com', port: 443, path: '/', secure: true }.
@@ -18,7 +21,7 @@ const CONFIG = {
   // public link created by start-robot.bat (changes each time it starts).
   // If you host public/ permanently (GitHub Pages, Netlify...), put the full
   // address of user.html here, e.g. 'https://you.github.io/robot/user.html'.
-  publicUserPage: '',
+  publicUserPage: 'https://shadigivian.github.io/robot-telepresence/user.html',
 
   // Prefix added to every serial number so our robots don't collide with
   // other apps on the shared public server.

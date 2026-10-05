@@ -99,6 +99,12 @@ test('Mobile control and station screens fit a 360px viewport', async ({ page })
 
 test('Invitations follow the current ready tunnel and remain hidden while it reconnects', async ({ page }) => {
   const errors = await configure(page);
+  // Exercise temporary links independently of the permanent Pages deployment.
+  await page.route('**/config.js', async route => {
+    const response = await route.fetch();
+    const config = (await response.text()).replace(/publicUserPage:\s*'[^']*'/, "publicUserPage: ''");
+    await route.fulfill({ response, body: config });
+  });
   let info = { state: 'off', url: null }, inviteRequests = 0;
   await page.route('**/share-info', route => route.fulfill({ json: info }));
   page.on('request', request => {
