@@ -2,7 +2,7 @@
 //
 //   node server.js           serve the pages on http://localhost:3000
 //   node server.js --share   also publish the USER page on a public
-//                            https://....trycloudflare.com link (robot laptop)
+//                            temporary HTTPS link (robot laptop)
 //
 // The robot and the user find each other through a public matchmaking
 // server (see public/config.js), so they can be on different networks.
@@ -15,12 +15,14 @@ const path = require('path');
 const { spawn } = require('child_process');
 require('./lib/env').loadEnv(path.join(__dirname, '.env'));
 const { createService } = require('./lib/service');
+const { createLineParser, localhostRunOrigin } = require('./lib/tunnel');
 
 const PORT = Number(process.env.PORT) || 3000;
-// A permanent user page (config.js: publicUserPage) makes the tunnel unnecessary
 const PERMANENT = (fs.readFileSync(path.join(__dirname, 'public', 'config.js'), 'utf8')
   .match(/^\s*publicUserPage:\s*'([^']+)'/m) || [])[1];
-const SHARE = process.argv.includes('--share') && !PERMANENT;
+// An explicit --share also exposes the backend needed by a static frontend.
+const SHARE = process.argv.includes('--share');
+const TUNNEL_PROVIDER = process.env.TUNNEL_PROVIDER || 'cloudflare';
 const PUBLIC = path.join(__dirname, 'public');
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -35,7 +37,8 @@ const ROUTES = { '/': '/index.html', '/robot': '/robot.html', '/user': '/user.ht
 const PUBLIC_FILES = new Set(['/index.html', '/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/product.css', '/platform.js', '/portal.js', '/portal.html', '/vendor/peerjs.min.js', '/vendor/socket.io.min.js', '/safety.js']);
 
 let publicUrl = null;
-let shareState = SHARE ? 'starting' : 'off'; // off | starting | ready | blocked | error
+let shareState = SHARE ? 'starting' : 'off'; // off | starting | ready | error
+let closing = false, tunnelProc = null, retryTimer = null, startupTimer = null, failures = 0;
 
 let service;
 const server = http.createServer(async (req, res) => {
@@ -43,7 +46,7 @@ const server = http.createServer(async (req, res) => {
   let url;
   try { url = decodeURIComponent(req.url.split('?')[0]); }
   catch { res.writeHead(400); return res.end('Bad request'); }
-  const viaTunnel = !!req.headers['cf-ray'];
+  const viaTunnel = !!req.headers['cf-ray'] || !!(publicUrl && req.headers.host === new URL(publicUrl).host);
 
   if (viaTunnel && url === '/') url = '/user';
   url = ROUTES[url] || url;
@@ -91,7 +94,7 @@ server.listen(PORT, process.env.HOST || '127.0.0.1', () => {
   if (SHARE) startTunnel();
 });
 
-// ---------- Public link (Cloudflare quick tunnel, no account needed) ----------
+// ---------- Temporary public link, no provider account needed ----------
 
 const BIN = path.join(__dirname, 'bin');
 const CLOUDFLARED = path.join(BIN, process.platform === 'win32' ? 'cloudflared.exe' : 'cloudflared');
@@ -102,59 +105,108 @@ const DOWNLOADS = {
 };
 
 async function startTunnel() {
-  try {
-    if (!fs.existsSync(CLOUDFLARED)) await downloadCloudflared();
-  } catch (err) {
+  if (TUNNEL_PROVIDER === 'localhost-run') return runTunnel();
+  if (TUNNEL_PROVIDER !== 'cloudflare') {
     shareState = 'error';
-    console.log(`Could not download the tunnel tool: ${err.message}`);
+    console.log('Set TUNNEL_PROVIDER to cloudflare or localhost-run.');
     return;
   }
-  runTunnel();
+  try {
+    if (!fs.existsSync(CLOUDFLARED)) await downloadCloudflared();
+  } catch {
+    shareState = 'error';
+    console.log('Could not download the tunnel tool. Check the connection or install cloudflared in bin/.');
+    return;
+  }
+  if (!closing) runTunnel();
 }
 
 function runTunnel() {
+  if (closing || tunnelProc) return;
   shareState = 'starting';
   publicUrl = null;
-  console.log('Creating the public link…');
-  const proc = spawn(CLOUDFLARED, ['tunnel', '--no-autoupdate', '--url', `http://127.0.0.1:${PORT}`], { windowsHide: true });
-
-  // The address is printed first, but it only works once a tunnel
-  // connection is registered. Some networks (often phone hotspots) block
-  // the port the tunnel needs (7844), and then it never registers.
-  const blockedTimer = setTimeout(() => {
-    if (shareState !== 'ready') {
-      shareState = 'blocked';
-      console.log('\n  This internet connection blocks the automatic public link (outbound port 7844).');
-      console.log('  Use a permanent link instead: run deploy-github.bat once (see README).\n');
+  console.log('Creating the public link...');
+  let command = CLOUDFLARED;
+  let args = ['tunnel', '--no-autoupdate', '--url', `http://127.0.0.1:${PORT}`];
+  if (TUNNEL_PROVIDER === 'localhost-run') {
+    const nullFile = process.platform === 'win32' ? 'NUL' : '/dev/null';
+    const trustDir = path.join(__dirname, 'data');
+    try { fs.mkdirSync(trustDir, { recursive: true }); }
+    catch { shareState = 'error'; console.log('Could not prepare the private tunnel trust directory.'); return; }
+    command = process.platform === 'win32' ? 'ssh.exe' : 'ssh';
+    args = ['-F', nullFile, '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
+      '-o', `UserKnownHostsFile="${path.join(trustDir, 'tunnel-known-hosts').replace(/\\/g, '/')}"`, '-o', `GlobalKnownHostsFile=${nullFile}`,
+      '-o', 'PubkeyAuthentication=no', '-o', 'PasswordAuthentication=no', '-o', 'KbdInteractiveAuthentication=no',
+      '-o', `IdentityFile=${nullFile}`, '-o', 'IdentityAgent=none', '-o', 'ConnectTimeout=10', '-o', 'ServerAliveInterval=30', '-o', 'ServerAliveCountMax=3',
+      '-T', '-R', `80:127.0.0.1:${PORT}`, 'nokey@localhost.run', '--', '--output', 'json'];
+  }
+  const proc = spawn(command, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  tunnelProc = proc;
+  const ready = origin => {
+    if (closing || tunnelProc !== proc || proc.killed || shareState === 'ready') return;
+    clearTimeout(startupTimer); startupTimer = null;
+    publicUrl = origin;
+    failures = 0;
+    shareState = 'ready';
+    console.log(`\n  PUBLIC LINK for users: ${publicUrl}/user`);
+    console.log('  Keep this laptop and server running. Invite users from the Robot page.\n');
+  };
+  if (TUNNEL_PROVIDER === 'localhost-run') {
+    const onOutput = createLineParser(line => { const origin = localhostRunOrigin(line); if (origin) ready(origin); });
+    proc.stdout.on('data', onOutput);
+    // Drain SSH diagnostics, without printing host/IP details or arbitrary output.
+    proc.stderr.resume();
+  } else {
+    let origin = null, registered = false;
+    const onOutput = createLineParser(line => {
+      const match = line.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com\b/);
+      if (match) origin = match[0];
+      if (/Registered tunnel connection/i.test(line)) registered = true;
+      if (origin && registered) ready(origin);
+    });
+    proc.stdout.on('data', onOutput);
+    proc.stderr.on('data', onOutput);
+  }
+  startupTimer = setTimeout(() => {
+    if (tunnelProc === proc && shareState !== 'ready') {
+      shareState = 'error';
+      console.log('Public tunnel startup timed out. Check the network or choose the other tunnel provider.');
+      proc.kill();
     }
   }, 45000);
-
-  const onOutput = (chunk) => {
-    const text = String(chunk);
-    const m = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
-    if (m) publicUrl = m[0];
-    if (/Registered tunnel connection/i.test(text) && publicUrl && shareState !== 'ready') {
-      clearTimeout(blockedTimer);
-      shareState = 'ready';
-      console.log(`\n  PUBLIC LINK for users: ${publicUrl}/user`);
-      console.log('  The Robot page shows a ready-to-send link with the serial number.\n');
-    }
-  };
-  proc.stdout.on('data', onOutput);
-  proc.stderr.on('data', onOutput);
-
-  proc.on('exit', (code) => {
-    clearTimeout(blockedTimer);
-    shareState = 'starting';
+  let finished = false;
+  const retry = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(startupTimer); startupTimer = null;
+    if (tunnelProc === proc) tunnelProc = null;
     publicUrl = null;
-    console.log(`Public link stopped (code ${code}). Creating a new one in 5 s…`);
-    setTimeout(runTunnel, 5000);
-  });
-
-  const stop = () => { proc.removeAllListeners('exit'); proc.kill(); process.exit(0); };
-  process.once('SIGINT', stop);
-  process.once('SIGTERM', stop);
+    if (closing) return;
+    shareState = 'error';
+    if (++failures >= 5) {
+      console.log('Public link stopped after five failed attempts. Check the connection/provider and restart with --share.');
+      return;
+    }
+    const delay = Math.min(1000 * 2 ** (failures - 1), 30000);
+    console.log(`Public link disconnected. Retrying in ${delay / 1000} seconds.`);
+    retryTimer = setTimeout(() => { retryTimer = null; runTunnel(); }, delay);
+  };
+  proc.once('error', retry);
+  proc.once('close', retry);
 }
+
+function stopServer() {
+  if (closing) return;
+  closing = true;
+  clearTimeout(retryTimer); clearTimeout(startupTimer);
+  if (tunnelProc) tunnelProc.kill();
+  service.close();
+  server.close(() => process.exit(0));
+  server.closeIdleConnections?.();
+  setTimeout(() => process.exit(0), 1000).unref();
+}
+process.once('SIGINT', stopServer);
+process.once('SIGTERM', stopServer);
 
 function downloadCloudflared() {
   const file = DOWNLOADS[process.platform];

@@ -91,7 +91,15 @@ For Metered, set `TURN_CREDENTIALS_URL` to `https://YOUR_APP.metered.live/api/v1
 
 STUN is configured. TURN is required when networks cannot establish direct WebRTC, including many mobile/enterprise networks. No provider credentials are fabricated or committed. `relayOnly` tests configured TURN.
 
-For same-origin hosting leave `CONFIG.apiBase` empty. For Pages set it to the shared backend's HTTPS origin, add the Pages origin to `ALLOWED_ORIGINS`, and set `publicUserPage` to the operator page. Then run `deploy-github.bat`: it requires a backend URL, publishes only `public/` and preserves `gh-pages` history. It does not deploy the backend. `start-robot.bat` can still create a temporary Cloudflare link; it changes on restart. All frontends must point to the same API.
+For same-origin hosting leave `CONFIG.apiBase` empty. For Pages set it to the shared backend's HTTPS origin, add the Pages origin to `ALLOWED_ORIGINS`, and set `publicUserPage` to the operator page. Then run `deploy-github.bat`: it requires a backend URL, publishes only `public/` and preserves `gh-pages` history. It does not deploy the backend. All frontends must point to the same API.
+
+### Temporary laptop hosting
+
+Run `npm start -- --share` (or `start-robot.bat`) to expose the shared backend and organization pages over HTTPS. The console prints the ready `/user` address and the local robot page obtains it from `/share-info`. Keep the robot browser on `http://localhost:3000/robot` for USB Web Serial. Keep the laptop, network and server running throughout remote sessions; free temporary domains change on restart and existing invite links then stop working.
+
+Set `TUNNEL_PROVIDER=cloudflare` in the private `.env` for Cloudflare's quick tunnel (default, downloads its tunnel tool into `bin/` once), or `TUNNEL_PROVIDER=localhost-run` to use account-free SSH forwarding through localhost.run. The latter requires an installed OpenSSH `ssh` command, uses its own ignored `data/tunnel-known-hosts` trust file and disables personal SSH configuration, key/agent and password authentication. It accepts a new provider host key on first use and rejects changed keys afterward. Neither option changes a hosting or Metered billing plan.
+
+The tunnel waits for an actual provider registration before announcing a URL. A startup timeout alone does not prove a blocked port. After a disconnection it retries with increasing delays and stops after five consecutive failures; check connectivity or choose the other provider, then restart. A permanent Pages frontend still needs a running HTTPS backend; explicit `--share` starts the backend tunnel even when `publicUserPage` is configured. If the backend tunnel domain changes, update the frontend's `CONFIG.apiBase` and republish, or use the tunnel's same-origin pages directly.
 
 The data store uses atomic replacement and fsync before announcing success. It supports a small **single-process** installation. Before scaling to multiple instances, migrate data to a transactional database and share sessions/leases. The private file contains password hashes and visitor information; never publish it to GitHub/Pages.
 
