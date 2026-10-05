@@ -87,7 +87,7 @@ function watchVideo() {
     setInterval(() => { if (!els.remote.paused && els.remote.readyState >= 2) frameWatch.frame(els.remote.getVideoPlaybackQuality?.().totalVideoFrames ?? els.remote.currentTime); }, 200);
   }
   setInterval(() => {
-    const video = frameWatch.fresh && call?.peerConnection.connectionState === 'connected' && !els.remote.paused;
+    const video = frameWatch.fresh && call?.peerConnection?.connectionState === 'connected' && !els.remote.paused;
     const permitted = RobotSafety.canDrive({ link: linkUp, server: Platform.connected, board: boardReady, video, lease: driveLease && performance.now() < leaseDeadline, visible: !document.hidden && document.hasFocus() });
     pad.setEnabled(permitted);
     document.querySelector('#claimControl').disabled = !!driveLease || requestControlPending || !activeSession?.canDrive || !linkUp || !Platform.connected || !boardReady || !video;
@@ -395,9 +395,10 @@ async function connect() {
   }, 15000);
 
   // ICE failure = no network path between the laptops
-  if (c.peerConnection) {
-    c.peerConnection.addEventListener('iceconnectionstatechange', () => {
-      if (c !== conn || c.peerConnection.iceConnectionState !== 'failed') return;
+  const dataPc = c.peerConnection;
+  if (dataPc) {
+    dataPc.addEventListener('iceconnectionstatechange', () => {
+      if (c !== conn || !wantConnected || dataPc.iceConnectionState !== 'failed') return;
       if (!everConnected && !hasRelay()) hangUp(NO_PATH_HELP);
       else linkDown(hasRelay() ? 'No network path to the robot, even through the relay.' : NO_PATH_HELP);
     });
@@ -449,20 +450,22 @@ async function startPeer() {
     catch { incoming.close(); return; }
     if (session !== activeSession || !wantConnected || p !== peer) { incoming.close(); return; }
     releaseControl('تصویر در حال اتصال است'); frameWatch.reset();
-    if (call) call.close();
+    const previousCall = call;
     call = incoming;
+    if (previousCall) previousCall.close();
     incoming.answer(outgoingStream());
     incoming.on('stream', (stream) => {
       if (incoming !== call) return;
       els.remote.srcObject = stream;
       playWithSound(els.remote, els.soundBtn);
     });
-    incoming.peerConnection.addEventListener('connectionstatechange', () => {
-      if (incoming !== call) return;
-      if (incoming.peerConnection.connectionState === 'connected') showRoute(incoming.peerConnection);
+    const mediaPc = incoming.peerConnection;
+    mediaPc?.addEventListener('connectionstatechange', () => {
+      if (incoming !== call || session !== activeSession || p !== peer || !wantConnected) return;
+      if (mediaPc.connectionState === 'connected' && incoming.peerConnection === mediaPc) showRoute(mediaPc, incoming);
       else {
         releaseControl('تصویر قطع شد'); frameWatch.reset();
-        if (['failed', 'disconnected'].includes(incoming.peerConnection.connectionState)) retryVideo();
+        if (['failed', 'disconnected'].includes(mediaPc.connectionState)) retryVideo();
       }
     });
     incoming.on('close', () => { if (incoming === call && wantConnected) { frameWatch.reset(); releaseControl('تماس تصویری قطع شد'); retryVideo(); } });
@@ -566,9 +569,10 @@ els.remote.addEventListener('playing', () => {
   if (linkUp) els.waiting.hidden = true;
 });
 
-async function showRoute(pc) {
+async function showRoute(pc, mediaCall) {
   try {
     const stats = await pc.getStats();
+    if (mediaCall !== call || mediaCall.peerConnection !== pc || !wantConnected) return;
     let pair = null;
     stats.forEach((s) => { if (s.type === 'candidate-pair' && s.nominated && s.state === 'succeeded') pair = s; });
     const local = pair && stats.get(pair.localCandidateId);

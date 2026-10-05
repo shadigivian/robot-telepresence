@@ -73,9 +73,20 @@ test('Actual local WebRTC call, authenticated movement, local takeover, and inde
   const padBox = await user.locator('#dpad').boundingBox(), barBox = await user.locator('.callbar').boundingBox();
   expect(barBox.x + barBox.width).toBeLessThan(padBox.x);
   // Fail media only; leave the command channel open. Movement must still lock.
-  await user.evaluate(() => { call.peerConnection.close(); });
+  await user.evaluate(() => {
+    const media = call, pc = media.peerConnection;
+    pc.close();
+    // PeerJS clears this field during cleanup, before queued browser events.
+    media.peerConnection = null;
+    pc.dispatchEvent(new Event('connectionstatechange'));
+    window.closedMediaPc = pc;
+  });
   await expect(user.locator('#dpad [data-cmd=F]')).toBeDisabled();
+  await expect(user.locator('#videoHealth')).toContainText('حرکت قفل است');
   await robot.locator('#localStop').click(); await expect(user.locator('#join')).toBeVisible();
+  // A late callback from the old call must not revive or mutate the session.
+  await user.evaluate(() => { window.closedMediaPc.dispatchEvent(new Event('connectionstatechange')); });
+  await expect(user.locator('#join')).toBeVisible();
   expect(errorsR).toEqual([]); expect(errorsU).toEqual([]); await rc.close(); await uc.close();
 });
 test('Mobile control and station screens fit a 360px viewport', async ({ page }) => {
@@ -84,4 +95,39 @@ test('Mobile control and station screens fit a 360px viewport', async ({ page })
   await expect(page.locator('#joinForm')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/mobile.png' }); expect(errors).toEqual([]);
+});
+
+test('Invitations follow the current ready tunnel and remain hidden while it reconnects', async ({ page }) => {
+  const errors = await configure(page);
+  let info = { state: 'off', url: null }, inviteRequests = 0;
+  await page.route('**/share-info', route => route.fulfill({ json: info }));
+  page.on('request', request => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/invites') inviteRequests++;
+  });
+  await page.goto('/robot.html'); await login(page, 'robot');
+  await page.locator('#inviteBtn').click();
+  await expect(page.locator('#shareNote')).toContainText('آدرس عمومی');
+  expect(inviteRequests).toBe(0);
+  await expect(page.locator('#copyBtn')).toBeDisabled();
+
+  info = { state: 'ready', url: 'https://first.example.test' };
+  await page.evaluate(() => pollShareInfo());
+  await page.locator('#inviteBtn').click();
+  await expect(page.locator('#shareLink')).toContainText('https://first.example.test/user#invite=');
+  const fragment = new URL(await page.locator('#shareLink').textContent()).hash;
+  await expect(page.locator('#copyBtn')).toBeEnabled();
+  expect(inviteRequests).toBe(1);
+
+  info = { state: 'starting', url: 'https://first.example.test' };
+  await page.evaluate(() => pollShareInfo());
+  await expect(page.locator('#shareLink')).toHaveText('—');
+  await expect(page.locator('#copyBtn')).toBeDisabled();
+  info = { state: 'ready', url: 'https://second.example.test' };
+  await page.evaluate(() => pollShareInfo());
+  await expect(page.locator('#shareLink')).toHaveText(`https://second.example.test/user${fragment}`);
+  await expect(page.locator('#copyBtn')).toBeEnabled();
+  expect(inviteRequests).toBe(1);
+  await page.locator('#revokeInvites').click();
+  await expect(page.locator('#shareLink')).toHaveText('—');
+  expect(errors).toEqual([]);
 });

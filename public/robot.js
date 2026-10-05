@@ -470,7 +470,7 @@ function onControl(msg) {
   if (!msg || typeof msg !== 'object') return;
   if (msg.t === 'cmd' && COMMANDS[msg.c]) {
     if (msg.c === 'S') commandGate.accept(msg);
-    if (msg.c !== 'S' && (!Platform.connected || !remoteSession?.canDrive || !remoteLease || performance.now() > leaseUntil || !boardAnswered || !port || userCall?.peerConnection.connectionState !== 'connected' || !commandGate.accept(msg))) return;
+    if (msg.c !== 'S' && (!Platform.connected || !remoteSession?.canDrive || !remoteLease || performance.now() > leaseUntil || !boardAnswered || !port || userCall?.peerConnection?.connectionState !== 'connected' || !commandGate.accept(msg))) return;
     cmdCount++;
     els.cmdCount.textContent = cmdCount;
     drive(msg.c, 'user', msg.v);
@@ -789,10 +789,11 @@ const share = {
 };
 let shareInfo = { state: 'off', url: null };
 let inviteLink = null;
+let inviteToken = null;
 let inviteExpires = 0;
 
 // Opened from a hosted site (GitHub Pages): the user page sits right next to
-// this one, so the invite link is permanent and needs no local server.
+// this one. Both pages still require the configured shared backend.
 const HOSTED = !['localhost', '127.0.0.1'].includes(location.hostname);
 const permanentUserPage = HOSTED ? new URL('user.html', location.href).href : CONFIG.publicUserPage;
 
@@ -811,7 +812,8 @@ async function pollShareInfo() {
 function renderInvite() {
   const base = permanentUserPage || (shareInfo.state === 'ready' && shareInfo.url ? `${shareInfo.url}/user` : null);
   const s = normalizeSerial(els.serialInput.value);
-  if (Date.now() >= inviteExpires) inviteLink = null;
+  if (Date.now() >= inviteExpires) inviteToken = null;
+  inviteLink = inviteToken && base ? `${base}#invite=${encodeURIComponent(inviteToken)}` : null;
 
   share.link.textContent = inviteLink || '—';
   share.link.classList.toggle('dim', !inviteLink);
@@ -825,13 +827,13 @@ function renderInvite() {
       off: 'No public link. Start the robot with start-robot.bat to get one.',
       starting: 'Creating the public link… (about 10 seconds)',
       error: 'Could not create the public link. Check the internet connection and the black server window.',
-      blocked: 'This internet connection blocks the automatic link (common on phone hotspots). Set up the permanent link once with deploy-github.bat (see README), or use another network.',
+      blocked: 'The public tunnel is not ready. Check the connection or choose the other tunnel provider in the private server settings.',
     }[shareInfo.state] || 'Creating the public link…';
   } else if (!wantOnline) {
     note = 'Press Go online so the link works.';
   } else {
     note = 'Send this link. Opening it connects straight to this robot, with nothing to install.' +
-      (permanentUserPage ? '' : ' The address changes when the robot app restarts, so re-send it then.');
+      (permanentUserPage ? '' : ' The temporary address can change when the tunnel reconnects, so copy the current link before sending it.');
   }
   share.note.textContent = note;
 }
@@ -839,17 +841,17 @@ function renderInvite() {
 document.querySelector('#inviteBtn').onclick = async () => {
   if (!boundRobot) return;
   try {
-    const invite = await Platform.api('/invites', { method: 'POST', body: { robotId: boundRobot.id, canDrive: document.querySelector('#inviteDrive').checked } });
-    const base = permanentUserPage || (shareInfo.url ? `${shareInfo.url}/user` : null);
+    const base = permanentUserPage || (shareInfo.state === 'ready' && shareInfo.url ? `${shareInfo.url}/user` : null);
     if (!base) throw new Error('آدرس عمومی وب‌اپ کاربر در دسترس نیست.');
-    inviteLink = `${base}#invite=${encodeURIComponent(invite.token)}`;
+    const invite = await Platform.api('/invites', { method: 'POST', body: { robotId: boundRobot.id, canDrive: document.querySelector('#inviteDrive').checked } });
+    inviteToken = invite.token;
     inviteExpires = invite.expires;
     renderInvite();
     share.note.textContent = 'دعوت یک‌بارمصرف تا ۱۵ دقیقه معتبر است.';
   } catch (e) { share.note.textContent = e.message; }
 };
 document.querySelector('#revokeInvites').onclick = async () => {
-  try { await Platform.api('/invites', { method: 'DELETE', body: { robotId: boundRobot.id } }); inviteLink = null; inviteExpires = 0; renderInvite(); } catch (e) { share.note.textContent = e.message; }
+  try { await Platform.api('/invites', { method: 'DELETE', body: { robotId: boundRobot.id } }); inviteToken = null; inviteLink = null; inviteExpires = 0; renderInvite(); } catch (e) { share.note.textContent = e.message; }
 };
 share.copy.onclick = async () => {
   if (!inviteLink) return;
