@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>پنل سازمان — ربات</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="product.css"></head>
+<body data-app="portal">
+<header class="app-header"><h1>پنل سازمان</h1><span id="accountName"></span><nav><a href="robot.html">دستگاه ربات</a><a href="user.html">کنترل از راه دور</a><button class="btn" id="logoutBtn" hidden>خروج</button></nav></header>
+<main class="product-main">
+  <div id="portalAuth"></div>
+  <p id="portalError" class="form-error" role="alert"></p><p id="portalStatus" aria-live="polite"></p>
+  <section id="staffPanel" class="stack" hidden><h2>مراجعه‌های شما</h2><p class="muted">تحویل یعنی دریافت در این پنل؛ دیده‌شدن و پاسخ به‌صورت جدا ثبت می‌شود. پیام‌ها بعد از آفلاین‌بودن باقی می‌مانند.</p><button class="btn" id="refreshInbox">به‌روزرسانی</button><div id="inbox" class="stack"></div></section>
+  <section id="adminPanel" class="stack" hidden>
+    <h2>اطلاعات مکان و مسیرها</h2>
+    <label>نام مکان<input id="directoryName" maxlength="160"></label>
+    <p class="muted">نقشه شماتیک از نقاط و اتصال‌ها ساخته می‌شود. مختصات هر نقطه ۰ تا ۱۰۰ و فاصله مسیر بر حسب متر است. فقط مسیرهایی را ثبت کنید که واقعاً قابل عبور هستند.</p>
+    <div id="directoryBuilder" class="directory-builder"></div>
+    <div class="actions"><button class="btn primary" id="saveDirectory">ذخیره اطلاعات مکان</button><button class="btn" id="reloadDirectory">بارگذاری مجدد</button></div>
+    <details><summary>ورود و خروج JSON نقشه</summary><div class="stack"><label>فایل JSON<input type="file" id="importFile" accept="application/json,.json"></label><label>اطلاعات نقشه<textarea id="directoryJSON" class="json-editor" spellcheck="false"></textarea></label><div class="actions"><button class="btn" id="applyJSON">ورود به ویرایشگر</button><button class="btn" id="exportJSON">دریافت فایل JSON</button><button class="btn" id="loadExample">ورود مثال آزمایشی</button></div><p class="muted">ورود فقط پیش‌نویس را تغییر می‌دهد؛ برای اعمال، ذخیره اطلاعات مکان را بزنید.</p></div></details>
+    <hr><h2>ربات‌ها و محل شروع</h2><div id="robotRecords" class="record-list"></div>
+    <form id="robotForm" class="split"><label>شناسه ثابت<input name="id" required pattern="[A-Za-z0-9_-]{1,64}"></label><label>نام نمایشی<input name="name" required maxlength="160"></label><label>شماره سریال<input name="serial" required placeholder="RB-ROBOT01"></label><label>محل استقرار<input name="location" maxlength="160"></label><label>حالت<select name="mode"><option value="welcome">Welcome</option><option value="telepresence">Telepresence</option></select></label><label>نقطه شروع<select name="startNodeId"></select></label><label class="check-label"><input type="checkbox" name="active" checked>فعال</label><div class="actions"><button class="btn primary">ذخیره ربات</button><button type="button" class="btn" id="newRobot">ربات جدید</button></div></form>
+    <hr><h2>حساب‌های کاربری</h2><div id="userRecords" class="record-list"></div>
+    <form id="accountForm" class="split"><label>نام فرد<input name="name" required maxlength="160"></label><label>نام کاربری<input name="username" required pattern="[A-Za-z0-9_.-]{3,64}"></label><label>رمز جدید (حداقل ۱۲ نویسه)<input name="password" type="password" required minlength="12" maxlength="256" autocomplete="new-password"></label><label>نقش<select name="role"><option value="staff">کارکنان — دریافت اعلان</option><option value="operator">اپراتور — تماس و کنترل</option><option value="robot">دستگاه ربات</option><option value="admin">مدیر سامانه</option></select></label><label>ربات مربوط به حساب دستگاه<select name="robotId"></select></label><button class="btn primary">ساخت حساب</button></form>
+    <form id="passwordForm" class="actions"><label style="flex:1">حساب برای تغییر رمز<select name="userId"></select></label><label style="flex:1">رمز جدید<input name="password" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></label><button class="btn">تغییر رمز و لغو جلسه‌های قبلی</button></form>
+  </section>
+</main><script src="config.js"></script><script src="vendor/socket.io.min.js"></script><script src="platform.js"></script><script src="portal.js"></script>
+</body></html>

@@ -1,162 +1,106 @@
-# Robot Telepresence
+# Welcome + Telepresence Robot Platform
 
-Two web apps that pair by serial number, over the internet:
+Two browser apps share one authenticated backend:
 
-| App | Opened on | Does |
-|---|---|---|
-| **Robot Station** (`robot.html`) | Robot laptop, Chrome or Edge | Streams the webcam and microphone, shows the user's camera or shared screen with their voice, goes online under a serial number, drives the Arduino Uno over USB, shows the invite link |
-| **Robot Control** (`user.html`) | Anyone's browser, from the invite link | Watch and hear the robot full screen, talk back with camera and microphone, share the screen, drive with the D-pad or keyboard |
+- **Robot Station** (`public/robot.html`): Welcome kiosk with room/person search, floor maps, accessible routes and staff notifications; or a Telepresence display with WebRTC audio/video and an Arduino Uno USB bridge.
+- **Organization app**: `public/user.html` for operators/invited callers; `public/portal.html` for staff inboxes and administration. These are role-specific pages of the same app.
 
-Both pages are hosted for free on **GitHub Pages**. The robot and the user can be anywhere, on any network.
+The Uno sketch and motor wiring are unchanged. Navigation is **manual**. Maps guide visitors; they do not localize the robot, detect obstacles or make it drive autonomously. PWM presets are motor power, not calibrated physical speed.
 
-```
- Driver's browser        GitHub Pages (hosts both pages)        Robot laptop's browser     Arduino Uno
- ┌──────────────┐                                              ┌──────────────────┐  USB  ┌────────┐
- │ user.html    │   ┌────────────────────────────────────┐     │ robot.html       │ ────▶ │ motors │
- │ ?serial=RB-… │──▶│ Matchmaking (PeerJS): finds robot  │◀────│ webcam           │       └────────┘
- │              │   └────────────────────────────────────┘     │                  │
- │              │ ◀═════ robot's video + sound ═════════════════│                  │
- │              │ ══════ user's video/screen + sound ══════════▶│                  │
- │  D-pad       │ ═══════════ commands ════════════════════════▶│                  │
- └──────────────┘   direct, or through the Metered relay        └──────────────────┘
-                    (TURN) when the networks can't connect directly
+## Run locally
+
+Use Node 22 LTS (minimum 18.18), Chrome or Edge on the robot laptop and the existing Uno sketch.
+
+```powershell
+npm ci
+$env:ADMIN_USERNAME = 'admin'
+$env:ADMIN_PASSWORD = Read-Host 'Choose an admin password (12+ characters)'
+npm run setup
+Remove-Item Env:ADMIN_PASSWORD
+npm start
 ```
 
-## One-time setup (about 15 minutes)
+Open `http://localhost:3000/portal.html`. Setup installs **no default password** or site data. To explicitly load a fictional, labelled example, run `node scripts/setup.js --demo` instead of the first setup command. Setup refuses to overwrite an initialized database.
 
-You need: this folder on the robot laptop, [Node.js](https://nodejs.org) and [Git for Windows](https://git-scm.com/download/win). These are only needed to publish; nobody needs them to use the apps.
+1. Add floors, nodes, route edges, rooms and people; save the directory.
+2. Register the robot's stable ID/serial, mode and starting node.
+3. Create a **robot** account scoped to that robot, **operator** accounts for drivers and **staff** accounts for recipients.
+4. Edit each person and select their staff account to enable notifications. A room can notify one of its associated people.
+5. On the robot laptop open `/robot.html`, sign in, start the camera, connect the Uno and go online. Press **نمایش عمومی** for kiosk/display mode. Reopening settings requires a robot or administrator password; local stop remains publicly available.
+6. On the other laptop open `/user.html`, sign in, select a robot, check camera/microphone and start the call. After fresh video and board readiness, press **گرفتن کنترل**. Hold arrows/WASD to drive, release to stop.
 
-**1. GitHub account and repository**
-1. Create a free account at https://github.com/signup.
-2. Create a repository at https://github.com/new: name it `robot-telepresence`, choose **Public**, and **don't** tick "Add a README". Press **Create repository**.
+An administrator can also sign in on the station and select a device. A scoped device session is issued; the kiosk does not retain administrator privileges. Public mode clears the current visitor's name/note/route after 90 seconds of inactivity or **شروع دوباره**. This does not delete a registered staff notification.
 
-**2. Relay account (Metered, free tier)**
-1. Sign up at https://www.metered.ca/stun-turn.
-2. In the dashboard, open **TURN Server** and create a credential if none exists.
-3. Copy the **API URL** that returns the ICE servers. It looks like
-   `https://YOUR-APP.metered.live/api/v1/turn/credentials?apiKey=XXXX`
+## Welcome directory and notifications
 
-**3. Publish**
-1. Double-click **`deploy-github.bat`**.
-2. Type your GitHub username, press Enter to accept the repository name, and paste the Metered URL.
-3. If a GitHub sign-in window opens, sign in. The window ends with **Published** and your robot page address.
+Native forms manage floors, nodes, edges, rooms and people; JSON import/export is also available. `examples/directory.json` documents the schema. Node coordinates are schematic percentages (0–100), grouped by floor. Edges contain metre distances, explicit forward/reverse directions, `accessible` and `bidirectional` flags. Route planning chooses shortest registered distance; accessible mode excludes non-accessible edges. Missing/disconnected routes produce an error, never an invented route.
 
-**4. Turn the site on (first time only)**
-1. Open `https://github.com/YOUR-NAME/robot-telepresence/settings/pages`.
-2. Under **Build and deployment**, set Source to **Deploy from a branch**, Branch to **gh-pages** and **/ (root)**, and press **Save**.
-3. Wait about a minute.
+Names, aliases and departments are searchable, including normalization of Arabic/Persian ی/ک and questions such as «اتاق مدیر کجاست؟». Multiple matches require selection. Inactive destinations are hidden. Hours/availability are curated public text. The start node is configured per robot; a device operator can update it after moving the robot. This is not live localization.
 
-## Every day
+Optional Persian speech input uses SpeechRecognition with text fallback; read-aloud uses installed SpeechSynthesis voices. Recognition may use the browser provider's remote service. Availability and Persian voice quality depend on the browser/device.
 
-**Robot laptop**
-1. In Chrome or Edge, open `https://YOUR-NAME.github.io/robot-telepresence/robot.html` and bookmark it.
-2. Press **Start camera** (allow the camera and microphone), then **Go online**. The status turns green: `Online · RB-XXXXXX`.
-3. Plug in the Arduino Uno and press **Connect Arduino** (the first time, pick the Uno in the list). After that it connects by itself whenever the page opens or the Uno is plugged in.
-4. Press **Copy link** in the **Invite link** box and send the link (WhatsApp, email...).
-5. Optional: press **Full screen** on the video so the robot's screen shows the user's face.
+Notification is explicit: **اطلاع بده که در راه هستم** sends the optional visitor name/note to the selected recipient. Route display does not depend on delivery. States are **registered → delivered → seen → responded**. Delivered means the staff browser received/rendered the entry, not that the person read it. Staff acknowledge or reply. The kiosk polls its own visit while displaying the route. Stable request IDs avoid duplicate notifications on retry. Staff inboxes recover persisted visits after being offline.
 
-The link stays the same as long as the serial number does, so a user can keep it and reuse it.
+## Communications and control
 
-**User**
-Open the link and allow the camera and microphone. It connects straight to the robot, with nothing to install, in any modern browser, on any network. Hold an arrow to drive; releasing it stops. Keyboard: arrows or WASD, Space to stop.
+```text
+Robot browser <--- authenticated API / Socket.IO ---> shared backend + data
+      ^                                                       ^
+      | WebRTC audio/video + DataChannel                     |
+      v                                                       |
+Operator browser <--------------------------------------------+
 
-## Sound, video and screen sharing
-
-- **Both ways:** the user sees and hears the robot; the robot's screen shows the user's camera (full size, with the robot's own camera as a small preview in the corner) and plays their voice. Either side can go without a camera or microphone; the call still works with whatever is available.
-- **Buttons at the bottom left of the user screen:** hang up, mute microphone, camera off, **share screen**, full screen.
-- **Screen sharing** (computers only, not phones): pick a screen, window or tab. The robot's display switches to it, labelled *User's screen*, and switches back to the camera when you press the button again or the browser's *Stop sharing*.
-- **Robot microphone:** people near the robot can press **Mute microphone** for privacy. The user sees *Robot mic off*.
-- **No sound?** If the browser blocks sound until the page is clicked, a *Click to hear…* button appears; press it once. Use headphones on the user side if there is echo.
-
-**After changing anything** in `public/` (for example `config.js`), double-click `deploy-github.bat` again. It remembers your answers.
-
-## Without GitHub (local mode)
-
-`start-robot.bat` runs the robot page from the laptop itself (`http://localhost:3000/robot`). Without a published site, it tries to create a temporary public link through a Cloudflare quick tunnel. That link changes every restart and doesn't work on networks that block outbound port 7844, which includes many phone hotspots. `start-user.bat` runs the user page locally.
-
-## The connection stays up until you end it
-
-- **User side:** only the red hang-up button ends the session. If the link drops (Wi-Fi blip, network change, robot page reloaded), the screen shows *Reconnecting…* and retries until the link is back.
-- **Robot side:** it stays online until you press **Go offline**. If the matchmaking server drops, it reconnects by itself. If the robot page reloads or the browser restarts while online, it turns the camera back on and goes online again automatically.
-- **Keep-alive:** both sides ping each other every second, so a dead link is noticed within 6 seconds. Both laptops' screens are also kept awake while the apps are open.
-- **Motors stop whenever the link is down**, and resume on the next command after reconnecting.
-
-## Relay (TURN) server
-
-The laptops first try to connect **directly**, which works on most home and office networks. On phone hotspots, 4G/5G and strict firewalls, the video goes through the **Metered relay** instead. The robot page shows **Relay (TURN): Configured** when it's set up, and the user's top bar shows **Via relay** when it's in use.
-
-- Relayed video uses roughly 0.5–1 GB per hour. Check the free allowance in your Metered dashboard.
-- The relay URL is saved in `public/config.js` (`turnCredentialsUrl`). Any other TURN provider works too: list it under `turnServers`.
-- To check the relay works, set `relayOnly: true` temporarily and republish.
-
-## Status indicators (user screen, top right)
-
-| Indicator | Meaning |
-|---|---|
-| `Direct` / `Via relay` | Video goes straight between the laptops, or through the TURN relay |
-| `Arduino connected` / `Simulation` | Whether the robot has its Arduino Uno attached |
-| `Robot mic off` | Someone at the robot muted its microphone |
-| `45 ms` | Round-trip time for commands |
-
-## Arduino Uno
-
-The robot page drives the motors through an **Arduino Uno** on the robot laptop's USB port.
-
-**Upload the sketch (once)**
-1. Plug the Uno into the laptop. Windows shows it as *Arduino Uno (COMx)*, or *USB-SERIAL CH340 (COMx)* for most clones.
-2. In the Arduino IDE, open `arduino/robot_controller_uno/robot_controller_uno.ino`, choose board **Arduino Uno** and the Uno's COM port, and press **Upload**.
-
-**Connect it to the robot page:** press **Connect Arduino** and pick the Uno. The page restarts the Uno and turns green (*Arduino connected*) about a second later. From then on it connects by itself when the page opens or the Uno is plugged in.
-
-**Wiring** (L298N or similar dual H-bridge driver; remove its ENA/ENB jumpers so speed control works):
-
-| L298N | Uno pin | Test LED meaning |
-|---|---|---|
-| ENA | 5 (PWM) | Left motor speed |
-| IN1 | 7 | Left forward |
-| IN2 | 8 | Left backward |
-| ENB | 6 (PWM) | Right motor speed |
-| IN3 | 11 | Right forward |
-| IN4 | 12 | Right backward |
-| GND | GND | Ground, shared with the driver |
-
-![Arduino Uno LED test wiring](docs/arduino-uno-wiring.png)
-
-With no motors, the Uno's **L** LED (pin 13) lights while a move command is active. To test with LEDs instead of motors: pin → 220 Ω resistor → LED long leg; LED short leg → GND.
-
-**Serial protocol** (115200 baud, one command per line): `F 200` forward, `B 200` backward, `L 200` spin left, `R 200` spin right (speed 0 to 255), `S` stop. `?` makes it reply `READY robot_controller`; the robot page uses it to check the sketch is running. The Uno replies `OK <cmd>` when the command changes, and it stops by itself if no command arrives for 500 ms.
-
-**If the robot page can't reach the Uno:**
-
-| What you see | Cause and fix |
-|---|---|
-| *No Arduino found* | The Uno isn't reaching the laptop. Use a USB cable that carries data (for a genuine Uno, the square "printer" USB-B cable); the green **ON** light must be lit; try another USB port. Clone boards need the [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html). |
-| *Arduino not answering* | The robot sketch isn't on the Uno. Upload `robot_controller_uno.ino` as above. |
-| *Arduino port busy* | Another program has the Uno's port: the Arduino IDE (Serial Monitor or an upload) or another Robot Station tab. Close it and press **Connect Arduino**. |
-| The Arduino IDE can't upload: port busy | The robot page has the port. Press **Disconnect Arduino** (or close the robot page) while uploading. |
-
-## ESP32 (alternative board)
-
-`esp32/robot_controller/robot_controller.ino` is the same controller for an ESP32 (pins listed at the top of the file). The robot page accepts it too, as long as its USB chip is a CP210x or CH340. Installing the ESP32 boards in the Arduino IDE needs `downloads.arduino.cc`, which is blocked from some connections; use a VPN for that install.
-
-## Files
-
-```
-start-robot.bat                    local mode: run the robot page from this laptop
-start-user.bat                     optional: run the user app locally
-deploy-github.bat, deploy.js       publish both pages to GitHub Pages (asks for GitHub + relay)
-server.js                          local web server + temporary public link
-bin/cloudflared.exe                Cloudflare tunnel tool (downloaded automatically)
-public/config.js                   matchmaking, relay and invite-link settings
-public/robot.html, robot.js        Robot Station
-public/user.html, user.js          Robot Control
-public/common.js                   connection helpers, D-pad, keyboard
-public/vendor/peerjs.min.js        PeerJS 1.5.4 (WebRTC + matchmaking client)
-arduino/robot_controller_uno/      Arduino Uno sketch (the robot's board)
-esp32/robot_controller/            ESP32 sketch (alternative board)
+Robot browser ---> Web Serial ---> Arduino Uno ---> motor driver
 ```
 
-## Notes for later
+PeerJS/PeerServer handles WebRTC signaling. Socket.IO handles authenticated presence, session events, leases and notifications; it does not replace PeerServer. Video does not pass through Socket.IO. Backend authorization binds session secrets to caller peer IDs; incoming video also needs a one-use proof issued only to the authenticated robot. Use a trusted/self-hosted PeerServer for a controlled deployment; its settings remain in `public/config.js`.
 
-- **Own matchmaking server:** the public PeerJS server is free and needs no account, but it's shared and has no uptime guarantee. For production, run your own (`npx peer --port 9000` on any public host) and set `peerServer` in `config.js`.
-- **Security:** anyone who knows a serial number can connect. The random 6-character serials are hard to guess, but add a PIN before real-world use.
+Remote movement requires an authorized session, active lease, connected backend, ready Uno, connected video, recently decoded frames and a visible/focused operator tab. Simulation can inspect calls but does not enable remote motors.
+
+- Lost video, board readiness, focus or backend connectivity releases control. Reconnection does not automatically restore driving.
+- Robot-issued challenges expire after 450 ms on its monotonic clock. Sequence/lease IDs reject replayed or stale movement. Slow links may prevent driving even while video is viewable.
+- Serial writes coalesce pending movement and prioritize stop; commands remain `F/B/L/R <0..255>`, `S`, `?`, at 115200 baud. Board readiness requires `READY robot_controller`.
+- The Uno stops after 500 ms without a command. Browser checks supplement this; physical emergency-stop hardware and obstacle sensing remain separate installation requirements.
+- Local test controls cannot compete with remote control and have no global keyboard binding. Local stop ends the remote session. The operator must reconnect.
+- Frame freshness and command ping are separate. Ping is a data-channel round trip, not video or motor latency.
+
+## Accounts and invitations
+
+The station creates **single-use, 15-minute invitations**, with call-only or call-and-drive permission. Tokens are in the URL fragment and removed after redemption. Cancellation revokes outstanding invites and guest sessions. Serial-only links do not authorize motion. Guests are scoped to one robot and cannot administer the site or read staff inboxes.
+
+Passwords use salted scrypt. Bearer sessions are tab-scoped in sessionStorage and expire after eight hours. Calls expire after one hour or earlier with their login. Password changes, disabling accounts, logout and server restart revoke associated sessions. Realtime handlers recheck authorization. Restart preserves users/directory/visits but intentionally drops logins, invites, calls and leases.
+
+Closing an operator page sends best-effort session cleanup. A disconnected or abandoned operator reservation is freed after a 30-second reconnect grace period, even if the browser cannot send its final request.
+
+## Deploy the shared backend
+
+**GitHub Pages hosts the frontend only.** It cannot run Socket.IO, authenticate users or persist visits. Both laptops must use the **same backend**; independently running `npm start` on each creates independent sites.
+
+Deploy on a Node host or build the Dockerfile. Mount a persistent private directory at `/app/data`, initialize it once with `npm run setup`, then start. Terminate TLS at the host/proxy and forward WebSocket upgrades for `/socket.io/`. Use one server process and one data volume. Keep data outside the public document root and back it up.
+
+Set variables in the shell/host dashboard; `.env.example` is documentation, not an automatically loaded file:
+
+- `PORT`: default 3000.
+- `HOST`: default 127.0.0.1; use 0.0.0.0 on a managed host/container.
+- `DATA_FILE`: default `data/site.json`, persisted across deploys.
+- `ALLOWED_ORIGINS`: comma-separated exact frontend origins, e.g. `https://shadigivian.github.io`, without repository path or trailing slash. No wildcard.
+- `TURN_CREDENTIALS_URL`: provider endpoint including its API key, **server-side only**. Authenticated clients obtain ICE relays from `/api/ice`.
+- `TURN_SERVERS`: alternative JSON list of relays; prefer short-lived credentials.
+
+STUN is configured. TURN is required when networks cannot establish direct WebRTC, including many mobile/enterprise networks. No provider credentials are fabricated or committed. `relayOnly` tests configured TURN.
+
+For same-origin hosting leave `CONFIG.apiBase` empty. For Pages set it to the shared backend's HTTPS origin, add the Pages origin to `ALLOWED_ORIGINS`, and set `publicUserPage` to the operator page. Then run `deploy-github.bat`: it requires a backend URL, publishes only `public/` and preserves `gh-pages` history. It does not deploy the backend. `start-robot.bat` can still create a temporary Cloudflare link; it changes on restart. All frontends must point to the same API.
+
+The data store uses atomic replacement and fsync before announcing success. It supports a small **single-process** installation. Before scaling to multiple instances, migrate data to a transactional database and share sessions/leases. The private file contains password hashes and visitor information; never publish it to GitHub/Pages.
+
+## Verify
+
+```text
+npm run check
+npm test
+npm run test:browser
+```
+
+Browser tests use installed Microsoft Edge on Windows. Elsewhere run `npx playwright install chromium` and set `PLAYWRIGHT_CHANNEL=chromium`. CI installs Chromium automatically.
+
+Coverage includes Persian lookup, multi-floor/accessible/reverse routes, invalid directory rejection, role isolation, invitations, persisted idempotent visits, delivery/seen/reply, media proofs, lease expiry, stale commands, frame freshness, local stop and actual local WebRTC between two browsers. Serial is **simulated** in browser tests. Physical Uno/motors, internet NAT traversal, provider TURN and production hosting must be verified on the installation.

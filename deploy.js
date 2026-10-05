@@ -68,20 +68,26 @@ function copyDir(from, to) {
   const { user, repo } = settings;
   const site = `https://${user.toLowerCase()}.github.io/${repo}`;
 
-  // --- Relay (TURN) URL (asked while not set)
+  // A static host cannot execute the authenticated API or persist visits.
   let config = fs.readFileSync(CONFIG, 'utf8');
-  if (/^\s*turnCredentialsUrl:\s*''/m.test(config)) {
-    console.log('\nRelay server (needed when the robot is on a phone hotspot or mobile data).');
-    console.log('Paste your Metered "API URL" (https://....metered.live/api/v1/turn/credentials?apiKey=...),');
-    const turn = await ask('or press Enter to skip for now: ');
-    if (turn) {
-      if (!/^https:\/\/[^\s']+$/.test(turn)) {
-        console.log('That does not look like a https:// URL. Skipping the relay for now.');
-      } else {
-        config = config.replace(/^(\s*turnCredentialsUrl:\s*)''/m, `$1'${turn}'`);
-      }
-    }
+  const configured = (config.match(/^\s*apiBase:\s*'([^']*)'/m) || [])[1];
+  if (!configured && !settings.backend) settings.backend = await ask('Public HTTPS backend URL (no API keys; required): ');
+  const backend = configured || settings.backend;
+  let backendOrigin;
+  try { backendOrigin = new URL(backend); } catch {}
+  if (!backend || !backendOrigin || backendOrigin.protocol !== 'https:' || backendOrigin.origin !== backend.replace(/\/$/, '')) {
+    console.error('Deploy the shared server first and supply its HTTPS URL. See README.md. No site was published.');
+    process.exit(1);
   }
+  try {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 10000);
+    let response;
+    try { response = await fetch(backend.replace(/\/$/, '') + '/api/health', { headers: { Origin: new URL(site).origin }, signal: controller.signal }); } finally { clearTimeout(timer); }
+    const health = await response.json();
+    if (!response.ok || health.version !== 2 || !health.initialized) throw new Error('Backend not initialized or Pages origin not allowed');
+  } catch (e) { console.error('Backend is not ready. Verify HTTPS, setup and ALLOWED_ORIGINS. No site was published.'); process.exit(1); }
+  config = config.replace(/^(\s*apiBase:\s*)'[^']*'/m, (_, prefix) => prefix + "'" + backend.replace(/\/$/, '') + "'");
+  fs.writeFileSync(SETTINGS, JSON.stringify(settings, null, 2));
   // Invite links from the locally run robot page also point at the hosted user page
   config = config.replace(/^(\s*publicUserPage:\s*)'[^']*'/m, `$1'${site}/user.html'`);
   fs.writeFileSync(CONFIG, config);
@@ -89,23 +95,28 @@ function copyDir(from, to) {
 
   // --- Build and push the site
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'robot-site-'));
-  copyDir(PUBLIC, dir);
-  fs.writeFileSync(path.join(dir, '.nojekyll'), '');
 
   console.log(`\nPublishing to https://github.com/${user}/${repo} …`);
   console.log('(The first time, a GitHub sign-in window may open. Sign in, then come back here.)\n');
   try {
     const id = ['-c', `user.name=${user}`, '-c', `user.email=${user}@users.noreply.github.com`];
-    git(['init', '-q', '-b', 'gh-pages'], dir);
+    const remote = process.env.DEPLOY_REMOTE || `https://github.com/${user}/${repo}.git`;
+    const existing = execFileSync('git', ['ls-remote', '--heads', remote, 'gh-pages'], { encoding: 'utf8' }).trim();
+    if (existing) git(['clone', '-q', '--single-branch', '--branch', 'gh-pages', remote, dir], ROOT);
+    else git(['init', '-q', '-b', 'gh-pages'], dir);
+    copyDir(PUBLIC, dir);
+    fs.writeFileSync(path.join(dir, '.nojekyll'), '');
     git(['add', '-A'], dir);
-    git([...id, 'commit', '-q', '-m', 'Publish robot apps'], dir);
-    const remote = process.env.DEPLOY_REMOTE || `https://github.com/${user}/${repo}.git`; // override for testing
-    git(['push', '-f', remote, 'gh-pages'], dir);
+    const changes = execFileSync('git', ['status', '--porcelain'], { cwd: dir, encoding: 'utf8' }).trim();
+    if (changes) git([...id, 'commit', '-q', '-m', 'Publish robot platform'], dir);
+    git(['push', remote, 'gh-pages'], dir);
   } catch {
     console.log('\nPublishing failed. Check that the repository exists, is public, and that you signed in as its owner.');
     console.log(`To start over with a different username or repository, delete ${SETTINGS}.`);
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   } finally {
+    if (!path.resolve(dir).startsWith(path.resolve(os.tmpdir()) + path.sep) || !path.basename(dir).startsWith('robot-site-')) throw new Error('Unexpected cleanup path');
     fs.rmSync(dir, { recursive: true, force: true });
   }
 

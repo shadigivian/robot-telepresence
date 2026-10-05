@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Robot Station</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect x=%224%22 y=%228%22 width=%2216%22 height=%2211%22 rx=%223%22 fill=%22%233b82f6%22/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="product.css">
   <style>
     body { display: flex; flex-direction: column; min-height: 100vh; }
     header {
@@ -80,16 +81,32 @@
     .note.warn { color: var(--warn); }
   </style>
 </head>
-<body>
-  <header>
+<body data-app="robot">
+  <div id="stationAuth" class="product-main"></div>
+  <div id="devicePicker" class="product-main" hidden><label>دستگاهی که روی آن هستید<select></select></label><button class="btn primary">فعال‌سازی این دستگاه</button><p role="alert" class="form-error"></p></div>
+  <dialog id="settingsDialog"><form id="unlockSettings" class="auth-form"><h2>ورود مسئول دستگاه</h2><label>نام کاربری<input name="username" autocomplete="username" required></label><label>رمز عبور<input name="password" type="password" autocomplete="current-password" required></label><p class="form-error" role="alert"></p><div class="actions"><button class="btn primary">باز کردن تنظیمات</button><button class="btn" type="button" id="cancelSettings">انصراف</button></div></form></dialog>
+  <header hidden id="stationHeader">
     <h1>Robot Station</h1>
     <span class="badge">ROBOT SIDE</span>
     <div class="spacer"></div>
     <span id="netStatus" class="status" data-state="idle">Offline</span>
     <span id="boardStatus" class="status" data-state="idle">Arduino not connected</span>
+    <strong id="stationName"></strong>
+    <button class="btn danger" id="localStop">توقف و پایان تماس</button>
+    <button class="btn" id="settingsBtn">تنظیمات دستگاه</button>
   </header>
-
-  <main>
+  <section class="public-screen" id="welcomeScreen" hidden>
+    <div class="actions"><h1 id="siteName">راهنمای مراجعه</h1><button class="btn" id="newVisit">شروع دوباره</button><button class="btn" id="humanHelp">کمک پذیرش</button></div>
+    <form id="destinationForm" class="actions"><label style="flex:1">دنبال چه کسی یا چه اتاقی هستید؟<input id="destinationQuery" placeholder="مثلاً اتاق مدیر کجاست؟" maxlength="160" autocomplete="off"></label><button class="btn primary">جست‌وجو</button><button class="btn" id="voiceBtn" type="button" hidden>پرسش صوتی</button></form>
+    <label class="check-label"><input type="checkbox" id="accessibleRoute">مسیر بدون پله</label>
+    <p id="welcomeMessage" role="status"></p>
+    <div id="destinationResults" class="result-list welcome-results"></div>
+    <section id="destinationDetail" class="split" hidden>
+      <div class="stack"><h2 id="destinationName"></h2><p id="destinationInfo"></p><ol id="routeSteps"></ol><p id="routeDistance" class="muted"></p><div id="notifyForm" hidden><label>اطلاع به<select id="notifyPerson"></select></label><label>نام شما (اختیاری)<input id="visitorName" maxlength="80" autocomplete="off"></label><label>پیام کوتاه (اختیاری)<textarea id="visitorNote" maxlength="300"></textarea></label><button id="notifyBtn" class="btn primary">اطلاع بده که در راه هستم</button><p class="muted">با این دکمه، نام و پیام واردشده برای فرد مقصد ارسال می‌شود.</p></div><p id="visitStatus" aria-live="polite"></p><button class="btn" id="speakRoute" hidden>خواندن راهنما</button></div>
+      <div class="stack"><label>طبقه نقشه<select id="mapFloor"></select></label><div id="floorMap"></div><p class="muted">نقشه شماتیک ثبت‌شده؛ موقعیت زنده ربات نیست.</p></div>
+    </section>
+  </section>
+  <main hidden id="stationMain">
     <section class="stage" id="stage">
       <div class="placeholder" id="placeholder">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M15 10l4.55-2.28A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.9L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"/></svg>
@@ -113,7 +130,8 @@
       </div>
     </section>
 
-    <aside>
+    <aside id="stationTools">
+      <div class="panel"><h2>حالت و محل دستگاه</h2><label>حالت نمایش<select id="stationMode"><option value="welcome">راهنمای مراجعه</option><option value="telepresence">تماس از راه دور</option></select></label><label>محل شروع مسیر<select id="startNode"></select></label><button class="btn primary" id="publicBtn">نمایش عمومی</button><button class="btn" id="stationLogout">خروج از دستگاه</button><a href="portal.html">مدیریت سازمان</a></div>
       <div class="panel">
         <h2>1 · Camera and microphone</h2>
         <select id="cameraSelect"><option value="">Default camera</option></select>
@@ -133,6 +151,9 @@
 
       <div class="panel share">
         <h2>Invite link</h2>
+        <label class="check-label"><input type="checkbox" id="inviteDrive">اجازه حرکت دستی برای مهمان</label>
+        <button class="btn primary" id="inviteBtn">ساخت دعوت ۱۵ دقیقه‌ای</button>
+        <button class="btn" id="revokeInvites">لغو دعوت‌ها</button>
         <div class="link mono" id="shareLink">—</div>
         <div class="row">
           <button class="btn primary" id="copyBtn" disabled>Copy link</button>
@@ -168,6 +189,10 @@
   <script src="vendor/peerjs.min.js"></script>
   <script src="config.js"></script>
   <script src="common.js"></script>
+  <script src="vendor/socket.io.min.js"></script>
+  <script src="platform.js"></script>
+  <script src="safety.js"></script>
   <script src="robot.js"></script>
+  <script src="welcome.js"></script>
 </body>
 </html>

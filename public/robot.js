@@ -34,6 +34,54 @@ const els = {
 };
 
 let stream = null;
+let stationReady = false;
+let boundRobot = null;
+let remoteSession = null;
+let remoteLease = null;
+let leaseUntil = 0;
+let accepting = false;
+let videoAttempt = 0;
+const commandGate = new RobotSafety.CommandGate();
+const emergencyStop = reason => {
+  remoteLease = null; leaseUntil = 0; commandGate.reset();
+  drive('S', reason || 'stopped');
+  sendDC({ t: 'control-revoked', reason });
+};
+Platform.on('control:lease', lease => {
+  if (remoteSession && lease.sessionId === remoteSession.id) {
+    remoteLease = lease;
+    leaseUntil = performance.now() + 2500;
+    commandGate.grant(lease.id);
+  }
+});
+Platform.on('control:revoked', msg => emergencyStop(msg.reason));
+Platform.on('disconnected', () => emergencyStop('ارتباط سرور قطع شد'));
+Platform.on('expired', () => { stationReady = false; emergencyStop('ورود منقضی شد'); goOffline(); });
+Platform.on('session:ended', msg => { if (!msg.id || msg.id === remoteSession?.id) { emergencyStop(msg.reason); dropUser(msg.reason, true); } });
+Platform.on('robot:changed', () => { goOffline(); location.reload(); });
+
+function bindStation(robot) {
+  boundRobot = robot; stationReady = true;
+  els.serialInput.value = robot.serial;
+  els.serialInput.readOnly = true;
+  els.randomBtn.hidden = true;
+  document.querySelector('#stationName').textContent = robot.name;
+  document.querySelector('#stationMode').value = robot.mode;
+  document.querySelector('#startNode').value = robot.startNodeId;
+  renderInvite();
+}
+setInterval(() => {
+  if (!stationReady || !Platform.connected) return;
+  Platform.socketRequest('robot:state', { online: !!(wantOnline && peer?.open), board: !!port && boardAnswered, camera: !!stream?.getVideoTracks().some(t => t.readyState === 'live') }).catch(e => { emergencyStop(e.message); setStatus(els.netStatus, e.message, 'error'); });
+}, 1000);
+setInterval(() => {
+  if (remoteLease && (performance.now() > leaseUntil || !Platform.connected)) emergencyStop('مجوز کنترل منقضی شد');
+  if (userConn?.open && remoteLease) {
+    const challenge = crypto.randomUUID();
+    commandGate.issue(challenge);
+    sendDC({ t: 'challenge', challenge, lease: remoteLease.id });
+  }
+}, 200);
 
 // ---------- Serial number ----------
 
@@ -63,8 +111,8 @@ async function listCameras() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const cams = devices.filter((d) => d.kind === 'videoinput');
   const current = els.cameraSelect.value;
-  els.cameraSelect.innerHTML = '<option value="">Default camera</option>' +
-    cams.map((c, i) => `<option value="${c.deviceId}">${c.label || `Camera ${i + 1}`}</option>`).join('');
+  els.cameraSelect.replaceChildren(new Option('دوربین پیش‌فرض', ''));
+  cams.forEach((c, i) => els.cameraSelect.add(new Option(c.label || `دوربین ${i + 1}`, c.deviceId)));
   els.cameraSelect.value = current;
 }
 
@@ -157,6 +205,7 @@ let userCall = null;   // video call to the current user
 let lastHeard = 0;
 
 function goOnline() {
+  if (!stationReady || !Platform.connected) { alert('ابتدا با حساب دستگاه وارد شوید.'); return; }
   serial = normalizeSerial(els.serialInput.value);
   if (!isValidSerial(serial)) {
     alert('The serial number must be 3 to 32 letters, digits or dashes, and must start and end with a letter or digit.');
@@ -200,6 +249,8 @@ els.onlineBtn.onclick = () => (wantOnline ? goOffline() : goOnline());
 async function connectBroker() {
   await iceReady;
   if (!wantOnline) return;
+  try { await loadPrivateIce(); els.relayState.textContent = hasRelay() ? 'Configured' : 'Not set (direct only)'; }
+  catch (e) { setStatus(els.netStatus, e.message, 'error'); scheduleBroker(); return; }
   if (peer) peer.destroy();
   setStatus(els.netStatus, 'Connecting…', 'wait');
   const p = createPeer(robotPeerId(serial));
@@ -256,7 +307,15 @@ function scheduleBroker() {
 // ---------- The user link ----------
 
 function onUserConnection(conn) {
-  conn.on('open', () => {
+  conn.on('open', async () => {
+    if (accepting || !stationReady || !Platform.connected) { conn.close(); return; }
+    accepting = true;
+    let verified;
+    try {
+      verified = await Platform.api('/sessions/verify', { method: 'POST', body: { id: conn.metadata?.id, secret: conn.metadata?.secret, peerId: conn.peer } });
+    } catch { conn.send({ t: 'denied' }); conn.close(); return; }
+    finally { accepting = false; }
+    if (!conn.open || !wantOnline || !Platform.connected) { conn.close(); return; }
     const otherUserActive = userConn && userConn.open && userConn.peer !== conn.peer &&
       Date.now() - lastHeard < LINK_TIMEOUT_MS;
     if (otherUserActive) {
@@ -269,8 +328,9 @@ function onUserConnection(conn) {
     const reconnecting = userConn && userConn.peer === conn.peer;
     dropUser(null, false);
     userConn = conn;
+    remoteSession = verified;
     lastHeard = Date.now();
-    els.userState.textContent = 'Connected';
+    els.userState.textContent = verified.name;
     logLine(els.log, reconnecting ? 'User reconnected' : 'User connected');
     sendStatus();
     startVideo();
@@ -288,10 +348,18 @@ function onUserConnection(conn) {
   conn.on('error', (err) => logLine(els.log, `Link error: ${err.message || err.type}`, 'err'));
 }
 
-function startVideo() {
+async function startVideo() {
   if (!userConn || !peer || !stream) return;
+  const generation = ++videoAttempt;
+  const target = userConn, session = remoteSession;
+  if (!session) return;
+  let proof;
+  try { ({ proof } = await Platform.api(`/sessions/${session.id}/media-proof`, { method: 'POST' })); }
+  catch (e) { emergencyStop(e.message); return; }
+  if (generation !== videoAttempt || target !== userConn || session !== remoteSession || !target.open) return;
+  emergencyStop('تصویر در حال اتصال است');
   if (userCall) userCall.close();
-  const call = peer.call(userConn.peer, stream);
+  const call = peer.call(userConn.peer, stream, { metadata: { proof } });
   userCall = call;
   const pc = call.peerConnection;
   pc.addEventListener('connectionstatechange', () => {
@@ -299,7 +367,8 @@ function startVideo() {
     const st = pc.connectionState;
     els.rtcState.textContent = st;
     els.liveChip.hidden = st !== 'connected';
-    if (st === 'failed') logLine(els.log, hasRelay() ? 'Video could not reach the user, even through the relay.' : NO_PATH_HELP, 'err');
+    if (st !== 'connected') emergencyStop('تصویر قطع شد');
+    if (st === 'failed') { logLine(els.log, hasRelay() ? 'Video could not reach the user, even through the relay.' : NO_PATH_HELP, 'err'); setTimeout(() => { if (call === userCall && userConn?.open) startVideo(); }, 2000); }
     if (st === 'connected') {
       describeRoute(pc).then((route) => logLine(els.log, `Video streaming to user (${route})`));
     }
@@ -360,12 +429,15 @@ async function describeRoute(pc) {
 
 // reason: log message (null = silent). notify: tell the user first.
 function dropUser(reason, notify = false) {
+  videoAttempt++;
+  emergencyStop(reason);
   drive('S', 'link down');
   if (userConn && notify && userConn.open) userConn.send({ t: 'bye', reason });
   const conn = userConn;
   const call = userCall;
   userConn = null;
   userCall = null;
+  remoteSession = null;
   if (call) call.close();
   if (conn) setTimeout(() => conn.close(), notify ? 300 : 0);
   hideUser();
@@ -395,7 +467,10 @@ function sendStatus() {
 
 let cmdCount = 0;
 function onControl(msg) {
+  if (!msg || typeof msg !== 'object') return;
   if (msg.t === 'cmd' && COMMANDS[msg.c]) {
+    if (msg.c === 'S') commandGate.accept(msg);
+    if (msg.c !== 'S' && (!Platform.connected || !remoteSession?.canDrive || !remoteLease || performance.now() > leaseUntil || !boardAnswered || !port || userCall?.peerConnection.connectionState !== 'connected' || !commandGate.accept(msg))) return;
     cmdCount++;
     els.cmdCount.textContent = cmdCount;
     drive(msg.c, 'user', msg.v);
@@ -416,12 +491,10 @@ let speed = 200;
 
 // Every command goes through here, whether it comes from the user or the local test pad.
 function drive(cmd, source, newSpeed) {
-  if (typeof newSpeed === 'number') speed = Math.max(0, Math.min(255, Math.round(newSpeed)));
+  if (typeof newSpeed === 'number' && Number.isFinite(newSpeed)) speed = Math.max(0, Math.min(255, Math.round(newSpeed)));
   if (cmd !== 'S') lastMoveAt = Date.now();
 
   const changed = cmd !== currentCmd;
-  if (cmd === 'S' && !changed && source !== 'user' && source !== 'local') return;
-
   // Always forward to the Arduino: repeats keep its safety watchdog fed
   writeSerial(cmd === 'S' ? 'S' : `${cmd} ${speed}`);
 
@@ -440,7 +513,12 @@ setInterval(() => {
   if (currentCmd !== 'S' && Date.now() - lastMoveAt > REPEAT_MS * 4) drive('S', 'watchdog');
 }, 100);
 
-createDpad($('#testPad'), (cmd) => drive(cmd, 'local'));
+const localPad = createDpad($('#testPad'), (cmd) => {
+  if (!stationReady || !port || !boardAnswered) return;
+  if (remoteSession) return;
+  drive(cmd, 'local');
+}, { listenKeys: false });
+localPad.setEnabled(false);
 
 // ---------- Arduino Uno over Web Serial ----------
 //
@@ -508,11 +586,13 @@ async function connectBoard() {
 }
 
 async function openBoard(p) {
-  if (port) return;
+  if (port || closingBoard || openingBoard) return;
+  openingBoard = true;
   setStatus(els.boardStatus, 'Arduino connecting…', 'wait');
   try {
     await p.open({ baudRate: BAUD });
   } catch (err) {
+    openingBoard = false;
     const busy = err.name === 'InvalidStateError' || /failed to open/i.test(err.message);
     setStatus(els.boardStatus, busy ? 'Arduino port busy' : 'Arduino error', 'error');
     boardNote(busy
@@ -522,6 +602,7 @@ async function openBoard(p) {
     return;
   }
   port = p;
+  openingBoard = false;
   writer = port.writable.getWriter();
   els.boardBtn.textContent = 'Disconnect Arduino';
   logLine(els.log, 'Arduino port open. Restarting the Uno…');
@@ -560,8 +641,10 @@ async function helloBoard() {
 }
 
 function onBoardAnswer() {
+  lastBoardAt = performance.now();
   if (boardAnswered) return;
   boardAnswered = true;
+  localPad.setEnabled(true);
   setStatus(els.boardStatus, 'Arduino connected', 'ok');
   boardNote('Arduino ready. Commands go to the motors. Next time it connects by itself.', false);
   logLine(els.log, 'Arduino ready');
@@ -570,52 +653,84 @@ function onBoardAnswer() {
 }
 
 let closingBoard = false;
+let openingBoard = false;
 async function disconnectBoard() {
   const p = port;
   if (!p || closingBoard) return;
   closingBoard = true;
   await writeSerial('S');
   port = null;
-  closingBoard = false;
   try { if (reader) await reader.cancel(); } catch {}
   try { if (writer) writer.releaseLock(); } catch {}
   try { await p.close(); } catch {}
   writer = null;
   reader = null;
   boardAnswered = false;
+  localPad.setEnabled(false);
+  emergencyStop('Arduino قطع شد');
   setStatus(els.boardStatus, 'Arduino not connected', 'idle');
   els.boardBtn.textContent = 'Connect Arduino';
   logLine(els.log, 'Arduino disconnected');
   sendStatus();
+  closingBoard = false;
 }
 
-async function writeSerial(line) {
-  if (!writer) return;
-  try {
-    await writer.write(encoder.encode(line + '\n'));
-  } catch (err) {
-    if (closingBoard) return;
-    logLine(els.log, `Serial write failed: ${err.message}`, 'err');
-    disconnectBoard();
+let serialPending = null;
+let serialDraining = null;
+let stopPending = false;
+// At most one pending movement; old repeats are never queued behind a slow USB write.
+function writeSerial(line) {
+  if (!writer) return Promise.resolve();
+  if (line === 'S') { stopPending = true; serialPending = null; }
+  else if (line !== '?' || serialPending === null) serialPending = line;
+  if (!serialDraining) {
+    serialDraining = (async () => {
+      while (writer && (stopPending || serialPending !== null)) {
+        const activeWriter = writer;
+        const next = stopPending ? 'S' : serialPending;
+        if (stopPending) stopPending = false; else serialPending = null;
+        try { await activeWriter.write(encoder.encode(next + '\n')); }
+        catch (err) {
+          serialPending = null; stopPending = false;
+          if (!closingBoard) { logLine(els.log, `Serial write failed: ${err.message}`, 'err'); setTimeout(disconnectBoard, 0); }
+          break;
+        }
+      }
+    })().finally(() => { serialDraining = null; });
   }
+  return serialDraining;
 }
+let lastBoardAt = 0;
+setInterval(() => {
+  if (!port || closingBoard) return;
+  if (boardAnswered && performance.now() - lastBoardAt > 4500) {
+    boardAnswered = false; localPad.setEnabled(false); emergencyStop('Arduino پاسخ نمی‌دهد');
+    setStatus(els.boardStatus, 'Arduino پاسخ نمی‌دهد', 'error'); sendStatus();
+  }
+  writeSerial('?');
+}, 2000);
 
 // Lines printed by the Uno are shown in the log and forwarded to the user
 async function readLoop() {
+  const activePort = port;
   const decoder = new TextDecoder();
   let buffer = '';
-  while (port && port.readable) {
-    reader = port.readable.getReader();
+  while (port === activePort && activePort?.readable) {
+    let ended = false;
+    reader = activePort.readable.getReader();
     try {
       for (;;) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (port !== activePort) break;
+        if (done) { ended = true; break; }
         buffer += decoder.decode(value, { stream: true });
         let i;
         while ((i = buffer.indexOf('\n')) >= 0) {
           const line = buffer.slice(0, i).trim();
           buffer = buffer.slice(i + 1);
-          if (/^(READY|OK|ERR|TIMEOUT)\b/.test(line)) onBoardAnswer();
+          if (line === 'READY robot_controller') onBoardAnswer();
+          else if (boardAnswered && /^(OK [FBLRS]|TIMEOUT motors stopped)\b/.test(line)) lastBoardAt = performance.now();
+          if (/^(TIMEOUT|ERR)\b/.test(line)) emergencyStop('Arduino حرکت را متوقف کرد');
           if (line) {
             logLine(els.log, `Arduino: ${line}`, 'rx');
             sendDC({ t: 'board', line });
@@ -624,8 +739,13 @@ async function readLoop() {
       }
     } catch {
       // unplugged, restart noise, or reader cancelled
+      ended = true;
     } finally {
       try { reader.releaseLock(); } catch {}
+    }
+    if (ended) {
+      if (port === activePort && !closingBoard) { emergencyStop('ارتباط سریال قطع شد'); disconnectBoard(); }
+      return;
     }
   }
 }
@@ -669,6 +789,7 @@ const share = {
 };
 let shareInfo = { state: 'off', url: null };
 let inviteLink = null;
+let inviteExpires = 0;
 
 // Opened from a hosted site (GitHub Pages): the user page sits right next to
 // this one, so the invite link is permanent and needs no local server.
@@ -690,7 +811,7 @@ async function pollShareInfo() {
 function renderInvite() {
   const base = permanentUserPage || (shareInfo.state === 'ready' && shareInfo.url ? `${shareInfo.url}/user` : null);
   const s = normalizeSerial(els.serialInput.value);
-  inviteLink = base && isValidSerial(s) ? `${base}?serial=${encodeURIComponent(s)}` : null;
+  if (Date.now() >= inviteExpires) inviteLink = null;
 
   share.link.textContent = inviteLink || '—';
   share.link.classList.toggle('dim', !inviteLink);
@@ -715,6 +836,21 @@ function renderInvite() {
   share.note.textContent = note;
 }
 
+document.querySelector('#inviteBtn').onclick = async () => {
+  if (!boundRobot) return;
+  try {
+    const invite = await Platform.api('/invites', { method: 'POST', body: { robotId: boundRobot.id, canDrive: document.querySelector('#inviteDrive').checked } });
+    const base = permanentUserPage || (shareInfo.url ? `${shareInfo.url}/user` : null);
+    if (!base) throw new Error('آدرس عمومی وب‌اپ کاربر در دسترس نیست.');
+    inviteLink = `${base}#invite=${encodeURIComponent(invite.token)}`;
+    inviteExpires = invite.expires;
+    renderInvite();
+    share.note.textContent = 'دعوت یک‌بارمصرف تا ۱۵ دقیقه معتبر است.';
+  } catch (e) { share.note.textContent = e.message; }
+};
+document.querySelector('#revokeInvites').onclick = async () => {
+  try { await Platform.api('/invites', { method: 'DELETE', body: { robotId: boundRobot.id } }); inviteLink = null; inviteExpires = 0; renderInvite(); } catch (e) { share.note.textContent = e.message; }
+};
 share.copy.onclick = async () => {
   if (!inviteLink) return;
   try {
@@ -760,7 +896,7 @@ setStatus(els.netStatus, 'Offline', 'idle');
 // Then come straight back online, so a connected user can resume.
 let autoOnline = false;
 try { autoOnline = localStorage.getItem('robotAutoOnline') === '1'; } catch {}
-if (autoOnline) {
+if (autoOnline && stationReady) {
   logLine(els.log, 'Resuming: the robot was online before this page closed');
   startCamera().then(() => { if (stream && !wantOnline) goOnline(); });
 }

@@ -13,6 +13,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const { createService } = require('./lib/service');
 
 const PORT = Number(process.env.PORT) || 3000;
 // A permanent user page (config.js: publicUserPage) makes the tunnel unnecessary
@@ -30,13 +31,17 @@ const ROUTES = { '/': '/index.html', '/robot': '/robot.html', '/user': '/user.ht
 
 // Only these files are reachable through the public link. The robot page
 // and the share-link endpoint stay private to this laptop.
-const PUBLIC_FILES = new Set(['/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/vendor/peerjs.min.js']);
+const PUBLIC_FILES = new Set(['/index.html', '/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/product.css', '/platform.js', '/portal.js', '/portal.html', '/vendor/peerjs.min.js', '/vendor/socket.io.min.js', '/safety.js']);
 
 let publicUrl = null;
 let shareState = SHARE ? 'starting' : 'off'; // off | starting | ready | blocked | error
 
-const server = http.createServer((req, res) => {
-  let url = decodeURIComponent(req.url.split('?')[0]);
+let service;
+const server = http.createServer(async (req, res) => {
+  if (await service.handle(req, res)) return;
+  let url;
+  try { url = decodeURIComponent(req.url.split('?')[0]); }
+  catch { res.writeHead(400); return res.end('Bad request'); }
   const viaTunnel = !!req.headers['cf-ray'];
 
   if (viaTunnel && url === '/') url = '/user';
@@ -51,15 +56,21 @@ const server = http.createServer((req, res) => {
   if (viaTunnel && !PUBLIC_FILES.has(url)) { res.writeHead(404); return res.end('Not found'); }
 
   const file = path.normalize(path.join(PUBLIC, url));
-  if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
+  if (!file.startsWith(PUBLIC + path.sep)) { res.writeHead(403); return res.end(); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end('Not found'); }
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
       'Cache-Control': 'no-cache',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
     });
     res.end(data);
   });
+});
+service = createService(server, {
+  filename: path.resolve(process.env.DATA_FILE || path.join(__dirname, 'data', 'site.json')),
+  origins: (process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean),
 });
 
 server.on('error', (err) => {
@@ -70,7 +81,7 @@ server.on('error', (err) => {
   throw err;
 });
 
-server.listen(PORT, '127.0.0.1', () => {
+server.listen(PORT, process.env.HOST || '127.0.0.1', () => {
   console.log('\nRobot Telepresence is running. Keep this window open.\n');
   console.log(`  Robot page: http://localhost:${PORT}/robot`);
   if (PERMANENT) console.log(`  Invite links use your permanent page: ${PERMANENT}`);

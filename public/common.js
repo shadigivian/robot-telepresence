@@ -45,6 +45,10 @@ const iceReady = (async () => {
 function hasRelay() {
   return ICE_SERVERS.some((s) => [].concat(s.urls).some((u) => /^turns?:/.test(u)));
 }
+async function loadPrivateIce() {
+  const result = await Platform.api('/ice');
+  ICE_SERVERS = [...CONFIG.iceServers, ...CONFIG.turnServers, ...result.servers];
+}
 
 const NO_PATH_HELP = 'The two networks cannot connect directly (common with phone hotspots and mobile data). ' +
   'Add a relay (TURN) server in public/config.js on both laptops. See the README.';
@@ -186,11 +190,12 @@ function createDpad(el, onCommand, { listenKeys = true } = {}) {
     });
     window.addEventListener('blur', () => release());
   }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) release(); });
 
   return {
     setEnabled(on) {
       el.querySelectorAll('button').forEach((b) => (b.disabled = !on));
-      if (!on) release(false);
+      if (!on) release();
     },
     release,
   };

@@ -46,6 +46,80 @@ let lastHeard = 0;
 let attempt = 0;
 let retryTimer = null;
 let openTimer = null;
+let platformReady = false;
+let activeSession = null;
+let creatingSession = false;
+let boardReady = false;
+let driveLease = null;
+let latestChallenge = null;
+let challengeAt = 0;
+let commandSeq = 0;
+let leaseDeadline = 0;
+let requestControlPending = false;
+let controlGeneration = 0;
+let mediaRetry = null;
+const frameWatch = new RobotSafety.FrameWatch();
+
+function resetControl(reason = 'کنترل غیرفعال است') {
+  controlGeneration++;
+  if (conn?.open) conn.send({ t: 'cmd', c: 'S' });
+  driveLease = null; latestChallenge = null; leaseDeadline = 0;
+  pad.setEnabled(false); showCmd('S');
+  document.querySelector('#controlState').textContent = reason;
+  document.querySelector('#claimControl').disabled = !activeSession?.canDrive || !Platform.connected || !boardReady || !frameWatch.fresh;
+}
+function releaseControl(reason) {
+  resetControl(reason);
+  if (activeSession) Platform.api(`/sessions/${activeSession.id}/release`, { method: 'POST' }).catch(() => {});
+}
+Platform.on('control:revoked', m => resetControl(m.reason));
+Platform.on('disconnected', () => resetControl('ارتباط سرور قطع است'));
+Platform.on('session:ended', m => { activeSession = null; hangUp(m.reason); });
+Platform.on('expired', () => { platformReady = false; hangUp('دوباره وارد حساب شوید.'); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseControl('برای ادامه، کنترل را دوباره بگیرید'); });
+window.addEventListener('blur', () => releaseControl('پنجره کنترل فعال نیست'));
+
+function watchVideo() {
+  if (typeof els.remote.requestVideoFrameCallback === 'function') {
+    const frame = (_, meta) => { frameWatch.frame(meta.presentedFrames); els.remote.requestVideoFrameCallback(frame); };
+    els.remote.requestVideoFrameCallback(frame);
+  } else {
+    setInterval(() => { if (!els.remote.paused && els.remote.readyState >= 2) frameWatch.frame(els.remote.getVideoPlaybackQuality?.().totalVideoFrames ?? els.remote.currentTime); }, 200);
+  }
+  setInterval(() => {
+    const video = frameWatch.fresh && call?.peerConnection.connectionState === 'connected' && !els.remote.paused;
+    const permitted = RobotSafety.canDrive({ link: linkUp, server: Platform.connected, board: boardReady, video, lease: driveLease && performance.now() < leaseDeadline, visible: !document.hidden && document.hasFocus() });
+    pad.setEnabled(permitted);
+    document.querySelector('#claimControl').disabled = !!driveLease || requestControlPending || !activeSession?.canDrive || !linkUp || !Platform.connected || !boardReady || !video;
+    if (driveLease && !permitted) releaseControl('حرکت متوقف شد؛ وضعیت تصویر یا اتصال را بررسی کنید');
+    document.querySelector('#videoHealth').textContent = video ? 'تصویر زنده' : 'تصویر آماده نیست — حرکت قفل است';
+  }, 200);
+  setInterval(async () => {
+    if (!activeSession || !driveLease) return;
+    try { await Platform.socketRequest('control:renew', activeSession.id); if (driveLease) leaseDeadline = performance.now() + 2000; }
+    catch (e) { resetControl(e.message); }
+  }, 800);
+}
+document.querySelector('#claimControl').onclick = async () => {
+  if (!activeSession || requestControlPending) return;
+  requestControlPending = true;
+  const generation = controlGeneration;
+  const session = activeSession;
+  try {
+    await Platform.socketRequest('session:join', activeSession.id);
+    const lease = await Platform.api(`/sessions/${session.id}/control`, { method: 'POST' });
+    if (generation !== controlGeneration || activeSession !== session || document.hidden || !document.hasFocus() || !frameWatch.fresh || !boardReady) {
+      Platform.api(`/sessions/${session.id}/release`, { method: 'POST' }).catch(() => {});
+      return;
+    }
+    driveLease = lease;
+    leaseDeadline = performance.now() + 2000; commandSeq = 0;
+    document.querySelector('#controlState').textContent = 'کنترل در اختیار شماست؛ دکمه را نگه دارید';
+  } catch (e) { resetControl(e.message); }
+  finally { requestControlPending = false; }
+};
+document.querySelector('#stopBtn').onclick = () => releaseControl('توقف؛ برای ادامه دوباره کنترل بگیرید');
+watchVideo();
 
 const pad = createDpad($('#dpad'), sendCommand);
 pad.setEnabled(false);
@@ -69,6 +143,8 @@ try { els.serialInput.value = params.get('serial') || localStorage.getItem('last
 
 els.joinForm.onsubmit = async (e) => {
   e.preventDefault();
+  if (!platformReady || !Platform.connected) { showJoinError('ابتدا وارد شوید و اتصال سرور را بررسی کنید.'); return; }
+  if (document.querySelector('#preflight').hidden) { showJoinError('ابتدا دوربین و میکروفن را بررسی کنید.'); return; }
   serial = normalizeSerial(els.serialInput.value);
   if (!isValidSerial(serial)) {
     showJoinError('That does not look like a serial number. Copy it exactly as shown on the robot screen.');
@@ -242,6 +318,10 @@ function hangUp(error) {
   clearTimeout(retryTimer);
   clearTimeout(openTimer);
   sendCommand('S');
+  resetControl();
+  clearTimeout(mediaRetry);
+  const ended = activeSession; activeSession = null;
+  if (ended) Platform.api(`/sessions/${ended.id}`, { method: 'DELETE' }).catch(() => {});
   closeLink();
   if (peer) { peer.destroy(); peer = null; }
   stopLocalMedia();
@@ -271,7 +351,7 @@ els.fullBtn.onclick = () => {
 
 // ---------- Connecting ----------
 
-function connect() {
+async function connect() {
   if (!wantConnected) return;
   clearTimeout(retryTimer);
 
@@ -288,7 +368,22 @@ function connect() {
   // 2. Open the control channel to the robot; the robot then calls us with video
   attempt++;
   closeLink();
-  const c = peer.connect(robotPeerId(serial), { serialization: 'json', reliable: true });
+  if (creatingSession) return;
+  if (!activeSession) {
+    creatingSession = true;
+    try {
+      const robots = await Platform.api('/robots');
+      const robot = robots.find(r => r.serial === serial);
+      if (!robot) throw new Error('این ربات برای حساب شما قابل دسترسی نیست.');
+      const session = await Platform.api('/sessions', { method: 'POST', body: { robotId: robot.id, peerId: userPeerId() } });
+      if (!wantConnected) { Platform.api(`/sessions/${session.id}`, { method: 'DELETE' }).catch(() => {}); return; }
+      activeSession = session;
+      await Platform.socketRequest('session:join', activeSession.id);
+    } catch (e) { hangUp(e.message); return; }
+    finally { creatingSession = false; }
+  }
+  if (!wantConnected || !activeSession || !peer?.open) return;
+  const c = peer.connect(robotPeerId(serial), { serialization: 'json', reliable: true, metadata: { id: activeSession.id, secret: activeSession.secret } });
   conn = c;
 
   clearTimeout(openTimer);
@@ -317,7 +412,8 @@ function connect() {
     if (!everConnected) enterCall();
     everConnected = true;
     if (screenTrack) c.send({ t: 'screen', on: true }); // still sharing after a reconnect
-    pad.setEnabled(true);
+    resetControl('تماس برقرار است؛ پس از دریافت تصویر کنترل را بگیرید');
+    Platform.socketRequest('session:join', activeSession.id).catch(() => {});
     setStatus(els.linkStatus, 'Connected', 'ok');
     if (!els.remote.srcObject || els.remote.paused) showOverlay('Waiting for video…');
   });
@@ -336,6 +432,7 @@ function connect() {
 
 async function startPeer() {
   await iceReady;
+  try { await loadPrivateIce(); } catch (e) { hangUp(e.message); return; }
   if (peer) peer.destroy();
   const p = createPeer(userPeerId());
   peer = p;
@@ -345,8 +442,13 @@ async function startPeer() {
 
   // The robot calls us with its video and sound once the control channel is
   // open; we answer with our own camera and microphone
-  p.on('call', (incoming) => {
-    if (p !== peer) return;
+  p.on('call', async (incoming) => {
+    if (p !== peer || !wantConnected || incoming.peer !== robotPeerId(serial) || !activeSession) { incoming.close(); return; }
+    const session = activeSession;
+    try { await Platform.api(`/sessions/${session.id}/media-verify`, { method: 'POST', body: { proof: incoming.metadata?.proof } }); }
+    catch { incoming.close(); return; }
+    if (session !== activeSession || !wantConnected || p !== peer) { incoming.close(); return; }
+    releaseControl('تصویر در حال اتصال است'); frameWatch.reset();
     if (call) call.close();
     call = incoming;
     incoming.answer(outgoingStream());
@@ -358,7 +460,13 @@ async function startPeer() {
     incoming.peerConnection.addEventListener('connectionstatechange', () => {
       if (incoming !== call) return;
       if (incoming.peerConnection.connectionState === 'connected') showRoute(incoming.peerConnection);
+      else {
+        releaseControl('تصویر قطع شد'); frameWatch.reset();
+        if (['failed', 'disconnected'].includes(incoming.peerConnection.connectionState)) retryVideo();
+      }
     });
+    incoming.on('close', () => { if (incoming === call && wantConnected) { frameWatch.reset(); releaseControl('تماس تصویری قطع شد'); retryVideo(); } });
+    incoming.on('error', () => { if (incoming === call) { frameWatch.reset(); releaseControl('خطای تماس تصویری'); retryVideo(); } });
   });
 
   p.on('disconnected', () => {
@@ -383,6 +491,7 @@ async function startPeer() {
         }
         break;
       case 'unavailable-id':
+        if (activeSession) { hangUp('شناسه تماس در پنجره دیگری استفاده می‌شود؛ دوباره وصل شوید.'); break; }
         userPeerId(true); // our old id is still registered; take a new one
         peer = null;
         scheduleRetry();
@@ -394,6 +503,8 @@ async function startPeer() {
 }
 
 function closeLink() {
+  resetControl('ارتباط در حال بازیابی است');
+  frameWatch.reset(); boardReady = false;
   linkUp = false;
   pad.setEnabled(false);
   const c = conn;
@@ -447,7 +558,7 @@ function enterCall() {
 }
 
 function showOverlay(html) {
-  els.waitingText.innerHTML = html;
+  els.waitingText.textContent = String(html).replace(/<br\s*\/?\s*>/g, '\n').replace(/<\/?small>/g, '');
   els.waiting.hidden = false;
 }
 
@@ -471,7 +582,13 @@ async function showRoute(pc) {
 }
 
 function onRobotMessage(msg) {
+  if (!msg || typeof msg !== 'object') return;
   switch (msg.t) {
+    case 'challenge':
+      if (driveLease && msg.lease === driveLease.id) { latestChallenge = msg.challenge; challengeAt = performance.now(); }
+      break;
+    case 'control-revoked': resetControl(msg.reason); break;
+    case 'denied': hangUp('مجوز تماس پذیرفته نشد. دوباره وارد شوید.'); break;
     case 'pong': {
       const rtt = Math.round(performance.now() - msg.ts);
       els.rttPill.hidden = false;
@@ -479,6 +596,8 @@ function onRobotMessage(msg) {
       break;
     }
     case 'status':
+      boardReady = msg.board === true;
+      if (!boardReady) releaseControl('Arduino آماده نیست');
       els.boardPill.hidden = false;
       els.boardPill.textContent = msg.board ? 'Arduino connected' : 'Simulation (no Arduino)';
       els.boardPill.className = `pill ${msg.board ? 'hw' : 'sim'}`;
@@ -499,7 +618,8 @@ function onRobotMessage(msg) {
 // ---------- Controls ----------
 
 function sendCommand(cmd) {
-  if (conn && conn.open) conn.send({ t: 'cmd', c: cmd, v: Number(els.speed.value) });
+  if (cmd !== 'S' && (!driveLease || !frameWatch.fresh || !boardReady || !Platform.connected || performance.now() > leaseDeadline || performance.now() - challengeAt > 400 || document.hidden || !document.hasFocus())) return;
+  if (conn && conn.open) conn.send({ t: 'cmd', c: cmd, v: Number(els.speed.value), lease: driveLease?.id, seq: ++commandSeq, challenge: latestChallenge });
   showCmd(cmd);
 }
 
@@ -511,7 +631,44 @@ function showCmd(cmd) {
   els.hudCmd.textContent = COMMANDS[cmd].toUpperCase();
 }
 
-els.speed.oninput = () => (els.speedOut.value = els.speed.value);
+els.speed.oninput = () => (els.speedOut.value = els.speed.selectedOptions[0].textContent);
+
+function retryVideo() {
+  clearTimeout(mediaRetry);
+  mediaRetry = setTimeout(() => { if (wantConnected && conn?.open) conn.send({ t: 'recall' }); }, 2000);
+}
+Platform.on('connected', () => {
+  if (activeSession) Platform.socketRequest('session:join', activeSession.id).catch(() => {});
+  refreshRobots().catch(() => {});
+});
+Platform.on('robots', robots => renderRobots(robots));
+function renderRobots(robots) {
+  const select = document.querySelector('#robotSelect');
+  const selected = select.value;
+  select.replaceChildren(new Option('انتخاب ربات', ''));
+  for (const r of robots) select.add(new Option(`${r.name} · ${r.location} · ${r.online ? r.busy ? 'مشغول' : 'آنلاین' : 'آفلاین'}`, r.serial));
+  select.value = selected;
+}
+async function refreshRobots() { if (platformReady) renderRobots(await Platform.api('/robots')); }
+document.querySelector('#robotSelect').onchange = e => { if (e.target.value) els.serialInput.value = e.target.value; };
+document.querySelector('#checkMedia').onclick = async () => {
+  await startLocalMedia();
+  const preflight = document.querySelector('#preflight'); preflight.hidden = false;
+  document.querySelector('#mediaPreview').srcObject = localStream;
+  document.querySelector('#mediaSummary').textContent = mediaNote || 'دوربین و میکروفن آماده‌اند';
+};
+const userAuth = document.querySelector('#userAuth');
+async function userReady(u) {
+  if (!['admin', 'operator'].includes(u.role)) throw new Error('این حساب مجوز تماس ندارد.');
+  platformReady = true; document.querySelector('#joinForm').hidden = false;
+  userAuth.hidden = true; await refreshRobots();
+}
+const inviteToken = new URLSearchParams(location.hash.slice(1)).get('invite');
+if (inviteToken) {
+  history.replaceState(null, '', location.pathname);
+  Platform.redeem(inviteToken).then(userReady).catch(e => { showJoinError(e.message); Platform.loginForm(userAuth, userReady, ['admin', 'operator']); });
+} else Platform.loginForm(userAuth, userReady, ['admin', 'operator']);
+document.querySelector('#userLogout').onclick = () => { hangUp(); Platform.logout().finally(() => location.reload()); };
 
 let toastTimer = null;
 function toast(text) {
@@ -523,5 +680,6 @@ function toast(text) {
 
 window.addEventListener('pagehide', () => {
   if (conn && conn.open) conn.send({ t: 'cmd', c: 'S' });
+  if (activeSession) Platform.api(`/sessions/${activeSession.id}`, { method: 'DELETE', keepalive: true }).catch(() => {});
   if (peer) peer.destroy();
 });
