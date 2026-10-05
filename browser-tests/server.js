@@ -6,6 +6,8 @@ const { PeerServer } = require('peer');
 const root = path.join(__dirname, '..', '.qa'); fs.mkdirSync(root, { recursive: true });
 const folder = fs.mkdtempSync(path.join(root, 'run-'));
 process.env.DATA_FILE = path.join(folder, 'site.json'); process.env.PORT = '3100';
+// Tests must never inherit production relay credentials from a private .env.
+process.env.TURN_CREDENTIALS_URL = ''; process.env.TURN_SERVERS = '[]';
 const store = new Store(process.env.DATA_FILE);
 store.change(d => {
   d.directory = structuredClone(require('../examples/directory.json')); d.directory.people[0].userId = 'staff';

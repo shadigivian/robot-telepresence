@@ -2,6 +2,7 @@
 const path = require('node:path');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+require('../lib/env').loadEnv(path.join(__dirname, '..', '.env'));
 const { Store, passwordHash } = require('../lib/store');
 const { validateDirectory } = require('../lib/domain');
 const store = new Store(path.resolve(process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'site.json')));

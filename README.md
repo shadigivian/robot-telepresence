@@ -78,7 +78,7 @@ Closing an operator page sends best-effort session cleanup. A disconnected or ab
 
 Deploy on a Node host or build the Dockerfile. Mount a persistent private directory at `/app/data`, initialize it once with `npm run setup`, then start. Terminate TLS at the host/proxy and forward WebSocket upgrades for `/socket.io/`. Use one server process and one data volume. Keep data outside the public document root and back it up.
 
-Set variables in the shell/host dashboard; `.env.example` is documentation, not an automatically loaded file:
+Set variables in the shell/host dashboard, or copy `.env.example` to a private `.env` in the repository root. `server.js` and `scripts/setup.js` load this file automatically, regardless of the current working directory. Existing shell/host variables take priority, including empty values. `.env` is ignored by Git and must remain private. The format supports `KEY=value`, blank lines, comments, and single/double quoted values; double quotes support `\n`, `\r`, `\t`, `\"` and `\\`. Values are never expanded or executed, and multiline values are unsupported.
 
 - `PORT`: default 3000.
 - `HOST`: default 127.0.0.1; use 0.0.0.0 on a managed host/container.
@@ -86,6 +86,8 @@ Set variables in the shell/host dashboard; `.env.example` is documentation, not 
 - `ALLOWED_ORIGINS`: comma-separated exact frontend origins, e.g. `https://shadigivian.github.io`, without repository path or trailing slash. No wildcard.
 - `TURN_CREDENTIALS_URL`: provider endpoint including its API key, **server-side only**. Authenticated clients obtain ICE relays from `/api/ice`.
 - `TURN_SERVERS`: alternative JSON list of relays; prefer short-lived credentials.
+
+For Metered, set `TURN_CREDENTIALS_URL` to `https://YOUR_APP.metered.live/api/v1/turn/credentials?apiKey=YOUR_CREDENTIAL_API_KEY` in the private `.env` or hosting dashboard, replacing the placeholders with the credential API endpoint from your account. Restart the backend after changing it. The dashboard address itself is not the credential endpoint. This service provides ICE relays for WebRTC; it does not host the Node backend. Remove `ADMIN_PASSWORD` from `.env` after initial setup if you chose to store it there.
 
 STUN is configured. TURN is required when networks cannot establish direct WebRTC, including many mobile/enterprise networks. No provider credentials are fabricated or committed. `relayOnly` tests configured TURN.
 
@@ -104,3 +106,9 @@ npm run test:browser
 Browser tests use installed Microsoft Edge on Windows. Elsewhere run `npx playwright install chromium` and set `PLAYWRIGHT_CHANNEL=chromium`. CI installs Chromium automatically.
 
 Coverage includes Persian lookup, multi-floor/accessible/reverse routes, invalid directory rejection, role isolation, invitations, persisted idempotent visits, delivery/seen/reply, media proofs, lease expiry, stale commands, frame freshness, local stop and actual local WebRTC between two browsers. Serial is **simulated** in browser tests. Physical Uno/motors, internet NAT traversal, provider TURN and production hosting must be verified on the installation.
+
+### Optional live TURN check
+
+After configuring `TURN_CREDENTIALS_URL` or `TURN_SERVERS` privately, run `npm run test:turn`. This opt-in command reads the root `.env`, retrieves provider credentials server-side, and requires **relay candidates on both ends**. It checks a data-channel echo and decodes a short synthetic video; a direct connection cannot make it pass. It uses installed Edge by default, or installed Playwright Chromium with `PLAYWRIGHT_CHANNEL=chromium`.
+
+This check contacts the actual provider and consumes a small amount of TURN quota. It is excluded from CI and ordinary tests. It times out after 30 seconds of connection testing, closes the browser and peer connections, and prints only credential counts and nonsecret transport/results; it does not save credentials, IP addresses or screenshots. Passing verifies the tested relay path from this laptop, not every destination network or long-running call quality.

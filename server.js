@@ -13,6 +13,7 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+require('./lib/env').loadEnv(path.join(__dirname, '.env'));
 const { createService } = require('./lib/service');
 
 const PORT = Number(process.env.PORT) || 3000;

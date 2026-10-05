@@ -51,7 +51,7 @@ async function loadPrivateIce() {
 }
 
 const NO_PATH_HELP = 'The two networks cannot connect directly (common with phone hotspots and mobile data). ' +
-  'Add a relay (TURN) server in public/config.js on both laptops. See the README.';
+  'Ask the administrator to check the shared server TURN configuration and provider quota. See the README.';
 
 // id: fixed peer id, or undefined to get a random one from the server
 function createPeer(id) {
