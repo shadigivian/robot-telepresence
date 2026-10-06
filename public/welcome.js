@@ -38,7 +38,10 @@ async function loadDirectory() {
   for (const n of directory.nodes) nodeSelect.add(new Option(n.name, n.id));
   nodeSelect.value = prior || boundRobot?.startNodeId || '';
 }
-Platform.on('directory:changed', () => { resetVisit(); loadDirectory().catch(e => { wm.textContent = e.message; }); });
+Platform.on('directory:changed', change => {
+  if (!boundRobot || (change?.workspaceId || 'legacy') !== (boundRobot.workspaceId || 'legacy')) return;
+  resetVisit(); loadDirectory().catch(e => { wm.textContent = e.message; });
+});
 document.querySelector('#startNode').onchange = resetVisit;
 document.querySelector('#destinationForm').onsubmit = async e => {
   e.preventDefault(); const generation = ++lookupGeneration;
@@ -169,15 +172,30 @@ document.querySelector('#localStop').onclick = async () => {
 document.querySelector('#stationLogout').onclick = () => { goOffline(); Platform.logout().finally(() => location.reload()); };
 async function stationLogin(user) {
   if (user.role === 'admin') {
-    const list = await Platform.api('/robots');
+    const view = new URLSearchParams(location.search), query = new URLSearchParams();
+    const workspace = view.get('workspace'), mode = view.get('mode');
+    if (['university', 'hospital', 'office', 'mall', 'museum', 'legacy'].includes(workspace)) query.set('workspace', workspace);
+    if (['welcome', 'telepresence'].includes(mode)) query.set('mode', mode);
+    const list = await Platform.api('/robots' + (query.size ? '?' + query.toString() : ''));
     const box = document.querySelector('#devicePicker'); box.hidden = false;
     const select = box.querySelector('select'); select.replaceChildren(new Option('انتخاب ربات', ''));
     for (const r of list) select.add(new Option(r.name, r.id));
-    box.querySelector('button').onclick = async () => { try { const deviceUser = await Platform.device(select.value); box.hidden = true; await stationLogin(deviceUser); } catch (e) { box.querySelector('[role="alert"]').textContent = e.message; } };
+    const button = box.querySelector('button'), error = box.querySelector('[role="alert"]');
+    button.disabled = true;
+    error.textContent = list.length ? '' : 'در این فضای کاری و حالت هنوز رباتی ثبت نشده است. ابتدا ربات را در پنل سازمان ثبت کنید.';
+    select.onchange = () => { button.disabled = !select.value; if (select.value) error.textContent = ''; };
+    button.onclick = async () => {
+      if (!select.value) return;
+      button.disabled = true; error.textContent = '';
+      try { const deviceUser = await Platform.device(select.value); await stationLogin(deviceUser); box.hidden = true; }
+      catch (e) { error.textContent = e.message; }
+      finally { button.disabled = !select.value; }
+    };
     return;
   }
   if (user.role !== 'robot') throw new Error('با حساب دستگاه یا مدیر وارد شوید.');
   const [robot] = await Platform.api('/robots');
+  if (!robot || robot.id !== user.robotId) throw new Error('ربات مربوط به این حساب در دسترس نیست.');
   await loadDirectory(); bindStation(robot);
   document.querySelector('#stationHeader').hidden = false; document.querySelector('#stationMain').hidden = false;
   document.querySelector('#stationAuth').hidden = true;

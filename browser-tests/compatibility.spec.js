@@ -19,10 +19,17 @@ async function login(page, role) {
   await form.locator('[name=password]').fill('browser-test-password');
   await form.getByRole('button', { name: 'ورود', exact: true }).click();
 }
+async function enterLegacyWorkspace(page, view) {
+  await page.locator('#legacyWorkspace').click();
+  await expect(page.locator('#modeScreen')).toBeVisible();
+  await page.locator('#modeScreen button[data-mode="welcome"]').click();
+  await expect(page.locator('#workspaceShell')).toBeVisible();
+  await page.locator(`#workspaceShell .workspace-menu button[data-view="${view}"]`).click();
+}
 
 test('Public tunnel serves every product page and required assets while keeping private paths blocked', async ({ request }) => {
   const headers = { 'cf-ray': 'isolated-tunnel-test' };
-  for (const url of ['/', '/robot', '/user', '/portal', '/robot.js', '/welcome.js', '/connection.js']) {
+  for (const url of ['/', '/robot', '/user', '/portal', '/robot.js', '/welcome.js', '/connection.js', '/portal.js', '/portal.css']) {
     const response = await request.get(url, { headers });
     expect(response.status(), url).toBe(200);
     if (url === '/') expect(await response.text()).toContain('href="robot.html"');
@@ -34,8 +41,8 @@ test('Public tunnel serves every product page and required assets while keeping 
 });
 
 for (const scenario of [
-  { role: 'admin', route: '/portal.html', ready: '#adminPanel', logout: '#logoutBtn' },
-  { role: 'staff', route: '/portal.html', ready: '#staffPanel', logout: '#logoutBtn' },
+  { role: 'admin', route: '/portal.html', ready: '#categoryScreen', logout: '#logoutBtn' },
+  { role: 'staff', route: '/portal.html', ready: '#categoryScreen', logout: '#logoutBtn' },
   { role: 'operator', route: '/user.html', ready: '#joinForm', logout: '#userLogout' },
   { role: 'robot', route: '/robot.html', ready: '#stationMain', logout: '#stationLogout' },
 ]) {
@@ -48,6 +55,15 @@ for (const scenario of [
     await expect(page.locator(scenario.ready)).toBeVisible();
     // A second authenticated request must work with the token held in memory.
     expect(await page.evaluate(async () => (await Platform.api('/me')).user.role)).toBe(scenario.role);
+
+    if (scenario.role === 'admin') {
+      await expect(page.locator('#adminPanel')).toBeVisible();
+      await enterLegacyWorkspace(page, 'map');
+      await expect(page.locator('#viewMap')).toBeVisible();
+    } else if (scenario.role === 'staff') {
+      await enterLegacyWorkspace(page, 'inbox');
+      await expect(page.locator('#staffPanel')).toBeVisible();
+    }
 
     if (scenario.role === 'robot') {
       await page.locator('#publicBtn').click();

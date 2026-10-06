@@ -12,6 +12,14 @@ async function login(page, role) {
   await form.locator('[name=username]').fill(role); await form.locator('[name=password]').fill('browser-test-password');
   await form.getByRole('button', { name: 'ورود', exact: true }).click();
 }
+async function enterLegacyWorkspace(page, view) {
+  await expect(page.locator('#categoryScreen')).toBeVisible();
+  await page.locator('#legacyWorkspace').click();
+  await expect(page.locator('#modeScreen')).toBeVisible();
+  await page.locator('#modeScreen button[data-mode="welcome"]').click();
+  await expect(page.locator('#workspaceShell')).toBeVisible();
+  await page.locator(`#workspaceShell .workspace-menu button[data-view="${view}"]`).click();
+}
 test('Welcome finds a Persian destination, maps floors, notifies staff, receives reply, and clears visitor data', async ({ browser }) => {
   const context = await browser.newContext(); const robot = await context.newPage(), staff = await context.newPage();
   const errorsR = await configure(robot), errorsS = await configure(staff);
@@ -25,6 +33,7 @@ test('Welcome finds a Persian destination, maps floors, notifies staff, receives
   await robot.locator('#visitorName').fill('مراجع آزمون'); await robot.locator('#visitorNote').fill('<img src=x onerror=alert(1)>');
   await robot.locator('#notifyBtn').click(); await expect(robot.locator('#visitStatus')).toContainText('ثبت شد');
   await staff.goto('/portal.html'); await login(staff, 'staff');
+  await enterLegacyWorkspace(staff, 'inbox');
   await expect(staff.locator('#inbox')).toContainText('مراجع آزمون'); await expect(staff.locator('#inbox img')).toHaveCount(0);
   await staff.locator('#inbox').getByRole('button', { name: 'تشریف بیاورید', exact: true }).first().click();
   await expect(robot.locator('#visitStatus')).toContainText('تشریف بیاورید', { timeout: 12000 });
@@ -36,11 +45,17 @@ test('Welcome finds a Persian destination, maps floors, notifies staff, receives
 test('Admin edits directory with native forms and prevents saving dangling paths', async ({ page }) => {
   const errors = await configure(page); await page.goto('/portal.html'); await login(page, 'admin');
   await expect(page.locator('#adminPanel')).toBeVisible();
+  await enterLegacyWorkspace(page, 'map');
+  await expect(page.locator('#viewMap')).toBeVisible();
   const floors = page.locator('#directoryBuilder details').first(); await floors.locator('summary').click();
   await floors.locator('[name=id]').fill('second'); await floors.locator('[name=name]').fill('طبقه دوم'); await floors.locator('form button').first().click();
   await page.locator('#saveDirectory').click(); await expect(page.locator('#portalStatus')).toContainText('ذخیره شد');
-  await page.locator('#reloadDirectory').click(); await expect(page.locator('#directoryBuilder details').first().locator('summary')).toContainText('(3)');
-  await page.getByText('ورود و خروج JSON نقشه', { exact: true }).click();
+  await page.locator('#workspaceShell .workspace-menu button[data-view="tools"]').click();
+  await page.locator('#reloadDirectory').click();
+  await page.locator('#workspaceShell .workspace-menu button[data-view="map"]').click();
+  await expect(page.locator('#directoryBuilder details').first().locator('summary')).toContainText(/\((?:3|۳)\)/);
+  await page.locator('#workspaceShell .workspace-menu button[data-view="tools"]').click();
+  await page.locator('#viewTools details summary').click();
   const invalid = JSON.parse(await page.locator('#directoryJSON').inputValue()); invalid.edges[0].to = 'missing';
   await page.locator('#directoryJSON').fill(JSON.stringify(invalid)); await page.locator('#applyJSON').click(); await expect(page.locator('#portalError')).toContainText('مسیر معتبر نیست');
   await page.screenshot({ path: 'test-results/admin.png', fullPage: true }); expect(errors).toEqual([]);

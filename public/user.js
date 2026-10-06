@@ -139,6 +139,24 @@ function userPeerId(fresh = false) {
 // ---------- Join / hang up ----------
 
 const params = new URLSearchParams(location.search);
+const operatorWorkspaces = ['university', 'hospital', 'office', 'mall', 'museum', 'legacy'];
+const operatorWorkspace = operatorWorkspaces.includes(params.get('workspace')) ? params.get('workspace') : '';
+const operatorMode = ['welcome', 'telepresence'].includes(params.get('mode')) ? params.get('mode') : '';
+function ignoresViewFilters() {
+  return Platform.user?.username === 'guest' && !!Platform.user.robotId;
+}
+function robotQuery() {
+  const query = new URLSearchParams();
+  if (!ignoresViewFilters()) {
+    if (operatorWorkspace) query.set('workspace', operatorWorkspace);
+    if (operatorMode) query.set('mode', operatorMode);
+  }
+  return '/robots' + (query.size ? '?' + query.toString() : '');
+}
+function visibleRobots(robots) {
+  if (ignoresViewFilters()) return robots;
+  return robots.filter(robot => (!operatorWorkspace || (robot.workspaceId || 'legacy') === operatorWorkspace) && (!operatorMode || robot.mode === operatorMode));
+}
 try { els.serialInput.value = params.get('serial') || localStorage.getItem('lastRobot') || ''; } catch {}
 
 els.joinForm.onsubmit = async (e) => {
@@ -306,12 +324,13 @@ async function sendVideo(track) {
 
 els.shareBtn.onclick = () => (screenTrack ? stopScreenShare() : startScreenShare());
 
-// Opened from an invite link (…/user?serial=RB-XXXX): connect right away
+// Legacy serial-only invitations retain their existing preflight flow. Scoped
+// workspace launch links never start a connection automatically.
 const invited = normalizeSerial(params.get('serial'));
 if (isValidSerial(invited)) {
   $('#joinTitle').textContent = `Connecting to robot ${invited}`;
   $('#joinHint').textContent = 'You were invited to drive this robot.';
-  setTimeout(() => els.joinForm.requestSubmit(), 0);
+  if (!operatorWorkspace && !operatorMode) setTimeout(() => els.joinForm.requestSubmit(), 0);
 }
 
 function showJoinError(text) {
@@ -379,7 +398,7 @@ async function connect() {
   if (!activeSession) {
     creatingSession = true;
     try {
-      const robots = await Platform.api('/robots');
+      const robots = await Platform.api(robotQuery());
       const robot = robots.find(r => r.serial === serial);
       if (!robot) throw new Error('این ربات برای حساب شما قابل دسترسی نیست.');
       const session = await Platform.api('/sessions', { method: 'POST', body: { robotId: robot.id, peerId: userPeerId() } });
@@ -655,12 +674,15 @@ Platform.on('connected', () => {
 Platform.on('robots', robots => renderRobots(robots));
 function renderRobots(robots) {
   const select = document.querySelector('#robotSelect');
-  const selected = select.value;
+  const list = visibleRobots(robots);
+  const enteredSerial = normalizeSerial(els.serialInput.value);
+  const selected = enteredSerial || select.value;
   select.replaceChildren(new Option('انتخاب ربات', ''));
-  for (const r of robots) select.add(new Option(`${r.name} · ${r.location} · ${r.online ? r.busy ? 'مشغول' : 'آنلاین' : 'آفلاین'}`, r.serial));
-  select.value = selected;
+  for (const r of list) select.add(new Option(`${r.name} · ${r.location} · ${r.online ? r.busy ? 'مشغول' : 'آنلاین' : 'آفلاین'}`, r.serial));
+  select.value = list.some(r => r.serial === selected) ? selected : '';
+  if (enteredSerial && !list.some(r => r.serial === enteredSerial)) els.serialInput.value = '';
 }
-async function refreshRobots() { if (platformReady) renderRobots(await Platform.api('/robots')); }
+async function refreshRobots() { if (platformReady) renderRobots(await Platform.api(robotQuery())); }
 document.querySelector('#robotSelect').onchange = e => { if (e.target.value) els.serialInput.value = e.target.value; };
 document.querySelector('#checkMedia').onclick = async () => {
   await startLocalMedia();

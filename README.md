@@ -24,7 +24,7 @@ Open `http://localhost:3000/portal.html`. Setup installs **no default password**
 
 On Windows, use `start-robot.bat` after setup. It starts the backend in a hidden process, waits for health readiness, then opens the Robot Station. Closing the launcher leaves the server running. Rerunning reuses a compatible running server. Use `start-robot.bat -NoBrowser` to start without opening a tab, or `start-robot.bat -Status` for a read-only status check. The launcher prints all three local pages and distinguishes local readiness from public connectivity. After verifying the exact repository process and listener, a normal launch can request one sharing recovery without restarting Node. The private capability in ignored `data/server-control.json` goes only to the loopback `/share-retry` endpoint; it is never available to browser pages. Unknown processes are left alone. Private logs and PID metadata are in ignored `data/server-output.log`, `data/server-error.log` and `data/server-runtime.json`. No service is installed: run the launcher again after reboot.
 
-1. Add floors, nodes, route edges, rooms and people; save the directory.
+1. In the organization portal, choose University, Hospital, Office, Shopping Mall or Museum, then Welcome or Telepresence. For Welcome, add floors, nodes, route edges, rooms and people; save the directory.
 2. Register the robot's stable ID/serial, mode and starting node.
 3. Create a **robot** account scoped to that robot, **operator** accounts for drivers and **staff** accounts for recipients.
 4. Edit each person and select their staff account to enable notifications. A room can notify one of its associated people.
@@ -32,6 +32,16 @@ On Windows, use `start-robot.bat` after setup. It starts the backend in a hidden
 6. On the other laptop open `/user.html`, sign in, select a robot, check camera/microphone and start the call. After fresh video and board readiness, press **گرفتن کنترل**. Hold arrows/WASD to drive, release to stop.
 
 An administrator can also sign in on the station and select a device. A scoped device session is issued; the kiosk does not retain administrator privileges. Public mode clears the current visitor's name/note/route after 90 seconds of inactivity or **شروع دوباره**. This does not delete a registered staff notification.
+
+## Organization workspaces
+
+After login, the portal opens a five-category hub. Each category has its own directory and assigned robots, followed by a Welcome/Telepresence mode selector. The workspace sidebar separates overview, robots, map, rooms, people, inbox, team accounts, file tools and the call launcher. Welcome has a setup checklist for maps and destinations; Telepresence has a checklist for devices, operators and calls. Call/station links carry the selected workspace and mode. Empty workspaces show registration guidance instead of fictional site data.
+
+Administrators can edit all five workspaces. Operators see device status and the call launcher. Staff see their own recipient inbox, filtered by the selected workspace. Accounts and installation roles remain shared across the installation; categories are organizational spaces, not separate tenant accounts. Device and invitation sessions are bound by the backend to their robot's workspace, even if a URL requests another one.
+
+Existing installations keep all original maps, robots, accounts and visits under **Existing data**. Nothing is automatically assigned to a category. To move these records together, choose an empty category, open **Settings and files**, and explicitly confirm **Transfer existing data**. The server refuses a populated target, preserves IDs and device-account bindings, stores a private directory archive, and ends active calls before refreshing the station. The original directory format and legacy API defaults remain compatible.
+
+Directory drafts survive navigation between workspace sections. Leaving the workspace, returning to mode selection, reloading its data or logging out presents Save/Discard/Cancel; closing the browser warns about unsaved changes. Native directory forms and JSON imports use the same validation before storage. Routes can be bookmarked and browser Back/Forward returns to the relevant section.
 
 ## Welcome directory and notifications
 
@@ -122,7 +132,7 @@ npm run test:compat
 
 The WebRTC product tests use installed Microsoft Edge on Windows. Elsewhere install Chromium and set `PLAYWRIGHT_CHANNEL=chromium`. Install compatibility engines with `npx playwright install chromium firefox webkit`, then run `npm run test:compat`: it starts a fresh isolated test server for each engine. CI checks them independently. Compatibility covers page rendering, role login/logout, denied storage/media APIs, hosted backend discovery and safe hostname changes; it does not claim physical Safari/iPhone or every WebRTC device combination was tested.
 
-Coverage includes Persian lookup, multi-floor/accessible/reverse routes, invalid directory rejection, role isolation, invitations, persisted idempotent visits, delivery/seen/reply, media proofs, lease expiry, stale commands, frame freshness, local stop and actual local WebRTC between two browsers. Serial is **simulated** in browser tests. Physical Uno/motors, internet NAT traversal, provider TURN and production hosting must be verified on the installation.
+Coverage includes five-category navigation, independent map persistence, bound workspace access, explicit legacy transfer, draft protection, API/socket robot filters, safe text rendering, Persian lookup, multi-floor/accessible/reverse routes, invalid directory rejection, role isolation, invitations, persisted idempotent visits, delivery/seen/reply, media proofs, lease expiry, stale commands, frame freshness, local stop and actual local WebRTC between two browsers. Serial is **simulated** in browser tests. Physical Uno/motors, internet NAT traversal, provider TURN and production hosting must be verified on the installation.
 
 ### Optional live TURN check
 

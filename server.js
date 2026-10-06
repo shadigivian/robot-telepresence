@@ -37,7 +37,7 @@ const ROUTES = { '/': '/index.html', '/robot': '/robot.html', '/user': '/user.ht
 
 // All product pages are public assets; their actions require authentication.
 // Private data, provider credentials and the share-link endpoint stay local.
-const PUBLIC_FILES = new Set(['/index.html', '/robot.html', '/robot.js', '/welcome.js', '/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/product.css', '/platform.js', '/connection.js', '/portal.js', '/portal.html', '/vendor/peerjs.min.js', '/vendor/socket.io.min.js', '/safety.js']);
+const PUBLIC_FILES = new Set(['/index.html', '/robot.html', '/robot.js', '/welcome.js', '/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/product.css', '/portal.css', '/platform.js', '/connection.js', '/portal.js', '/portal.html', '/vendor/peerjs.min.js', '/vendor/socket.io.min.js', '/safety.js']);
 const connectionPublisher = createConnectionPublisher({ onStatus: message => console.log(message) });
 
 let publicUrl = null;
