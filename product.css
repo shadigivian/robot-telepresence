@@ -70,3 +70,4 @@ a { color: #93c5fd; }
 .connection-notice[hidden] { display: none; }
 .connection-notice .btn { flex-shrink: 0; }
 @media (max-width: 600px) { .connection-notice { align-items: stretch; flex-direction: column; } }
+.station-public .station-nav { display: none; }
