@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "setup": "node scripts/setup.js",
-    "test": "node --test tests/domain.test.js tests/service.test.js tests/env.test.js tests/tunnel.test.js tests/publish-connection.test.js",
+    "test": "node --test tests/domain.test.js tests/service.test.js tests/env.test.js tests/tunnel.test.js tests/publish-connection.test.js tests/retry-loop.test.js tests/local-control.test.js",
     "test:compat": "node scripts/test-compat.js",
     "test:browser": "playwright test",
     "test:turn": "node scripts/test-turn.js",

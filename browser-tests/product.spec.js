@@ -137,3 +137,47 @@ test('Invitations follow the current ready tunnel and remain hidden while it rec
   await expect(page.locator('#shareLink')).toHaveText('—');
   expect(errors).toEqual([]);
 });
+
+test('Fixed Pages invitations still wait for the local public backend and reuse their token after recovery', async ({ page }) => {
+  const errors = await configure(page);
+  const permanent = 'https://shadigivian.github.io/robot-telepresence/user.html';
+  await page.route('**/config.js', route => route.fulfill({
+    body: config.replace(/publicUserPage:\s*'[^']*'/, `publicUserPage: '${permanent}'`),
+    contentType: 'application/javascript',
+  }));
+  let info = { state: 'error', url: null }, inviteRequests = 0, polls = 0;
+  await page.route('**/share-info', route => { polls++; return route.fulfill({ json: info }); });
+  page.on('request', request => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/invites') inviteRequests++;
+  });
+  await page.goto('/robot.html'); await login(page, 'robot');
+  await expect(page.locator('#shareNote')).toContainText('آدرس عمومی');
+  await page.locator('#inviteBtn').click();
+  expect(inviteRequests).toBe(0); expect(polls).toBeGreaterThan(0);
+  await expect(page.locator('#copyBtn')).toBeDisabled();
+
+  info = { state: 'ready', url: 'https://first.example.test' };
+  await page.evaluate(() => pollShareInfo());
+  await page.locator('#inviteBtn').click();
+  await expect(page.locator('#shareLink')).toContainText(`${permanent}#invite=`);
+  const fixedLink = await page.locator('#shareLink').textContent();
+  await expect(page.locator('#copyBtn')).toBeEnabled();
+  expect(inviteRequests).toBe(1);
+
+  info = { state: 'error', url: null };
+  await page.evaluate(() => pollShareInfo());
+  await expect(page.locator('#shareNote')).toContainText('آدرس عمومی');
+  await expect(page.locator('#shareLink')).toHaveText('—');
+  await expect(page.locator('#copyBtn')).toBeDisabled();
+  await page.locator('#inviteBtn').click();
+  expect(inviteRequests).toBe(1);
+
+  info = { state: 'ready', url: 'https://second.example.test' };
+  await page.evaluate(() => pollShareInfo());
+  await expect(page.locator('#shareLink')).toHaveText(fixedLink);
+  await expect(page.locator('#copyBtn')).toBeEnabled();
+  expect(inviteRequests).toBe(1);
+  await page.locator('#revokeInvites').click();
+  await expect(page.locator('#shareLink')).toHaveText('—');
+  expect(errors).toEqual([]);
+});

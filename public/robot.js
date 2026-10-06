@@ -778,19 +778,22 @@ if ('serial' in navigator) {
 // ---------- Invite link ----------
 //
 // start-robot.bat publishes the user page on a public address; the local
-// server reports it at /share-info. The link carries the serial number, so
-// opening it connects straight to this robot.
+// server reports it at /share-info. A permanent Pages address still needs
+// this public backend connection before its authenticated invitations work.
 
 const share = {
   link: $('#shareLink'),
   copy: $('#copyBtn'),
   shareBtn: $('#shareBtn'),
   note: $('#shareNote'),
+  invite: $('#inviteBtn'),
 };
 let shareInfo = { state: 'off', url: null };
 let inviteLink = null;
 let inviteToken = null;
 let inviteExpires = 0;
+let creatingInvite = false;
+let sharePoll = 0;
 
 // Opened from a hosted site (GitHub Pages): the user page sits right next to
 // this one. Both pages still require the configured shared backend.
@@ -798,20 +801,34 @@ const HOSTED = !['localhost', '127.0.0.1'].includes(location.hostname);
 const permanentUserPage = HOSTED ? new URL('user.html', location.href).href : CONFIG.publicUserPage;
 
 async function pollShareInfo() {
-  if (!permanentUserPage) {
+  const current = ++sharePoll;
+  if (!HOSTED) {
     try {
       const res = await fetch('/share-info', { cache: 'no-store' });
-      shareInfo = await res.json();
+      if (!res.ok) throw new Error('Public connection unavailable');
+      const info = await res.json();
+      if (current !== sharePoll) return;
+      shareInfo = info;
     } catch {
+      if (current !== sharePoll) return;
       shareInfo = { state: 'error', url: null };
     }
   }
   renderInvite();
 }
 
+function publicConnectionReady() {
+  if (HOSTED) return Platform.connected && Platform.connection.state === 'ready';
+  return shareInfo.state === 'ready' && typeof shareInfo.url === 'string' && !!shareInfo.url;
+}
+
+function invitationBase() {
+  if (!publicConnectionReady()) return null;
+  return permanentUserPage || `${shareInfo.url}/user`;
+}
+
 function renderInvite() {
-  const base = permanentUserPage || (shareInfo.state === 'ready' && shareInfo.url ? `${shareInfo.url}/user` : null);
-  const s = normalizeSerial(els.serialInput.value);
+  const base = invitationBase();
   if (Date.now() >= inviteExpires) inviteToken = null;
   inviteLink = inviteToken && base ? `${base}#invite=${encodeURIComponent(inviteToken)}` : null;
 
@@ -820,15 +837,16 @@ function renderInvite() {
   share.copy.disabled = !inviteLink;
   share.shareBtn.hidden = !navigator.share;
   share.shareBtn.disabled = !inviteLink;
+  share.invite.disabled = !boundRobot || creatingInvite;
 
   let note;
   if (!base) {
-    note = {
-      off: 'No public link. Start the robot with start-robot.bat to get one.',
-      starting: 'Creating the public link… (about 10 seconds)',
-      error: 'Could not create the public link. Check the internet connection and the black server window.',
-      blocked: 'The public tunnel is not ready. Check the connection or choose the other tunnel provider in the private server settings.',
-    }[shareInfo.state] || 'Creating the public link…';
+    note = HOSTED ? 'اتصال به سرور ربات در دسترس نیست؛ پس از وصل شدن سرور می‌توانید دعوت بسازید.' : {
+      off: 'آدرس عمومی وب‌اپ کاربر در دسترس نیست. برنامه راه‌انداز ربات را با اشتراک عمومی اجرا کنید.',
+      starting: 'آدرس عمومی در حال اتصال است. ساخت و کپی دعوت پس از آماده شدن سرور ممکن می‌شود.',
+      error: 'آدرس عمومی وب‌اپ کاربر در دسترس نیست. اتصال دوباره در حال انجام است؛ سرور و لپ‌تاپ را روشن نگه دارید.',
+      blocked: 'آدرس عمومی وب‌اپ کاربر هنوز آماده نیست. اتصال اینترنت و وضعیت سرور را بررسی کنید.',
+    }[shareInfo.state] || 'آدرس عمومی در حال اتصال است.';
   } else if (!wantOnline) {
     note = 'Press Go online so the link works.';
   } else {
@@ -838,17 +856,25 @@ function renderInvite() {
   share.note.textContent = note;
 }
 
-document.querySelector('#inviteBtn').onclick = async () => {
-  if (!boundRobot) return;
+share.invite.onclick = async () => {
+  if (!boundRobot || creatingInvite) return;
+  let message = '', succeeded = false;
+  creatingInvite = true;
+  renderInvite();
   try {
-    const base = permanentUserPage || (shareInfo.state === 'ready' && shareInfo.url ? `${shareInfo.url}/user` : null);
+    const base = invitationBase();
     if (!base) throw new Error('آدرس عمومی وب‌اپ کاربر در دسترس نیست.');
     const invite = await Platform.api('/invites', { method: 'POST', body: { robotId: boundRobot.id, canDrive: document.querySelector('#inviteDrive').checked } });
     inviteToken = invite.token;
     inviteExpires = invite.expires;
+    succeeded = true;
+    message = 'دعوت یک‌بارمصرف تا ۱۵ دقیقه معتبر است.';
+  } catch (e) { message = e.message; }
+  finally {
+    creatingInvite = false;
     renderInvite();
-    share.note.textContent = 'دعوت یک‌بارمصرف تا ۱۵ دقیقه معتبر است.';
-  } catch (e) { share.note.textContent = e.message; }
+    if (message && (!succeeded || invitationBase())) share.note.textContent = message;
+  }
 };
 document.querySelector('#revokeInvites').onclick = async () => {
   try { await Platform.api('/invites', { method: 'DELETE', body: { robotId: boundRobot.id } }); inviteToken = null; inviteLink = null; inviteExpires = 0; renderInvite(); } catch (e) { share.note.textContent = e.message; }
@@ -876,6 +902,7 @@ els.serialInput.addEventListener('input', renderInvite);
 els.onlineBtn.addEventListener('click', () => setTimeout(renderInvite, 0));
 pollShareInfo();
 setInterval(pollShareInfo, 3000);
+for (const event of ['connected', 'disconnected', 'expired', 'backend:status']) Platform.on(event, renderInvite);
 
 // ---------- Startup ----------
 

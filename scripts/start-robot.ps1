@@ -2,6 +2,7 @@
 param(
     [switch]$NoBrowser,
     [switch]$Status,
+    [switch]$RetryShare,
     [ValidateRange(5, 120)][int]$StartupTimeoutSeconds = 30
 )
 
@@ -12,6 +13,7 @@ $privateDirectory = Join-Path $repoRoot 'data'
 $runtimePath = Join-Path $privateDirectory 'server-runtime.json'
 $outputLog = Join-Path $privateDirectory 'server-output.log'
 $errorLog = Join-Path $privateDirectory 'server-error.log'
+$controlPath = Join-Path $privateDirectory 'server-control.json'
 $launcherLock = $null
 
 function Get-Health {
@@ -52,31 +54,88 @@ function Write-Runtime {
     $record | ConvertTo-Json -Compress | Set-Content -LiteralPath $runtimePath -Encoding UTF8
 }
 
+function Request-ShareRecovery {
+    param([string]$Base, [int]$Port, [int]$KnownProcessId, [string]$NodeExecutable)
+    # The private key is never read for an unknown compatible server. Recheck
+    # both the exact process and its local listener immediately before using it.
+    if ($KnownProcessId -le 0 -or -not (Test-RepositoryServer (Get-ProcessDetails $KnownProcessId) $NodeExecutable)) {
+        Write-Host 'Public recovery was skipped because the repository server could not be verified.'
+        return $false
+    }
+    $listeners = @(Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+    if (-not ($listeners | Where-Object { $_.OwningProcess -eq $KnownProcessId })) {
+        Write-Host 'Public recovery was skipped because the local listener changed.'
+        return $false
+    }
+    if (-not (Test-Path -LiteralPath $controlPath -PathType Leaf)) {
+        Write-Host 'This running server needs a manual restart to enable public-connection recovery.'
+        return $false
+    }
+    try {
+        $control = Get-Content -LiteralPath $controlPath -Raw | ConvertFrom-Json
+        if ($control.version -ne 1 -or $control.key -isnot [string] -or $control.key -notmatch '^[A-Za-z0-9_-]{32,128}$') {
+            Write-Host 'The private local recovery settings are unavailable. Restart this repository server manually.'
+            return $false
+        }
+        $requestHeaders = @{ 'X-Robot-Local-Key' = $control.key }
+        $response = Invoke-RestMethod -Uri ($Base + '/share-retry') -Method Post -ContentType 'application/json' -Body '{}' -Headers $requestHeaders -TimeoutSec 3 -Proxy $null
+        if ($response.accepted -ne $true) {
+            Write-Host 'The running server did not accept public-connection recovery; the local backend remains available.'
+            return $false
+        }
+        Write-Host 'Public-connection recovery was requested once. The local backend stays running.'
+        return $true
+    } catch {
+        # Do not expose a key, response body, headers, or provider error text.
+        Write-Host 'Public-connection recovery is unavailable in the running server. Check private logs or restart this repository server manually.'
+        return $false
+    } finally {
+        $control = $null
+        $requestHeaders = $null
+    }
+}
+
 function Show-Server {
-    param([string]$Base, $Health, [switch]$WaitForShare)
+    param([string]$Base, $Health, [switch]$WaitForShare, [int]$KnownProcessId = 0, [string]$NodeExecutable, [switch]$AllowRecovery)
+    $deadline = [DateTime]::UtcNow.AddSeconds(15)
+    $recoveryAttempted = $false
     $shareInfo = Get-ShareInfo $Base
+    if ($WaitForShare -and $AllowRecovery -and $shareInfo -and ($shareInfo.state -in @('error', 'off') -or ($RetryShare -and $shareInfo.state -eq 'blocked'))) {
+        $recoveryAttempted = $true
+        if (Request-ShareRecovery $Base ([Uri]$Base).Port $KnownProcessId $NodeExecutable) { $shareInfo = Get-ShareInfo $Base }
+    }
     if ($WaitForShare -and $shareInfo -and $shareInfo.state -eq 'starting') {
-        $deadline = [DateTime]::UtcNow.AddSeconds(15)
         while ($shareInfo.state -eq 'starting' -and [DateTime]::UtcNow -lt $deadline) {
             Start-Sleep -Milliseconds 500
             $current = Get-ShareInfo $Base
             if ($current) { $shareInfo = $current }
+            if ($AllowRecovery -and -not $recoveryAttempted -and $shareInfo.state -in @('error', 'off')) {
+                $recoveryAttempted = $true
+                if (Request-ShareRecovery $Base ([Uri]$Base).Port $KnownProcessId $NodeExecutable) { $shareInfo = Get-ShareInfo $Base }
+            }
         }
     }
-    Write-Host 'Robot server is ready.'
-    Write-Host ('Robot Station: ' + $Base + '/robot')
-    Write-Host ('Administration: ' + $Base + '/portal.html')
+    Write-Host 'Local backend is ready. These pages work on this laptop:'
+    Write-Host ('Local Robot Station: ' + $Base + '/robot')
+    Write-Host ('Local operator: ' + $Base + '/user')
+    Write-Host ('Local staff and administration: ' + $Base + '/portal.html')
     if (-not $Health.initialized) { Write-Host 'Initial administrator setup is required. Follow npm run setup in README.md.' }
     if ($shareInfo -and $shareInfo.state -eq 'ready' -and $shareInfo.url) {
         $publicUri = $null
         if ([Uri]::TryCreate([string]$shareInfo.url, [UriKind]::Absolute, [ref]$publicUri) -and $publicUri.Scheme -eq 'https' -and -not $publicUri.UserInfo -and -not $publicUri.Query -and -not $publicUri.Fragment) {
+            Write-Host 'Public connection: ready.'
+            Write-Host ('Remote Robot Station: ' + $shareInfo.url.TrimEnd('/') + '/robot')
             Write-Host ('Remote operator: ' + $shareInfo.url.TrimEnd('/') + '/user')
+            Write-Host ('Remote staff and administration: ' + $shareInfo.url.TrimEnd('/') + '/portal.html')
             Write-Host 'Use the Robot Station to create a single-use guest invitation.'
-        } else { Write-Host 'The public tunnel address is not ready for sharing.' }
+        } else { Write-Host 'Public connection: unavailable. The tunnel did not supply a valid HTTPS address; remote pages cannot connect yet.' }
     } elseif ($shareInfo -and $shareInfo.state -eq 'off') {
-        Write-Host 'This server was started without sharing. To enable it, stop that server manually, then run this launcher again.'
+        Write-Host 'Public connection: off. This server was started without sharing; remote pages cannot connect.'
+        Write-Host 'This launcher preserves existing processes. Check private logs or manually restart this repository server to enable sharing.'
     } else {
-        Write-Host 'The public tunnel is not ready. Run start-robot.bat -Status again after it connects.'
+        $state = if ($shareInfo) { [string]$shareInfo.state } else { 'unknown' }
+        Write-Host ('Public connection: ' + $state + '. Remote pages cannot connect yet; the local backend remains available.')
+        Write-Host 'Run start-robot.bat -Status again to check the current public connection.'
     }
     Write-Host ('Private logs: ' + $outputLog + ' and ' + $errorLog)
     if (-not $NoBrowser -and -not $Status) {
@@ -130,16 +189,18 @@ process.stdout.write(JSON.stringify({ port, localHost }));
         if (-not $shareInfo) { throw ('Port ' + $portNumber + ' is in use by an unrecognized server. It was left running.') }
         $listeners = @(Get-NetTCPConnection -LocalPort $portNumber -State Listen -ErrorAction SilentlyContinue)
         $knownServer = $false
+        $knownProcessId = 0
         foreach ($listener in $listeners) {
             if (Test-RepositoryServer (Get-ProcessDetails $listener.OwningProcess) $nodeExecutable) {
                 Write-Runtime $listener.OwningProcess $portNumber $nodeExecutable
                 $knownServer = $true
+                $knownProcessId = [int]$listener.OwningProcess
                 break
             }
         }
         if ($knownServer) { Write-Host 'Using the existing server from this repository.' }
         else { Write-Host 'Using the existing compatible robot server. No new process was started.' }
-        Show-Server $localBase $health -WaitForShare
+        Show-Server $localBase $health -WaitForShare -KnownProcessId $knownProcessId -NodeExecutable $nodeExecutable -AllowRecovery:$knownServer
         exit 0
     }
 
@@ -170,7 +231,7 @@ process.stdout.write(JSON.stringify({ port, localHost }));
         Start-Sleep -Milliseconds 250
     } while ([DateTime]::UtcNow -lt $deadline)
     if (-not $health) { throw 'The robot server did not become ready in time. Check the private logs; its process was left running for inspection.' }
-    Show-Server $localBase $health -WaitForShare
+    Show-Server $localBase $health -WaitForShare -KnownProcessId $managedProcess.Id -NodeExecutable $nodeExecutable -AllowRecovery
     exit 0
 } catch {
     # These messages are launcher-authored and contain no provider keys. Do not

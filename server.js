@@ -17,6 +17,8 @@ require('./lib/env').loadEnv(path.join(__dirname, '.env'));
 const { createService } = require('./lib/service');
 const { createLineParser, localhostRunOrigin } = require('./lib/tunnel');
 const { createConnectionPublisher } = require('./lib/publish-connection');
+const { createRetryLoop } = require('./lib/retry-loop');
+const { createLocalControl } = require('./lib/local-control');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PERMANENT = (fs.readFileSync(path.join(__dirname, 'public', 'config.js'), 'utf8')
@@ -40,15 +42,24 @@ const connectionPublisher = createConnectionPublisher({ onStatus: message => con
 
 let publicUrl = null;
 let shareState = SHARE ? 'starting' : 'off'; // off | starting | ready | error
-let closing = false, tunnelProc = null, retryTimer = null, startupTimer = null, failures = 0;
-let publishTimer = null;
-async function publishConnection(origin, attempt = 0) {
-  clearTimeout(publishTimer); publishTimer = null;
+let closing = false, tunnelProc = null, startupTimer = null, tunnelStarting = false;
+let publishOrigin = null;
+const tunnelRetry = createRetryLoop({ onRetry: () => { if (!closing) void startTunnel(); } });
+const publishRetry = createRetryLoop({ baseDelay: 5000, onRetry: () => { if (publishOrigin) void publishConnection(publishOrigin); } });
+async function publishConnection(origin) {
   if (closing || publicUrl !== origin || !connectionPublisher.enabled) return;
+  if (publishOrigin !== origin) { publishRetry.reset(); publishOrigin = origin; }
   const result = await connectionPublisher.publish(origin);
-  if (!result.ok && !closing && publicUrl === origin && attempt < 4) {
-    publishTimer = setTimeout(() => publishConnection(origin, attempt + 1), Math.min(5000 * 2 ** attempt, 30000));
-  }
+  if (closing || publicUrl !== origin || publishOrigin !== origin) return;
+  if (result.ok) publishRetry.reset();
+  else publishRetry.failed();
+}
+const dataFile = path.resolve(process.env.DATA_FILE || path.join(__dirname, 'data', 'site.json'));
+let localControl = null;
+function retryShare() {
+  if (closing) throw new Error('Closing');
+  if (!tunnelProc && !tunnelStarting) { tunnelRetry.reset(); void startTunnel(); }
+  return shareState;
 }
 
 let service;
@@ -58,13 +69,14 @@ const server = http.createServer(async (req, res) => {
   try { url = decodeURIComponent(req.url.split('?')[0]); }
   catch { res.writeHead(400); return res.end('Bad request'); }
   const viaTunnel = !!req.headers['cf-ray'] || !!(publicUrl && req.headers.host === new URL(publicUrl).host);
+  if (localControl && await localControl.handle(req, res, url)) return;
 
   url = ROUTES[url] || url;
 
   if (url === '/share-info') {
     if (viaTunnel) { res.writeHead(404); return res.end('Not found'); }
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-    return res.end(JSON.stringify({ state: shareState, url: publicUrl }));
+    return res.end(JSON.stringify({ state: shareState, url: publicUrl, retrying: tunnelRetry.pending || tunnelStarting }));
   }
 
   if (viaTunnel && !PUBLIC_FILES.has(url)) { res.writeHead(404); return res.end('Not found'); }
@@ -83,7 +95,7 @@ const server = http.createServer(async (req, res) => {
   });
 });
 service = createService(server, {
-  filename: path.resolve(process.env.DATA_FILE || path.join(__dirname, 'data', 'site.json')),
+  filename: dataFile,
   origins: (process.env.ALLOWED_ORIGINS || '').split(',').map(x => x.trim()).filter(Boolean),
 });
 
@@ -96,6 +108,7 @@ server.on('error', (err) => {
 });
 
 server.listen(PORT, process.env.HOST || '127.0.0.1', () => {
+  localControl = createLocalControl({ filename: path.join(path.dirname(dataFile), 'server-control.json'), port: PORT, retry: retryShare });
   console.log('\nRobot Telepresence is running. Keep this server and laptop running.\n');
   console.log(`  Robot page: http://localhost:${PORT}/robot`);
   if (PERMANENT) console.log(`  Invite links use your permanent page: ${PERMANENT}`);
@@ -115,6 +128,13 @@ const DOWNLOADS = {
 };
 
 async function startTunnel() {
+  if (closing || tunnelProc || tunnelStarting) return;
+  tunnelStarting = true;
+  shareState = 'starting';
+  try { await prepareTunnel(); }
+  finally { tunnelStarting = false; }
+}
+async function prepareTunnel() {
   if (TUNNEL_PROVIDER === 'localhost-run') return runTunnel();
   if (TUNNEL_PROVIDER !== 'cloudflare') {
     shareState = 'error';
@@ -126,6 +146,7 @@ async function startTunnel() {
   } catch {
     shareState = 'error';
     console.log('Could not download the tunnel tool. Check the connection or install cloudflared in bin/.');
+    tunnelRetry.failed();
     return;
   }
   if (!closing) runTunnel();
@@ -142,7 +163,7 @@ function runTunnel() {
     const nullFile = process.platform === 'win32' ? 'NUL' : '/dev/null';
     const trustDir = path.join(__dirname, 'data');
     try { fs.mkdirSync(trustDir, { recursive: true }); }
-    catch { shareState = 'error'; console.log('Could not prepare the private tunnel trust directory.'); return; }
+    catch { shareState = 'error'; console.log('Could not prepare the private tunnel trust directory.'); tunnelRetry.failed(); return; }
     command = process.platform === 'win32' ? 'ssh.exe' : 'ssh';
     args = ['-F', nullFile, '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=accept-new',
       '-o', `UserKnownHostsFile="${path.join(trustDir, 'tunnel-known-hosts').replace(/\\/g, '/')}"`, '-o', `GlobalKnownHostsFile=${nullFile}`,
@@ -156,7 +177,7 @@ function runTunnel() {
     if (closing || tunnelProc !== proc || proc.killed || (shareState === 'ready' && publicUrl === origin)) return;
     clearTimeout(startupTimer); startupTimer = null;
     publicUrl = origin;
-    failures = 0;
+    tunnelRetry.reset();
     shareState = 'ready';
     console.log(`\n  PUBLIC LINK for users: ${publicUrl}/user`);
     console.log('  Keep this laptop and server running. Invite users from the Robot page.\n');
@@ -189,18 +210,15 @@ function runTunnel() {
   const retry = () => {
     if (finished) return;
     finished = true;
+    if (tunnelProc !== proc) return;
     clearTimeout(startupTimer); startupTimer = null;
-    if (tunnelProc === proc) tunnelProc = null;
+    tunnelProc = null;
     publicUrl = null;
+    publishRetry.reset(); publishOrigin = null;
     if (closing) return;
     shareState = 'error';
-    if (++failures >= 5) {
-      console.log('Public link stopped after five failed attempts. Check the connection/provider and restart with --share.');
-      return;
-    }
-    const delay = Math.min(1000 * 2 ** (failures - 1), 30000);
+    const delay = tunnelRetry.failed();
     console.log(`Public link disconnected. Retrying in ${delay / 1000} seconds.`);
-    retryTimer = setTimeout(() => { retryTimer = null; runTunnel(); }, delay);
   };
   proc.once('error', retry);
   proc.once('close', retry);
@@ -209,7 +227,7 @@ function runTunnel() {
 function stopServer() {
   if (closing) return;
   closing = true;
-  clearTimeout(retryTimer); clearTimeout(startupTimer); clearTimeout(publishTimer);
+  tunnelRetry.stop(); publishRetry.stop(); clearTimeout(startupTimer);
   if (tunnelProc) tunnelProc.kill();
   service.close();
   server.close(() => process.exit(0));
