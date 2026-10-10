@@ -1,0 +1,4 @@
+.minimal-call #join,.minimal-call .topbar,.minimal-call .controls,.minimal-call .callbar,.minimal-call .hud-cmd,.minimal-call #selfView,.minimal-call #toast { display:none!important }
+.minimal-call #call { background:#080e18 }
+.minimal-end { position:fixed;z-index:100;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);border:0;border-radius:999px;padding:16px 32px;background:#e04455;color:white;font:600 16px system-ui;cursor:pointer }
+.minimal-status { position:fixed;inset:40% 20px auto;text-align:center;color:#cce5ff;font:16px system-ui }

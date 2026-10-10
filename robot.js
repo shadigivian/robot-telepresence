@@ -570,12 +570,11 @@ async function knownUnos() {
 
 // The button: reuse the Uno allowed before, otherwise ask which one it is
 async function connectBoard() {
+  if (openingBoard || closingBoard || port) return;
   manualDisconnect = false;
-  const [known] = await knownUnos();
-  if (known) return openBoard(known);
   let chosen;
   try {
-    chosen = await navigator.serial.requestPort({ filters: UNO_USB_IDS });
+    chosen = await navigator.serial.requestPort();
   } catch {
     // Closed with nothing picked, or the list was empty: the Uno isn't reaching the laptop
     boardNote('No Arduino found. Plug the Uno in with its USB cable (it must carry data; the green <b>ON</b> light should be lit), ' +
