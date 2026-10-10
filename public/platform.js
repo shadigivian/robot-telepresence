@@ -105,7 +105,7 @@ const Platform = (() => {
     closeSocket();
     if (!token || backendState !== 'ready') return;
     const current = io(base || location.origin, { auth: { token }, transports: ['websocket', 'polling'], reconnection: true }); socket = current;
-    for (const event of ['robots', 'visit', 'directory:changed', 'robot:changed', 'control:lease', 'control:revoked', 'session:ended']) current.on(event, v => { if (socket === current) emit(event, v); });
+    for (const event of ['robots', 'visit', 'directory:changed', 'robot:changed', 'control:lease', 'control:revoked', 'session:ended', 'expert:message', 'expert:call', 'expert:signal', 'organization:reset']) current.on(event, v => { if (socket === current) emit(event, v); });
     current.on('connect', () => { if (socket === current) emit('connected'); });
     current.on('disconnect', reason => { if (socket !== current) return; emit('disconnected'); if (reason === 'io server disconnect') { clear(); emit('expired'); } });
     current.on('connect_error', e => { if (socket === current) emit('connection:error', e.message); });
@@ -121,6 +121,15 @@ const Platform = (() => {
     return accept(await request(path, { method: 'POST', body }, withToken ? token : '', expected), expected);
   }
   async function login(username, password) { return authenticate('/login', { username, password }); }
+  async function acceptHandoff(result) {
+    await ensureBackend();
+    if (result.base !== base || typeof result.token !== 'string') throw new Error('سرور تماس تغییر کرده؛ دوباره تماس بگیرید.');
+    const expected = epoch, verified = await request('/me', {}, result.token, expected);
+    if (verified.user.role !== 'operator' || verified.user.username !== 'guest' || !verified.user.robotId) throw new Error('مجوز نمایش تماس معتبر نیست.');
+    // Embedded call credentials stay in memory and must not replace an
+    // operator's saved login for the standalone driving app.
+    checkEpoch(expected); token = result.token; user = verified.user; connectSocket(); emit('login', user); return user;
+  }
   async function logout() { try { await api('/logout', { method: 'POST' }); } finally { clear(); emit('logout'); } }
   async function device(robotId) { return authenticate('/device', { robotId }, true); }
   async function redeem(value) { return authenticate('/invites/redeem', { token: value }); }
@@ -156,5 +165,5 @@ const Platform = (() => {
   }
   refreshBackend().catch(() => {});
   setInterval(() => refreshBackend().catch(() => {}), 30000);
-  return { api, on, login, loginForm, restore, logout, device, redeem, temporaryAuth, refreshBackend, socketRequest, get connection() { return connection(); }, get user() { return user; }, get connected() { return backendState === 'ready' && !!socket?.connected; } };
+  return { api, on, login, loginForm, restore, logout, device, redeem, temporaryAuth, refreshBackend, socketRequest, acceptHandoff, get connection() { return connection(); }, get user() { return user; }, get connected() { return backendState === 'ready' && !!socket?.connected; } };
 })();

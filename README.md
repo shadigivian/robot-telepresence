@@ -3,7 +3,7 @@
 Two browser apps share one authenticated backend:
 
 - **Robot Station** (`public/robot.html`): Welcome kiosk with room/person search, floor maps, accessible routes and staff notifications; or a Telepresence display with WebRTC audio/video and an Arduino Uno USB bridge.
-- **Organization app**: `public/user.html` for operators/invited callers; `public/portal.html` for staff inboxes and administration. These are role-specific pages of the same app.
+- **Organization app**: `public/portal.html` for setup, robot calls, expert chat/video and settings; `public/user.html` for manual driving/invited callers. Advanced map, destination and notification administration remains at `public/admin.html`.
 
 The Uno sketch and motor wiring are unchanged. Navigation is **manual**. Maps guide visitors; they do not localize the robot, detect obstacles or make it drive autonomously. PWM presets are motor power, not calibrated physical speed.
 
@@ -24,7 +24,7 @@ Open `http://localhost:3000/portal.html`. Setup installs **no default password**
 
 On Windows, use `start-robot.bat` after setup. It starts the backend in a hidden process, waits for health readiness, then opens the Robot Station. Closing the launcher leaves the server running. Rerunning reuses a compatible running server. Use `start-robot.bat -NoBrowser` to start without opening a tab, or `start-robot.bat -Status` for a read-only status check. The launcher prints all three local pages and distinguishes local readiness from public connectivity. After verifying the exact repository process and listener, a normal launch can request one sharing recovery without restarting Node. The private capability in ignored `data/server-control.json` goes only to the loopback `/share-retry` endpoint; it is never available to browser pages. Unknown processes are left alone. Private logs and PID metadata are in ignored `data/server-output.log`, `data/server-error.log` and `data/server-runtime.json`. No service is installed: run the launcher again after reboot.
 
-1. In the organization portal, choose University, Hospital, Office, Shopping Mall or Museum, then Welcome or Telepresence. For Welcome, add floors, nodes, route edges, rooms and people; save the directory.
+1. Complete the five setup pages in the organization portal. For advanced Welcome configuration open `admin.html`, choose University, Hospital, Office, Shopping Mall or Museum, then Welcome or Telepresence. Add floors, nodes, route edges, rooms and people; save the directory.
 2. Register the robot's stable ID/serial, mode and starting node.
 3. Create a **robot** account scoped to that robot, **operator** accounts for drivers and **staff** accounts for recipients.
 4. Edit each person and select their staff account to enable notifications. A room can notify one of its associated people.
@@ -139,3 +139,15 @@ Coverage includes five-category navigation, independent map persistence, bound w
 After configuring `TURN_CREDENTIALS_URL` or `TURN_SERVERS` privately, run `npm run test:turn`. This opt-in command reads the root `.env`, retrieves provider credentials server-side, and requires **relay candidates on both ends**. It checks a data-channel echo and decodes a short synthetic video; a direct connection cannot make it pass. It uses installed Edge by default, or installed Playwright Chromium with `PLAYWRIGHT_CHANNEL=chromium`.
 
 This check contacts the actual provider and consumes a small amount of TURN quota. It is excluded from CI and ordinary tests. It times out after 30 seconds of connection testing, closes the browser and peer connections, and prints only credential counts and nonsecret transport/results; it does not save credentials, IP addresses or screenshots. Passing verifies the tested relay path from this laptop, not every destination network or long-running call quality.
+
+## Organization app
+
+`portal.html` is the minimal organization app. After login it shows five separate setup steps: animated robot/logo, Welcome, robot name, QR with a separate organization upload page, and network address/team accounts. Completion is saved per account for the current server boot. Refreshing or logging in again skips setup; restarting the server repeats it and keeps existing data.
+
+The home page has robot call, expert contact and a small settings button. Settings contain QR, add person and verified reset. Reset clears branding, uploaded document and setup preferences, while preserving accounts, robot registrations, maps and conversations. Account creation distinguishes a visible job title from the access role. Staff may chat and receive calls; only operators/admins can call robots. QR links select a registered robot and require login; they contain no access credentials.
+
+Organization files accept PNG/JPEG/WebP logo, JSON information with optional validated `directory`, text introduction, and PDF building attachment. PDF is stored privately and does not automatically become a navigation graph. The previous five-category map/destination/notification administration is preserved at `admin.html`, linked from organization information. Robot IP is recorded as network information; WebRTC uses the authenticated backend and TURN rather than requesting insecure HTTP from a private IP.
+
+Expert chat is persistent and private to its participants. Expert video uses authenticated Socket signaling and browser WebRTC with configured TURN. Robot calls use a parent-session-bound, call-only guest token handed to a same-origin iframe; they show video and one hangup button and never grant motor control. Manual driving remains on `user.html` with its existing safety controls.
+
+Run `npm run test:organization` for browser setup/upload/chat/video checks. See [permanent hosting instructions](docs/hosting.md) and `render.yaml` for the account/deployment steps. A temporary laptop tunnel cannot meet an always-available hosting requirement.

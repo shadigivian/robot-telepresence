@@ -32,12 +32,14 @@ const MIME = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.json': 'application/json; charset=utf-8',
 };
 const ROUTES = { '/': '/index.html', '/robot': '/robot.html', '/user': '/user.html', '/portal': '/portal.html' };
 
 // All product pages are public assets; their actions require authentication.
 // Private data, provider credentials and the share-link endpoint stay local.
 const PUBLIC_FILES = new Set(['/index.html', '/robot.html', '/robot.js', '/welcome.js', '/user.html', '/user.js', '/common.js', '/config.js', '/style.css', '/product.css', '/portal.css', '/platform.js', '/connection.js', '/portal.js', '/portal.html', '/vendor/peerjs.min.js', '/vendor/socket.io.min.js', '/safety.js']);
+for (const file of ['/admin.html', '/admin.js', '/admin.css', '/robot-avatar.svg', '/minimal-call.css', '/organization-example.json', '/vendor/qrcode.js']) PUBLIC_FILES.add(file);
 const connectionPublisher = createConnectionPublisher({ onStatus: message => console.log(message) });
 
 let publicUrl = null;

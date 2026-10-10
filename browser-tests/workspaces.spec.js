@@ -111,7 +111,7 @@ async function chooseWorkspace(page, workspace, mode = 'welcome') {
 test('Five categories keep saved maps separate and cancel/discard protect unsaved workspace navigation', async ({ page }) => {
   const fixture = await workspaceFixture(page), errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/portal.html'); await login(page, 'admin');
+  await page.goto('/admin.html'); await login(page, 'admin');
   await expect(page.locator('#categoryScreen')).toBeVisible();
   const cards = page.locator('#categoryScreen button[data-workspace]:not([data-workspace="legacy"])');
   await expect(cards).toHaveCount(5);
@@ -151,7 +151,7 @@ test('Five categories keep saved maps separate and cancel/discard protect unsave
 
 test('Robot registration uses the selected workspace and mode and renders malicious names as text', async ({ page }) => {
   const fixture = await workspaceFixture(page);
-  await page.goto('/portal.html'); await login(page, 'admin');
+  await page.goto('/admin.html'); await login(page, 'admin');
   await chooseWorkspace(page, 'hospital', 'telepresence');
   await page.locator('#workspaceShell .workspace-menu button[data-view="robots"]').click();
   const form = page.locator('#robotForm');
@@ -174,7 +174,7 @@ test('Robot registration uses the selected workspace and mode and renders malici
 test('Staff sees its selected workspace inbox without admin editing or admin requests', async ({ page }) => {
   const fixture = await workspaceFixture(page);
   fixture.inbox[0].note = '<img src=x onerror="window.workspaceXss=true">';
-  await page.goto('/portal.html'); await login(page, 'staff');
+  await page.goto('/admin.html'); await login(page, 'staff');
   await chooseWorkspace(page, 'hospital');
   await page.locator('#workspaceShell .workspace-menu button[data-view="inbox"]').click();
   await expect(page.locator('#viewInbox')).toBeVisible();
@@ -190,7 +190,7 @@ test('Staff sees its selected workspace inbox without admin editing or admin req
 test('Workspace deep links restore the same view on reload and back/forward preserve its scope', async ({ page }) => {
   const fixture = await workspaceFixture(page), errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/portal.html#/hospital/welcome/rooms'); await login(page, 'admin');
+  await page.goto('/admin.html#/hospital/welcome/rooms'); await login(page, 'admin');
   await expect(page.locator('#viewRooms')).toBeVisible();
   expect(await page.evaluate(() => location.hash)).toBe('#/hospital/welcome/rooms');
   await page.reload();
@@ -213,7 +213,7 @@ test('Workspace deep links restore the same view on reload and back/forward pres
 
 test('Staff hash navigation and browser history cannot reveal unauthorized admin views', async ({ page }) => {
   const fixture = await workspaceFixture(page);
-  await page.goto('/portal.html#/hospital/welcome/accounts'); await login(page, 'staff');
+  await page.goto('/admin.html#/hospital/welcome/accounts'); await login(page, 'staff');
   await expect(page.locator('#viewInbox')).toBeVisible();
   await expect(page.locator('#viewAccounts')).toBeHidden();
   await expect.poll(() => page.evaluate(() => location.hash)).toBe('#/hospital/welcome/inbox');
@@ -231,7 +231,7 @@ test('Staff hash navigation and browser history cannot reveal unauthorized admin
 
 test('Dirty-dialog Save commits a valid native map draft while invalid partial fields stay pending', async ({ page }) => {
   const fixture = await workspaceFixture(page);
-  await page.goto('/portal.html'); await login(page, 'admin'); await chooseWorkspace(page, 'hospital');
+  await page.goto('/admin.html'); await login(page, 'admin'); await chooseWorkspace(page, 'hospital');
   await page.locator('#workspaceShell .workspace-menu button[data-view="map"]').click();
   const floors = page.locator('#directoryBuilder details').first();
   await floors.locator('summary').click();
@@ -266,7 +266,7 @@ test('Dirty-dialog Save commits a valid native map draft while invalid partial f
 test('An unsubmitted room draft survives view changes and cancel until Save commits it', async ({ page }) => {
   const fixture = await workspaceFixture(page);
   fixture.directories.set('hospital', { ...emptyDirectory('بیمارستان'), floors: [{ id: 'ground', name: 'همکف' }], nodes: [{ id: 'reception', name: 'پذیرش', floorId: 'ground', x: 20, y: 50 }] });
-  await page.goto('/portal.html'); await login(page, 'admin'); await chooseWorkspace(page, 'hospital');
+  await page.goto('/admin.html'); await login(page, 'admin'); await chooseWorkspace(page, 'hospital');
   await page.locator('#workspaceShell .workspace-menu button[data-view="rooms"]').click();
   const form = page.locator('#roomBuilder form');
   await form.locator('[name=id]').fill('lab-room');
@@ -287,7 +287,7 @@ test('An unsubmitted room draft survives view changes and cancel until Save comm
 
 test('Operator portal requests only the selected workspace and mode and scopes its launch links', async ({ page }) => {
   const fixture = await workspaceFixture(page);
-  await page.goto('/portal.html'); await login(page, 'operator'); await chooseWorkspace(page, 'hospital', 'telepresence');
+  await page.goto('/admin.html'); await login(page, 'operator'); await chooseWorkspace(page, 'hospital', 'telepresence');
   await page.locator('#workspaceShell .workspace-menu button[data-view="robots"]').click();
   await expect(page.locator('#robotRecords')).toContainText('تماس بیمارستان');
   await expect(page.locator('#robotRecords')).not.toContainText('تماس اداره');
@@ -306,7 +306,7 @@ test('Admin robot snapshots reconcile mode and disabled rows without replacing p
     floors: [{ id: 'ground', name: 'همکف' }],
     nodes: [{ id: 'reception', name: 'پذیرش', floorId: 'ground', x: 20, y: 50 }],
   });
-  await page.goto('/portal.html'); await login(page, 'admin'); await chooseWorkspace(page, 'hospital');
+  await page.goto('/admin.html'); await login(page, 'admin'); await chooseWorkspace(page, 'hospital');
   await page.locator('#workspaceShell .workspace-menu button[data-view="map"]').click();
   await page.locator('#directoryName').fill('نقشه در حال ویرایش');
   await page.locator('#workspaceShell .workspace-menu button[data-view="rooms"]').click();
@@ -381,7 +381,7 @@ test('Legacy transfer requires confirmation and closes on workspace history navi
   fixture.robots.find(robot => robot.id === 'old').startNodeId = 'old-desk';
   fixture.inbox.push({ id: 'visit-old', robotId: 'old', recipientId: 'staff', visitor: 'مراجع قبلی', destination: 'اتاق موجود', status: 'registered', createdAt: 1 });
   const imports = () => fixture.requests.filter(request => request.pathname.endsWith('/import-legacy'));
-  await page.goto('/portal.html'); await login(page, 'admin');
+  await page.goto('/admin.html'); await login(page, 'admin');
   await chooseWorkspace(page, 'museum');
   await page.locator('#workspaceShell .workspace-menu button[data-view="tools"]').click();
   await expect(page.locator('#importLegacyBtn')).toBeEnabled();
@@ -431,7 +431,7 @@ test('Legacy transfer requires confirmation and closes on workspace history navi
 
 test('Admin Telepresence hides Welcome editors and redirects editor deep links to overview', async ({ page }) => {
   const fixture = await workspaceFixture(page);
-  await page.goto('/portal.html#/hospital/telepresence/map'); await login(page, 'admin');
+  await page.goto('/admin.html#/hospital/telepresence/map'); await login(page, 'admin');
   await expect(page.locator('#viewOverview')).toBeVisible();
   await expect.poll(() => page.evaluate(() => location.hash)).toBe('#/hospital/telepresence/overview');
   for (const view of ['map', 'rooms', 'people']) {
@@ -453,7 +453,7 @@ test('Portal layouts fit desktop and mobile widths and provide fixture-only visu
   const fits = async () => expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const screenshot = name => page.screenshot({ path: path.join(screenshotDirectory, name), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 960 });
-  await page.goto('/portal.html'); await fits(); await screenshot('portal-auth.png');
+  await page.goto('/admin.html'); await fits(); await screenshot('portal-auth.png');
   await page.setViewportSize({ width: 390, height: 844 }); await fits();
   await page.setViewportSize({ width: 1440, height: 960 }); await login(page, 'admin');
   await expect(page.locator('#categoryScreen')).toBeVisible(); await fits(); await screenshot('portal-hub.png');

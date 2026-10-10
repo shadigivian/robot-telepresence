@@ -3,6 +3,7 @@
 // commands. Once connected, the session stays up until the user presses hang
 // up: any drop triggers automatic reconnection.
 
+const minimalEmbed = new URLSearchParams(location.search).get('minimal') === '1' && window.parent !== window;
 const els = {
   join: $('#join'),
   joinForm: $('#joinForm'),
@@ -330,7 +331,7 @@ const invited = normalizeSerial(params.get('serial'));
 if (isValidSerial(invited)) {
   $('#joinTitle').textContent = `Connecting to robot ${invited}`;
   $('#joinHint').textContent = 'You were invited to drive this robot.';
-  if (!operatorWorkspace && !operatorMode) setTimeout(() => els.joinForm.requestSubmit(), 0);
+  if (!minimalEmbed && !operatorWorkspace && !operatorMode) setTimeout(() => els.joinForm.requestSubmit(), 0);
 }
 
 function showJoinError(text) {
@@ -364,6 +365,7 @@ function hangUp(error) {
   els.joinBtn.disabled = false;
   els.joinBtn.textContent = 'Connect';
   showJoinError(error);
+  if (minimalEmbed) window.parent.postMessage({ type: 'organization:robot-ended', error: error || '' }, location.origin);
 }
 
 els.hangupBtn.onclick = () => {
@@ -697,7 +699,27 @@ async function userReady(u) {
   userAuth.hidden = true; await refreshRobots();
 }
 const inviteToken = new URLSearchParams(location.hash.slice(1)).get('invite');
-if (inviteToken) {
+if (minimalEmbed) {
+  document.body.classList.add('minimal-call');
+  const end = document.createElement('button'); end.className = 'minimal-end'; end.textContent = 'قطع تماس'; end.onclick = () => hangUp(); document.body.append(end);
+  const status = document.createElement('p'); status.className = 'minimal-status'; status.textContent = 'در حال اتصال به ربات…'; document.body.append(status);
+  let received = false;
+  window.addEventListener('message', async e => {
+    if (received || e.source !== window.parent || e.origin !== location.origin || e.data?.type !== 'organization:robot-auth') return;
+    received = true;
+    try {
+      const u = await Platform.acceptHandoff(e.data.auth);
+      await userReady(u);
+      if (!Platform.connected) await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('اتصال سرور آماده نیست.')), 12000);
+        Platform.on('connected', () => { clearTimeout(timer); resolve(); });
+      });
+      els.serialInput.value = invited;
+      await document.querySelector('#checkMedia').onclick();
+      els.joinForm.requestSubmit(); status.hidden = true;
+    } catch (error) { hangUp(error.message); }
+  });
+} else if (inviteToken) {
   history.replaceState(null, '', location.pathname);
   Platform.redeem(inviteToken).then(userReady).catch(e => { showJoinError(e.message); Platform.loginForm(userAuth, userReady, ['admin', 'operator']); });
 } else Platform.loginForm(userAuth, userReady, ['admin', 'operator']);

@@ -32,7 +32,7 @@ test('Welcome finds a Persian destination, maps floors, notifies staff, receives
   await robot.locator('#mapFloor').selectOption('first'); await expect(robot.locator('#floorMap')).toContainText('اتاق مدیر');
   await robot.locator('#visitorName').fill('مراجع آزمون'); await robot.locator('#visitorNote').fill('<img src=x onerror=alert(1)>');
   await robot.locator('#notifyBtn').click(); await expect(robot.locator('#visitStatus')).toContainText('ثبت شد');
-  await staff.goto('/portal.html'); await login(staff, 'staff');
+  await staff.goto('/admin.html'); await login(staff, 'staff');
   await enterLegacyWorkspace(staff, 'inbox');
   await expect(staff.locator('#inbox')).toContainText('مراجع آزمون'); await expect(staff.locator('#inbox img')).toHaveCount(0);
   await staff.locator('#inbox').getByRole('button', { name: 'تشریف بیاورید', exact: true }).first().click();
@@ -43,7 +43,7 @@ test('Welcome finds a Persian destination, maps floors, notifies staff, receives
   await robot.locator('#cancelSettings').click(); await context.close(); expect(errorsR).toEqual([]); expect(errorsS).toEqual([]);
 });
 test('Admin edits directory with native forms and prevents saving dangling paths', async ({ page }) => {
-  const errors = await configure(page); await page.goto('/portal.html'); await login(page, 'admin');
+  const errors = await configure(page); await page.goto('/admin.html'); await login(page, 'admin');
   await expect(page.locator('#adminPanel')).toBeVisible();
   await enterLegacyWorkspace(page, 'map');
   await expect(page.locator('#viewMap')).toBeVisible();

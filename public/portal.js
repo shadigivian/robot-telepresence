@@ -1,433 +1,203 @@
 'use strict';
-const pq = selector => document.querySelector(selector);
-const pa = selector => [...document.querySelectorAll(selector)];
-const pe = pq('#portalError'), ps = pq('#portalStatus');
-const text = (selector, value) => { const element = pq(selector); if (element) element.textContent = value; };
-let adminState = null, draft = null, dirty = false, directoryDirty = false, jsonPending = false;
-let workspaces = [], activeWorkspace = null, currentMode = null, currentView = 'overview', robots = [];
-let loading = false, mutations = 0, routeGeneration = 0, committedHash = '', inboxLoading = false, inboxAgain = false;
-let unsavedPromise = null, unsavedResolve = null, authenticatedUserId = null, authenticatedRole = null;
-let loadedWorkspaceId = null, loadedMode = null;
-let legacyImportWorkspaceId = null;
-let pendingRobotSnapshot = null;
-const formStates = new Map();
-const modes = { welcome: 'Welcome Robot', telepresence: 'Telepresence Robot' };
-const titles = { overview: 'نمای کلی', robots: 'ربات‌ها', map: 'نقشه و مسیرها', rooms: 'اتاق‌ها و واحدها', people: 'افراد و اعلان‌ها', inbox: 'صندوق مراجعه‌ها', accounts: 'اعضای تیم', tools: 'تنظیمات و فایل‌ها', operator: 'مرکز تماس و هدایت' };
-const permitted = { admin: Object.keys(titles), staff: ['overview', 'inbox'], operator: ['overview', 'robots', 'operator'] };
-function allowedViews(role = Platform.user?.role, mode = currentMode) {
-  const views = permitted[role] || [];
-  return role === 'admin' && mode === 'telepresence' ? views.filter(view => !['map', 'rooms', 'people'].includes(view)) : views;
-}
-const labels = { registered: 'ثبت‌شده', delivered: 'تحویل‌شده', seen: 'دیده‌شده', responded: 'پاسخ‌داده‌شده' };
-const schemas = {
-  floors: { title: 'طبقات', fields: [['id', 'شناسه'], ['name', 'نام']] },
-  nodes: { title: 'نقاط نقشه', fields: [['id', 'شناسه'], ['name', 'نام'], ['floorId', 'طبقه', 'floors'], ['x', 'مختصات افقی ۰ تا ۱۰۰', 'number'], ['y', 'مختصات عمودی ۰ تا ۱۰۰', 'number']] },
-  edges: { title: 'مسیرهای بین نقاط', fields: [['from', 'از نقطه', 'nodes'], ['to', 'به نقطه', 'nodes'], ['distance', 'فاصله (متر)', 'number'], ['instruction', 'راهنمای رفت'], ['reverseInstruction', 'راهنمای برگشت'], ['accessible', 'بدون پله', 'boolean'], ['bidirectional', 'دوطرفه', 'boolean']] },
-  rooms: { title: 'اتاق‌ها و واحدها', fields: [['id', 'شناسه'], ['name', 'نام'], ['nodeId', 'نقطه نقشه', 'nodes'], ['number', 'شماره اتاق'], ['department', 'واحد'], ['hours', 'ساعات مراجعه'], ['aliases', 'نام‌های دیگر (با کاما جدا کنید)', 'array'], ['active', 'فعال', 'boolean']] },
-  people: { title: 'افراد و دریافت‌کنندگان اعلان', fields: [['id', 'شناسه'], ['name', 'نام فرد'], ['title', 'سمت'], ['roomId', 'اتاق', 'rooms'], ['availability', 'وضعیت قابل نمایش'], ['aliases', 'نام‌های دیگر (با کاما جدا کنید)', 'array'], ['userId', 'حساب دریافت اعلان', 'staff'], ['active', 'فعال', 'boolean']] },
-};
-function error(e) { pe.textContent = e.message || String(e); }
+const $p = id => document.getElementById(id);
+let state = null, step = 1, screen = 'loginScreen', returnScreen = 'homeScreen', thread = null;
+let logo = '', documentFile, importedDirectory, activeCall = null, pendingIncoming = null;
+let peer = null, stream = null, remoteStream = null, iceQueue = [], signalQueue = [], signalChain = Promise.resolve(), callGeneration = 0;
+const messageIds = new Set();
 const admin = () => Platform.user?.role === 'admin';
-const scope = (path, id = activeWorkspace?.id) => `${path}${path.includes('?') ? '&' : '?'}workspace=${encodeURIComponent(id || '')}`;
-function current(id, generation) { return !!Platform.user && activeWorkspace?.id === id && routeGeneration === generation; }
-function requireAdmin() { if (!admin() || !activeWorkspace || !draft) throw new Error('برای مدیریت این محیط، با حساب مدیر وارد شوید.'); }
-function updateControls() {
-  pa('[data-workspace], [data-mode], [data-view], [data-action="categories"], [data-action="modes"], #legacyWorkspace').forEach(button => { button.disabled = loading || !!mutations; });
-  pa('[data-admin-only]').forEach(element => { element.hidden = !admin(); });
-  pa('[data-view]').forEach(button => { button.hidden = !allowedViews().includes(button.dataset.view); button.classList.toggle('active', button.dataset.view === currentView); if (button.dataset.view === currentView) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current'); });
-  pa('#saveDirectory, [data-action="save-directory"]').forEach(button => { button.disabled = !admin() || !draft || loading || !!mutations; });
-  if (pq('#workspaceShell')) { pq('#workspaceShell').setAttribute('aria-busy', String(loading || !!mutations)); pq('#workspaceShell').inert = loading || !!mutations; }
-  refreshMigration();
+function show(id) { for (const section of document.querySelectorAll('#main > .screen')) section.hidden = section.id !== id; screen = id; $p('appError').textContent = ''; $p('appStatus').textContent = ''; $p('settingsButton').hidden = id !== 'homeScreen'; }
+function error(e) { $p('appError').textContent = e.message || String(e); }
+async function act(fn, button) { if (button?.disabled) return; if (button) button.disabled = true; $p('appError').textContent = ''; try { await fn(); } catch (e) { error(e); } finally { if (button) button.disabled = false; } }
+const api = (path, options) => Platform.api('/organization' + path, options);
+function robot() { return state?.robots.find(r => r.id === ($p('setupRobot').value || state.setup.robotId)); }
+function qrURL() { const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname); const url = new URL(local && CONFIG.publicUserPage ? CONFIG.publicUserPage : 'portal.html', location.href); url.pathname = url.pathname.replace(/user(?:\.html)?$/, 'portal.html'); url.search = ''; url.hash = ''; if (robot()) url.searchParams.set('robot', robot().id); return url.href; }
+function renderQR(id) { const code = qrcode(0, 'M'); code.addData(qrURL()); code.make(); $p(id).innerHTML = code.createSvgTag({ cellSize: 5, margin: 20, scalable: true }); }
+function setStep(n) {
+  step = n; show('wizardScreen');
+  for (let i = 1; i <= 5; i++) $p('step' + i).hidden = i !== n;
+  $p('stepIndicator').replaceChildren(...Array.from({ length: 5 }, (_, i) => { const e = document.createElement('span'); e.className = i < n ? 'active' : ''; if (i + 1 === n) e.setAttribute('aria-current', 'step'); return e; }));
+  $p('wizardOrganization').hidden = !admin(); $p('wizardPerson').hidden = !admin();
+  if (n === 4) renderQR('setupQR');
+  history.replaceState(null, '', location.pathname + location.search + '#setup/' + n);
 }
-async function action(fn, id = activeWorkspace?.id) {
-  if (mutations) return;
-  pe.textContent = ''; ps.textContent = ''; mutations++; updateControls();
-  try { await fn(); } catch (e) { if (!id || activeWorkspace?.id === id) error(e); }
-  finally { mutations--; updateControls(); }
+function applyBrand() {
+  $p('brandName').textContent = state.profile.name || 'فضای ربات';
+  $p('splashBrand').textContent = state.profile.name || 'فضای ربات';
+  $p('splashLogo').src = state.profile.logo || 'robot-avatar.svg';
+  $p('splashLogo').style.borderRadius = state.profile.logo ? '18px' : '';
 }
-function refreshDirty() {
-  dirty = directoryDirty || jsonPending || [...formStates.values()].some(state => state.pending);
-  if (pq('#draftBadge')) { pq('#draftBadge').hidden = !dirty; pq('#draftBadge').textContent = 'پیش‌نویس ذخیره‌نشده'; }
-  refreshMigration();
+async function loadState() {
+  state = await api('/state'); applyBrand();
+  const select = $p('setupRobot'), wanted = new URLSearchParams(location.search).get('robot') || state.setup.robotId;
+  select.replaceChildren();
+  for (const r of state.robots) select.add(new Option(`${r.name} · ${r.serial}`, r.id));
+  if (admin()) select.add(new Option('+ ربات جدید', ''));
+  if (state.robots.some(r => r.id === wanted)) select.value = wanted;
+  $p('setupName').value = state.setup.name || robot()?.name || 'آوا';
+  $p('robotAddress').value = state.setup.address || '';
+  $p('robotAddress').required = Platform.user.role !== 'staff';
+  $p('openPerson').hidden = $p('openReset').hidden = !admin();
 }
-function discardDraft() {
-  if (adminState) draft = structuredClone(adminState.directory);
-  directoryDirty = false; jsonPending = false; formStates.clear(); refreshDirty();
-  if (draft) renderBuilder();
+function home() {
+  show('homeScreen'); $p('greetingName').textContent = Platform.user.name;
+  $p('organizationCaption').textContent = state.profile.name || 'فضای سازمان شما';
+  $p('homeRobotName').textContent = state.setup.name || robot()?.name || 'ربات من';
+  $p('homeFootnote').textContent = Platform.user.role === 'staff' ? 'برای دریافت تماس، این صفحه را باز نگه دارید.' : 'ارتباطی ساده، حضوری نزدیک.';
+  $p('robotCard').disabled = !robot() || Platform.user.role === 'staff';
+  history.replaceState(null, '', location.pathname + location.search + '#home');
 }
-function showDialog(dialog) { if (dialog.open) return; if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', ''); }
-function closeDialog(dialog) { if (dialog.close) dialog.close(); else dialog.removeAttribute('open'); }
-function finishUnsaved(accepted) {
-  closeDialog(pq('#unsavedDialog')); const resolve = unsavedResolve;
-  unsavedPromise = null; unsavedResolve = null; resolve?.(accepted);
+async function ready(user) { if (!['admin', 'operator', 'staff'].includes(user.role)) throw new Error('با حساب عضو سازمان وارد شوید.'); await loadState(); $p('loginScreen').hidden = true; $p('logoutButton').hidden = false; if (state.setup.completed) home(); else setStep(1); }
+for (const button of document.querySelectorAll('[data-next]')) button.onclick = () => setStep(Number(button.dataset.next));
+for (const button of document.querySelectorAll('[data-back]')) button.onclick = () => setStep(Number(button.dataset.back));
+for (const button of document.querySelectorAll('[data-home]')) button.onclick = home;
+$p('setupRobot').onchange = () => { $p('setupName').value = robot()?.name || ''; };
+$p('robotNameForm').onsubmit = e => { e.preventDefault(); setStep(4); };
+$p('connectionForm').onsubmit = e => { e.preventDefault(); act(async () => {
+  const result = await api('/setup', { method: 'POST', body: { robotId: $p('setupRobot').value, name: $p('setupName').value.trim(), address: $p('robotAddress').value.trim() } });
+  await loadState(); $p('setupRobot').value = result.robotId; home();
+}, e.submitter); };
+$p('settingsButton').onclick = () => show('settingsScreen');
+$p('logoutButton').onclick = () => act(async () => { closeRobot(); await endExpert(); await Platform.logout(); location.reload(); }, $p('logoutButton'));
+function qrPage() { show('qrScreen'); renderQR('robotQR'); $p('qrRobotName').textContent = state.setup.name || robot()?.name || 'QR ربات'; $p('qrLink').href = qrURL(); $p('qrLink').textContent = qrURL(); }
+$p('openQR').onclick = () => { returnScreen = 'settingsScreen'; qrPage(); };
+$p('qrBack').onclick = () => show(returnScreen);
+$p('copyQR').onclick = () => act(async () => { if (!navigator.clipboard) throw new Error('لینک را از متن بالای صفحه کپی کنید.'); await navigator.clipboard.writeText(qrURL()); $p('appStatus').textContent = 'لینک کپی شد.'; });
+function download(data, type, name) { const url = URL.createObjectURL(new Blob([data], { type })), link = document.createElement('a'); link.href = url; link.download = name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+$p('downloadQR').onclick = () => download($p('robotQR').innerHTML, 'image/svg+xml', 'robot-qr.svg');
+function organizationPage(from) {
+  returnScreen = from; show('organizationScreen'); logo = state.profile.logo || ''; documentFile = undefined; importedDirectory = undefined;
+  $p('organizationName').value = state.profile.name || ''; $p('organizationDescription').value = state.profile.description || '';
+  $p('organizationFile').value = $p('logoFile').value = ''; $p('uploadedDocument').textContent = state.profile.document?.name || '';
+  $p('organizationForm').querySelectorAll('input,textarea,button').forEach(e => e.disabled = !admin());
+  $p('advancedMap').hidden = !admin(); $p('downloadDocument').hidden = !state.profile.document;
+  $p('advancedMap').href = 'admin.html#/' + (robot()?.workspaceId || 'legacy') + '/welcome/map'; previewLogo();
 }
-function confirmDraft() {
-  if (!dirty) return Promise.resolve(true);
-  if (!unsavedPromise) {
-    text('#unsavedError', ''); unsavedPromise = new Promise(resolve => { unsavedResolve = resolve; });
-    showDialog(pq('#unsavedDialog'));
-  }
-  return unsavedPromise;
-}
-pa('[data-unsaved]').forEach(button => { button.onclick = async () => {
-  if (mutations) return;
-  if (button.dataset.unsaved === 'cancel') { finishUnsaved(false); return; }
-  if (button.dataset.unsaved === 'discard') { discardDraft(); finishUnsaved(true); return; }
-  pa('[data-unsaved]').forEach(item => { item.disabled = true; });
-  mutations++; updateControls();
-  try { await saveDirectory(); finishUnsaved(true); }
-  catch (e) { text('#unsavedError', e.message); }
-  finally { mutations--; pa('[data-unsaved]').forEach(item => { item.disabled = false; }); updateControls(); }
-}; });
-pq('#unsavedDialog').addEventListener('cancel', event => { event.preventDefault(); if (!mutations) finishUnsaved(false); });
-
-function routeHash(workspace, mode, view) { return workspace ? '#/' + workspace + (mode ? '/' + mode + '/' + view : '') : '#/'; }
-function parseRoute(hash) {
-  if (!hash || hash === '#/' || hash === '#') return { workspace: null };
-  const match = hash.match(/^#\/([A-Za-z0-9_-]+)(?:\/(welcome|telepresence)(?:\/([a-z]+))?)?$/);
-  if (!match || !workspaces.some(w => w.id === match[1])) return { workspace: null };
-  const view = match[3] || (Platform.user?.role === 'staff' ? 'inbox' : 'overview');
-  if (match[3] && !Object.hasOwn(titles, view)) return { workspace: null };
-  if (match[2] && !allowedViews(Platform.user?.role, match[2]).includes(view)) return { workspace: match[1], mode: match[2], view: Platform.user?.role === 'staff' ? 'inbox' : 'overview' };
-  return { workspace: match[1], mode: match[2], view };
-}
-function writeHash(hash, replace = false) { history[replace ? 'replaceState' : 'pushState'](null, '', location.pathname + location.search + hash); committedHash = hash; }
-function showScreen(name) { for (const id of ['categoryScreen', 'modeScreen', 'workspaceShell']) pq('#' + id).hidden = id !== name; }
-function clearWorkspaceContent() {
-  for (const selector of ['#directoryBuilder', '#roomBuilder', '#peopleBuilder', '#inbox', '#userRecords']) pq(selector).replaceChildren();
-  pq('#directoryName').value = ''; pq('#directoryJSON').value = ''; resetRobotForm();
-}
-function renderView(view) {
-  currentView = view;
-  pa('.workspace-view').forEach(section => { section.hidden = section.id !== 'view' + view.charAt(0).toUpperCase() + view.slice(1); });
-  text('#viewTitle', titles[view]); updateControls();
-  if (view === 'inbox') loadInbox();
-}
-function renderIdentity() {
-  text('#workspaceName', activeWorkspace?.name || ''); text('#modeWorkspaceName', activeWorkspace?.name || '');
-  text('#modeName', modes[currentMode] || ''); text('#workspaceCrumb', activeWorkspace?.name || ''); text('#modeCrumb', modes[currentMode] || '');
-  text('#roomsHeading', activeWorkspace?.id === 'university' ? 'کلاس‌ها، اتاق‌ها و واحدها' : activeWorkspace?.id === 'mall' ? 'فروشگاه‌ها و واحدها' : activeWorkspace?.id === 'museum' ? 'سالن‌ها و مقصدهای بازدید' : 'اتاق‌ها و واحدها');
-  const query = `?workspace=${encodeURIComponent(activeWorkspace?.id || '')}&mode=${currentMode || 'welcome'}`;
-  if (pq('#launchOperator')) pq('#launchOperator').href = 'user.html' + query;
-  if (pq('#launchStation')) pq('#launchStation').href = 'robot.html' + query;
-}
-async function navigate(hash, { browser = false, replace = false, reload = false, allowMutation = false } = {}) {
-  if (!Platform.user) return;
-  if (mutations && !allowMutation) { if (browser) history.replaceState(null, '', location.pathname + location.search + committedHash); return; }
-  const target = parseRoute(hash), generation = ++routeGeneration;
-  const leaving = activeWorkspace && (target.workspace !== activeWorkspace.id || !target.mode || reload);
-  if (leaving && !await confirmDraft()) { if (generation === routeGeneration) { if (browser) history.replaceState(null, '', location.pathname + location.search + committedHash); if (currentView === 'inbox') loadInbox(); } return; }
-  if (generation !== routeGeneration || !Platform.user) return;
-  if (target.workspace !== activeWorkspace?.id || !target.mode) { closeDialog(pq('#legacyImportDialog')); legacyImportWorkspaceId = null; }
-  pe.textContent = ''; ps.textContent = '';
-  if (!target.workspace) {
-    activeWorkspace = null; currentMode = null; loadedWorkspaceId = loadedMode = null; robots = []; adminState = null; draft = null; formStates.clear(); directoryDirty = jsonPending = false; refreshDirty();
-    loading = false; showScreen('categoryScreen'); writeHash('#/', replace || browser); updateControls(); return;
-  }
-  activeWorkspace = workspaces.find(w => w.id === target.workspace); currentMode = target.mode || null; renderIdentity();
-  if (!target.mode) { loading = false; showScreen('modeScreen'); writeHash(routeHash(target.workspace), replace || browser); updateControls(); return; }
-  showScreen('workspaceShell');
-  const nextHash = routeHash(target.workspace, target.mode, target.view);
-  if (!reload && loadedWorkspaceId === target.workspace && loadedMode === target.mode && (admin() ? !!adminState : true)) {
-    renderIdentity(); renderOverview(); renderRobots(); renderView(target.view); writeHash(nextHash, replace || browser); return;
-  }
-  const preserveDraft = !reload && loadedWorkspaceId === target.workspace && admin() && !!adminState;
-  loading = true; robots = []; pendingRobotSnapshot = null;
-  if (!preserveDraft) { loadedWorkspaceId = loadedMode = null; adminState = null; draft = null; formStates.clear(); directoryDirty = jsonPending = false; clearWorkspaceContent(); refreshDirty(); }
-  renderView('overview'); text('#overviewRobots', 'در حال دریافت اطلاعات محیط…'); updateControls();
-  try {
-    const responses = await Promise.all([
-      admin() && !preserveDraft ? Platform.api(scope('/admin/state', target.workspace)) : Promise.resolve(null),
-      ['admin', 'operator'].includes(Platform.user.role) ? Platform.api(scope('/robots', target.workspace) + '&mode=' + target.mode) : Promise.resolve([]),
-    ]);
-    if (!current(target.workspace, generation)) return;
-    if (!preserveDraft) adminState = responses[0];
-    robots = responses[1]; loadedWorkspaceId = target.workspace; loadedMode = target.mode;
-    if (pendingRobotSnapshot) { reconcileRobotSnapshot(pendingRobotSnapshot); pendingRobotSnapshot = null; }
-    if (adminState) { if (!preserveDraft) { draft = structuredClone(adminState.directory); renderBuilder(); renderAccounts(); } resetRobotForm(); }
-    renderOverview(); renderRobots(); renderView(target.view); writeHash(nextHash, replace || browser);
-  } catch (e) { if (current(target.workspace, generation)) { error(e); renderOverview(); } }
-  finally { if (generation === routeGeneration) { loading = false; updateControls(); } }
-}
-async function refreshWorkspaces() {
-  const userId = Platform.user?.id, result = await Platform.api('/workspaces'); if (!Platform.user || Platform.user.id !== userId) return;
-  workspaces = result;
-  if (activeWorkspace) activeWorkspace = workspaces.find(w => w.id === activeWorkspace.id) || activeWorkspace;
-  pa('[data-workspace-count]').forEach(element => {
-    const workspace = workspaces.find(w => w.id === element.dataset.workspaceCount);
-    element.textContent = workspace ? `${Number(workspace.robotCount || 0).toLocaleString('fa-IR')} ربات · ${Number(workspace.roomCount || 0).toLocaleString('fa-IR')} مقصد` : 'اطلاعات در دسترس نیست';
-    element.closest('[data-workspace]')?.toggleAttribute('disabled', !workspace);
-  });
-  pq('#legacyWorkspace').hidden = !workspaces.some(w => w.id === 'legacy'); refreshMigration();
-}
-function node(tag, className, value) { const element = document.createElement(tag); if (className) element.className = className; if (value !== undefined) element.textContent = value; return element; }
-function visibleRobots() {
-  const list = adminState?.robots || robots;
-  return list.filter(r => r.mode === currentMode && (r.workspaceId || 'legacy') === activeWorkspace?.id);
-}
-function reconcileRobotSnapshot(snapshot) {
-  robots = snapshot.filter(robot => (robot.workspaceId || 'legacy') === activeWorkspace.id && robot.mode === currentMode);
-  if (!admin() || !adminState) return;
-  const active = new Map(snapshot.filter(robot => robot.active !== false).map(robot => [robot.id, robot]));
-  const known = adminState.allRobots || adminState.robots;
-  const merged = known.map(robot => {
-    const latest = active.get(robot.id); active.delete(robot.id);
-    return latest ? { ...robot, ...latest, workspaceId: latest.workspaceId || 'legacy' } : { ...robot, active: false };
-  });
-  merged.push(...[...active.values()].map(robot => ({ ...robot, workspaceId: robot.workspaceId || 'legacy' })));
-  adminState.allRobots = merged;
-  adminState.robots = merged.filter(robot => (robot.workspaceId || 'legacy') === activeWorkspace.id);
-  for (const workspace of workspaces) {
-    const records = merged.filter(robot => (robot.workspaceId || 'legacy') === workspace.id);
-    Object.assign(workspace, { robotCount: records.length, welcomeCount: records.filter(robot => robot.mode === 'welcome').length, telepresenceCount: records.filter(robot => robot.mode === 'telepresence').length });
-  }
-  pa('[data-workspace-count]').forEach(element => {
-    const workspace = workspaces.find(item => item.id === element.dataset.workspaceCount);
-    if (workspace) element.textContent = `${Number(workspace.robotCount || 0).toLocaleString('fa-IR')} ربات · ${Number(workspace.roomCount || 0).toLocaleString('fa-IR')} مقصد`;
-  });
-}
-function robotRow(robot, editable = false) {
-  const row = node('div', 'record robot-record');
-  const live = robots.find(r => r.id === robot.id), detail = node('div', 'record-copy');
-  detail.append(node('strong', '', robot.name), node('p', 'muted', `${robot.serial} · ${robot.location || 'محل استقرار مشخص نشده'}`));
-  const status = node('span', 'status-pill', robot.active === false ? 'غیرفعال' : live?.online ? live.busy ? 'در حال تماس' : 'آنلاین' : 'آفلاین');
-  row.append(detail, status);
-  if (editable) { const button = node('button', 'btn', 'ویرایش'); button.type = 'button'; button.onclick = () => {
-    if (!admin() || mutations || loading) return;
-    const form = pq('#robotForm'); for (const key of ['id', 'name', 'serial', 'location', 'mode', 'startNodeId']) form.elements[key].value = robot[key] || '';
-    form.elements.id.readOnly = true; form.elements.active.checked = robot.active; form.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }; row.append(button); }
-  return row;
-}
-function renderOverview() {
-  if (!activeWorkspace) return;
-  text('#overviewTitle', `${activeWorkspace.name}، در یک نگاه`);
-  text('#overviewDescription', currentMode === 'welcome' ? 'مقصدها، نقشه و دریافت‌کنندگان اعلان این محیط را آماده کنید.' : 'ربات‌ها را آماده کنید و از مرکز تماس به دستگاه موردنظر وصل شوید.');
-  const stats = pq('#overviewStats'); stats.replaceChildren();
-  const counts = [[currentMode === 'welcome' ? 'ربات Welcome' : 'ربات Telepresence', activeWorkspace[currentMode === 'welcome' ? 'welcomeCount' : 'telepresenceCount']], ['مقصد ثبت‌شده', activeWorkspace.roomCount], ['فرد ثبت‌شده', activeWorkspace.peopleCount]];
-  for (const [label, value] of counts) { const card = node('div', 'stat-card'); card.append(node('span', '', label), node('strong', '', Number(value || 0).toLocaleString('fa-IR'))); stats.append(card); }
-  const box = pq('#overviewRobots'); box.replaceChildren();
-  const items = visibleRobots(); items.slice(0, 3).forEach(robot => box.append(robotRow(robot)));
-  if (!items.length) box.append(node('p', 'empty-state', Platform.user?.role === 'staff' ? 'مراجعه‌های مربوط به شما در صندوق مراجعه‌ها نمایش داده می‌شوند.' : 'هنوز رباتی در این حالت ثبت نشده است.'));
-  const checklist = pq('#setupChecklist'); checklist.replaceChildren();
-  const steps = Platform.user?.role === 'staff' ? [['inbox', 'مراجعه‌های خود را ببینید', 'پیام‌ها را بخوانید و به مراجعه‌کننده پاسخ بدهید.']] : admin() ? currentMode === 'welcome' ? [['map', 'نقشه مکان را بسازید', 'طبقات و مسیرهای واقعی را ثبت کنید.'], ['rooms', 'مقصدها را معرفی کنید', 'اتاق‌ها و واحدها را به نقشه متصل کنید.'], ['people', 'دریافت‌کنندگان اعلان را مشخص کنید', 'افراد را به حساب کارکنان متصل کنید.'], ['robots', 'ربات Welcome را ثبت کنید', 'نقطه شروع دستگاه را انتخاب کنید.']] : [['robots', 'ربات Telepresence را ثبت کنید', 'نام و مشخصات دستگاه را وارد کنید.'], ['accounts', 'اپراتورها را آماده کنید', 'حساب‌های مناسب اعضای تیم را بسازید.'], ['operator', 'تماس را شروع کنید', 'دوربین و تجهیزات را در صفحه اپراتور بررسی کنید.']] : [['robots', 'وضعیت ربات‌ها را ببینید', 'یک دستگاه آماده برای تماس انتخاب کنید.'], ['operator', 'به مرکز تماس بروید', 'تماس تصویری و کنترل دستی را از صفحه اپراتور آغاز کنید.']];
-  steps.forEach(([view, heading, description], index) => { const button = node('button', 'setup-step'); button.type = 'button'; button.dataset.view = view; button.append(node('span', 'step-number', (index + 1).toLocaleString('fa-IR')), node('strong', '', heading), node('span', 'muted', description)); checklist.append(button); });
-  updateControls();
-}
-function renderRobots() {
-  const box = pq('#robotRecords'); box.replaceChildren(); visibleRobots().forEach(robot => box.append(robotRow(robot, admin())));
-  if (!box.childElementCount) box.append(node('p', 'empty-state', 'در این محیط و حالت، رباتی ثبت نشده است.'));
-}
-
-function syncJSON() { if (draft && !jsonPending) pq('#directoryJSON').value = JSON.stringify(draft, null, 2); }
-function options(select, list, blank = true) {
-  const previous = select.value; select.replaceChildren(); if (blank) select.add(new Option('انتخاب کنید', ''));
-  for (const item of list) select.add(new Option(`${item.name || item.username} (${item.id})`, item.id)); select.value = previous;
-}
-function fieldsValue(form, schema, raw = false) {
-  const values = {};
-  for (const [name, , type] of schema.fields) { const field = form.elements[name]; values[name] = type === 'boolean' ? field.checked : raw ? field.value : type === 'number' ? Number(field.value) : type === 'array' ? field.value.split(/[,،]/).map(v => v.trim()).filter(Boolean) : field.value.trim(); }
-  return values;
-}
-function captureForms() { for (const [key, state] of formStates) { if (state.form) { state.values = fieldsValue(state.form, schemas[key], true); state.open = state.form.closest('details').open; } } }
-function commitForm(key, state) {
-  if (!state.pending) return;
-  if (!state.form.checkValidity()) throw new Error(`فرم «${schemas[key].title}» را تکمیل کنید یا تغییرات آن را کنار بگذارید.`);
-  const item = fieldsValue(state.form, schemas[key]), editing = state.editing ? draft[key].indexOf(state.editing) : -1;
-  if (key !== 'edges' && draft[key].some((record, index) => record.id === item.id && index !== editing)) throw new Error('شناسه تکراری است.');
-  if (editing < 0) draft[key].push(item); else draft[key][editing] = item;
-  state.pending = false; state.editing = null; state.values = null; state.form.reset(); directoryDirty = true;
-}
-function renderBuilder() {
-  if (!draft || !adminState || !admin()) return;
-  captureForms(); pq('#directoryName').value = draft.name;
-  for (const selector of ['#directoryBuilder', '#roomBuilder', '#peopleBuilder']) pq(selector).replaceChildren();
-  for (const [key, schema] of Object.entries(schemas)) {
-    const state = formStates.get(key) || { editing: null, pending: false, values: null, open: ['rooms', 'people'].includes(key) }; formStates.set(key, state);
-    const details = node('details', 'editor-group'); details.open = state.open;
-    details.append(node('summary', '', `${schema.title} (${draft[key].length.toLocaleString('fa-IR')})`));
-    const records = node('div', 'record-list'), form = node('form', 'split'); state.form = form;
-    for (const [name, label, type] of schema.fields) {
-      const wrapper = node('label', '', label), input = document.createElement(['floors', 'nodes', 'rooms', 'staff'].includes(type) ? 'select' : 'input'); input.name = name;
-      if (input.tagName === 'SELECT') { options(input, type === 'staff' ? adminState.users.filter(user => ['staff', 'admin'].includes(user.role) && user.active) : draft[type]); input.required = ['floorId', 'nodeId', 'roomId', 'from', 'to'].includes(name); }
-      else if (type === 'boolean') { input.type = 'checkbox'; input.checked = true; wrapper.className = 'check-label'; }
-      else if (type === 'number') { input.type = 'number'; input.step = 'any'; input.min = name === 'distance' ? '0.01' : '0'; input.max = name === 'distance' ? '10000' : '100'; input.required = true; }
-      else { input.maxLength = ['instruction', 'reverseInstruction'].includes(name) ? 500 : 160; input.required = ['id', 'name', 'instruction', 'reverseInstruction'].includes(name); }
-      if (state.values) { if (type === 'boolean') input.checked = !!state.values[name]; else input.value = state.values[name] ?? ''; }
-      wrapper.append(input); form.append(wrapper);
-    }
-    const submit = node('button', 'btn primary', 'ثبت در پیش‌نویس'); form.append(submit);
-    const reset = node('button', 'btn', 'مورد جدید'); reset.type = 'button'; reset.onclick = () => { state.editing = null; state.pending = false; state.values = null; form.reset(); refreshDirty(); }; form.append(reset);
-    form.addEventListener('input', () => { state.pending = true; refreshDirty(); }); form.addEventListener('change', () => { state.pending = true; refreshDirty(); });
-    draft[key].forEach(item => {
-      const row = node('div', 'record'), label = node('span', '', item.name || `${item.from} ← ${item.to}`), edit = node('button', 'btn', 'ویرایش'), remove = node('button', 'btn', 'حذف از پیش‌نویس');
-      edit.type = remove.type = 'button'; edit.onclick = () => { state.editing = item; state.pending = false; for (const [name, , type] of schema.fields) { const input = form.elements[name]; if (type === 'boolean') input.checked = item[name]; else input.value = type === 'array' ? (item[name] || []).join(', ') : item[name] ?? ''; } refreshDirty(); };
-      remove.onclick = () => { draft[key].splice(draft[key].indexOf(item), 1); if (state.editing === item) { state.pending = false; state.editing = null; state.values = null; form.reset(); } directoryDirty = true; syncJSON(); renderBuilder(); };
-      row.append(label, edit, remove); records.append(row);
-    });
-    form.onsubmit = event => { event.preventDefault(); if (!admin() || loading || mutations) return; try { state.pending = true; commitForm(key, state); syncJSON(); renderBuilder(); text('#portalStatus', 'تغییر در پیش‌نویس ثبت شد؛ برای اعمال، ذخیره تغییرات را بزنید.'); } catch (e) { error(e); } };
-    details.append(records, form); pq(key === 'rooms' ? '#roomBuilder' : key === 'people' ? '#peopleBuilder' : '#directoryBuilder').append(details);
-  }
-  syncJSON(); refreshSelects(); refreshDirty();
-}
-function refreshSelects() {
-  if (!draft || !adminState) return;
-  options(pq('#robotForm').elements.startNodeId, draft.nodes);
-  refreshAccountRobots();
-  options(pq('#passwordForm').elements.userId, adminState.users);
-}
-function refreshAccountRobots() {
-  if (!admin() || !adminState) return;
-  const all = adminState.allRobots || adminState.robots;
-  options(pq('#accountForm').elements.robotId, all.filter(robot => robot.active).map(robot => ({ ...robot, name: `${robot.name} · ${workspaces.find(w => w.id === (robot.workspaceId || 'legacy'))?.name || 'داده‌های قبلی'}` })));
-}
-async function saveDirectory() {
-  requireAdmin(); const id = activeWorkspace.id, generation = routeGeneration;
-  if (jsonPending) {
-    if ([...formStates.values()].some(state => state.pending)) throw new Error('ابتدا تغییرات فرم‌ها یا JSON را در پیش‌نویس ثبت کنید.');
-    const data = JSON.parse(pq('#directoryJSON').value);
-    const validated = await Platform.api(scope('/admin/directory/validate', id), { method: 'POST', body: data });
-    if (!current(id, generation)) return;
-    draft = validated; formStates.clear(); jsonPending = false; directoryDirty = true;
-  }
-  for (const [key, state] of formStates) commitForm(key, state);
-  refreshDirty(); syncJSON(); renderBuilder();
-  const saved = await Platform.api(scope('/admin/directory', id), { method: 'PUT', body: structuredClone(draft) });
-  if (!current(id, generation)) return;
-  draft = saved; adminState.directory = structuredClone(saved); directoryDirty = jsonPending = false; formStates.clear(); renderBuilder();
-  await refreshWorkspaces(); if (current(id, generation)) { renderOverview(); text('#portalStatus', 'اطلاعات این محیط ذخیره شد.'); }
-}
-async function reloadAdminLists() {
-  requireAdmin(); const id = activeWorkspace.id, generation = routeGeneration;
-  const result = await Platform.api(scope('/admin/state', id)); if (!current(id, generation)) return;
-  adminState.users = result.users; adminState.robots = result.robots; adminState.allRobots = result.allRobots;
-  const live = await Platform.api(scope('/robots', id) + '&mode=' + currentMode);
-  if (!current(id, generation)) return;
-  robots = live;
-  renderRobots(); renderAccounts(); refreshSelects(); await refreshWorkspaces(); if (current(id, generation)) renderOverview();
-}
-function resetRobotForm() { const form = pq('#robotForm'); form.reset(); form.elements.id.readOnly = false; form.elements.mode.value = currentMode || 'welcome'; }
-function renderAccounts() {
-  if (!adminState || !admin()) return;
-  const box = pq('#userRecords'); box.replaceChildren();
-  const roleNames = { admin: 'مدیر', staff: 'کارکنان', operator: 'اپراتور', robot: 'دستگاه ربات' };
-  for (const user of adminState.users) {
-    const row = node('div', 'record'), label = node('span', '', `${user.name} · ${user.username} · ${roleNames[user.role]} · ${user.active ? 'فعال' : 'غیرفعال'}`), button = node('button', 'btn', user.active ? 'غیرفعال‌کردن' : 'فعال‌کردن');
-    button.type = 'button'; button.disabled = user.id === Platform.user.id;
-    button.onclick = () => action(async () => { requireAdmin(); await Platform.api('/admin/users/' + user.id, { method: 'PUT', body: { active: !user.active } }); await reloadAdminLists(); }); row.append(label, button); box.append(row);
-  }
-}
-
-async function loadInbox() {
-  if (!activeWorkspace || currentView !== 'inbox' || !['staff', 'admin'].includes(Platform.user?.role)) return;
-  if (inboxLoading) { inboxAgain = true; return; }
-  inboxLoading = true; const id = activeWorkspace.id, generation = routeGeneration;
-  try {
-    const visits = await Platform.api(scope('/inbox', id));
-    if (!current(id, generation) || currentView !== 'inbox') return;
-    const box = pq('#inbox'); box.replaceChildren();
-    if (!visits.length) box.append(node('p', 'empty-state', 'در این محیط، مراجعه‌ای برای شما ثبت نشده است.'));
-    for (const visit of visits) {
-      const article = node('article', 'inbox-card panel'), actions = node('div', 'actions');
-      article.append(node('h3', '', `${visit.visitor || 'مراجعه‌کننده'} ← ${visit.destination}`), node('p', 'muted', `${new Date(visit.createdAt).toLocaleString('fa-IR')} · ${labels[visit.status]}`), node('p', '', visit.note), node('p', '', visit.response));
-      const button = (label, status, response) => { const element = node('button', 'btn', label); element.type = 'button'; element.onclick = () => action(async () => {
-        if (!current(id, generation)) return;
-        element.disabled = true; try { await Platform.api('/visits/' + visit.id, { method: 'POST', body: { status, response } }); await loadInbox(); } finally { element.disabled = false; }
-      }, id); actions.append(element); };
-      if (['registered', 'delivered'].includes(visit.status)) button('دیدم', 'seen');
-      button('تشریف بیاورید', 'responded', 'تشریف بیاورید'); button('لطفاً منتظر بمانید', 'responded', 'لطفاً منتظر بمانید'); button('الان در دسترس نیستم', 'responded', 'الان در دسترس نیستم');
-      article.append(actions); box.append(article);
-    }
-    for (const visit of visits.filter(v => v.status === 'registered')) {
-      if (!current(id, generation) || currentView !== 'inbox') break;
-      await Platform.api('/visits/' + visit.id, { method: 'POST', body: { status: 'delivered' } });
-    }
-  } catch (e) { if (current(id, generation)) error(e); }
-  finally { inboxLoading = false; if (inboxAgain) { inboxAgain = false; loadInbox(); } }
-}
-function refreshMigration() {
-  const button = pq('#importLegacyBtn'); if (!button) return;
-  const legacy = workspaces.some(w => w.id === 'legacy');
-  const empty = !!adminState && !adminState.robots.length && ['floors', 'nodes', 'edges', 'rooms', 'people'].every(key => !adminState.directory[key].length);
-  button.disabled = !admin() || !activeWorkspace || activeWorkspace.id === 'legacy' || !legacy || !empty || dirty || loading || !!mutations;
-  text('#legacyImportHint', !legacy ? 'اطلاعات قبلی برای انتقال وجود ندارد.' : activeWorkspace?.id === 'legacy' ? 'برای انتقال، یکی از محیط‌های خالی را انتخاب کنید.' : !empty ? 'این محیط اطلاعات دارد؛ انتقال به آن انجام نمی‌شود.' : dirty ? 'ابتدا پیش‌نویس را ذخیره یا کنار بگذارید.' : 'انتقال فقط پس از تأیید شما انجام می‌شود.');
-}
-
-document.addEventListener('click', event => {
-  const button = event.target.closest('[data-workspace], [data-mode], [data-view], [data-action]'); if (!button || button.disabled || !Platform.user) return;
-  if (button.dataset.workspace) navigate(routeHash(button.dataset.workspace));
-  else if (button.dataset.mode && activeWorkspace) navigate(routeHash(activeWorkspace.id, button.dataset.mode, Platform.user.role === 'staff' ? 'inbox' : 'overview'));
-  else if (button.dataset.view && activeWorkspace && currentMode) navigate(routeHash(activeWorkspace.id, currentMode, button.dataset.view));
-  else if (button.dataset.action === 'categories') navigate('#/');
-  else if (button.dataset.action === 'modes' && activeWorkspace) navigate(routeHash(activeWorkspace.id));
-  else if (button.dataset.action === 'save-directory') action(saveDirectory);
+function previewLogo() { const box = $p('logoPreview'); box.replaceChildren(); if (logo) { const img = document.createElement('img'); img.src = logo; img.alt = 'لوگوی سازمان'; box.append(img); } else box.textContent = 'لوگوی سازمان'; }
+$p('wizardOrganization').onclick = () => organizationPage('wizardScreen');
+$p('qrOrganization').onclick = () => organizationPage('qrScreen');
+$p('organizationBack').onclick = () => returnScreen === 'wizardScreen' ? setStep(4) : qrPage();
+function base64File(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(new Error('فایل خوانده نشد.')); reader.readAsDataURL(file); }); }
+$p('logoFile').onchange = () => act(async () => {
+  const file = $p('logoFile').files[0]; if (!file) return;
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 65536) throw new Error('تصویر PNG، JPG یا WebP تا ۶۴ کیلوبایت انتخاب کنید.');
+  const data = await base64File(file); const image = new Image(); image.src = data; await image.decode(); logo = data; previewLogo();
 });
-pq('#legacyWorkspace').onclick = () => navigate(routeHash('legacy'));
-pq('#logoutBtn').onclick = async () => { if (mutations || !await confirmDraft()) return; directoryDirty = jsonPending = false; formStates.clear(); refreshDirty(); Platform.logout().finally(() => location.reload()); };
-pq('#refreshInbox').onclick = loadInbox;
-pq('#directoryName').oninput = event => { if (!draft || !admin()) return; draft.name = event.target.value; directoryDirty = true; syncJSON(); refreshDirty(); };
-pq('#directoryJSON').oninput = () => { if (admin() && draft) { jsonPending = true; refreshDirty(); } };
-pq('#saveDirectory').onclick = () => action(saveDirectory);
-pq('#reloadDirectory').onclick = async () => { if (!await confirmDraft()) return; navigate(committedHash, { replace: true, reload: true }); };
-pq('#applyJSON').onclick = () => action(async () => {
-  requireAdmin(); const id = activeWorkspace.id, generation = routeGeneration, data = JSON.parse(pq('#directoryJSON').value);
-  const validated = await Platform.api(scope('/admin/directory/validate', id), { method: 'POST', body: data }); if (!current(id, generation)) return;
-  draft = validated; formStates.clear(); jsonPending = false; directoryDirty = true; renderBuilder(); text('#portalStatus', 'JSON وارد پیش‌نویس شد؛ هنوز ذخیره نشده است.');
+$p('organizationFile').onchange = () => act(async () => {
+  const file = $p('organizationFile').files[0]; if (!file) return;
+  if (/\.pdf$/i.test(file.name)) { if (file.size > 1048576) throw new Error('PDF باید کمتر از یک مگابایت باشد.'); const data = await base64File(file); documentFile = { name: file.name, mime: 'application/pdf', data: data.split(',')[1] }; $p('uploadedDocument').textContent = file.name; return; }
+  if (file.size > 262144) throw new Error('فایل اطلاعات باید کمتر از ۲۵۶ کیلوبایت باشد.');
+  if (/\.txt$/i.test(file.name)) { $p('organizationDescription').value = (await file.text()).slice(0, 3000); return; }
+  const content = JSON.parse(await file.text());
+  if (typeof content.name === 'string') $p('organizationName').value = content.name;
+  if (typeof content.description === 'string') $p('organizationDescription').value = content.description;
+  if (typeof content.logo === 'string' && content.logo.length <= 90000 && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(content.logo)) { logo = content.logo; previewLogo(); }
+  importedDirectory = content.directory || (Array.isArray(content.floors) ? content : undefined);
+  $p('uploadedDocument').textContent = file.name + ' — برای ثبت، ذخیره اطلاعات را بزنید.';
 });
-pq('#importFile').onchange = event => action(async () => {
-  requireAdmin(); const file = event.target.files[0]; if (!file) return;
-  if (file.size > 262144) throw new Error('فایل باید کمتر از ۲۵۶ کیلوبایت باشد.');
-  const id = activeWorkspace.id, generation = routeGeneration, data = JSON.parse(await file.text());
-  const validated = await Platform.api(scope('/admin/directory/validate', id), { method: 'POST', body: data }); if (!current(id, generation)) return;
-  draft = validated; formStates.clear(); jsonPending = false; directoryDirty = true; renderBuilder(); event.target.value = ''; text('#portalStatus', 'فایل وارد پیش‌نویس شد؛ برای اعمال، ذخیره تغییرات را بزنید.');
-});
-pq('#exportJSON').onclick = () => { if (!draft || !admin()) return; const url = URL.createObjectURL(new Blob([JSON.stringify(draft, null, 2)], { type: 'application/json' })), anchor = document.createElement('a'); anchor.href = url; anchor.download = `${activeWorkspace.id}-directory.json`; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); };
-pq('#loadExample').onclick = () => action(async () => {
-  requireAdmin();
-  draft = { name: 'ساختمان آزمایشی — اطلاعات واقعی نیست', floors: [{ id: 'ground', name: 'همکف' }], nodes: [{ id: 'reception', name: 'پذیرش', floorId: 'ground', x: 20, y: 50 }, { id: 'manager', name: 'اتاق مدیر', floorId: 'ground', x: 80, y: 50 }], edges: [{ from: 'reception', to: 'manager', distance: 12, instruction: 'راهرو را تا اتاق مدیر ادامه دهید.', reverseInstruction: 'راهرو را تا پذیرش ادامه دهید.', accessible: true, bidirectional: true }], rooms: [{ id: 'manager-room', name: 'اتاق مدیر', nodeId: 'manager', number: '۱۰۱', department: 'مدیریت', hours: '۹ تا ۱۵ — نمونه', aliases: ['مدیر'], active: true }], people: [] };
-  formStates.clear(); jsonPending = false; directoryDirty = true; renderBuilder(); text('#portalStatus', 'مثال آزمایشی وارد پیش‌نویس شد؛ اطلاعات واقعی خود را جایگزین کنید.');
-});
-pq('#newRobot').onclick = resetRobotForm;
-pq('#robotForm').onsubmit = event => { event.preventDefault(); action(async () => {
-  requireAdmin(); const form = event.target, body = Object.fromEntries(new FormData(form)); body.workspaceId = activeWorkspace.id; body.active = form.elements.active.checked; body.serial = body.serial.trim().toUpperCase();
-  await Platform.api('/admin/robots', { method: 'POST', body }); await reloadAdminLists(); resetRobotForm(); text('#portalStatus', 'ربات در این محیط ذخیره شد.');
-}); };
-pq('#accountForm').onsubmit = event => { event.preventDefault(); action(async () => { requireAdmin(); await Platform.api('/admin/users', { method: 'POST', body: Object.fromEntries(new FormData(event.target)) }); event.target.reset(); await reloadAdminLists(); renderBuilder(); text('#portalStatus', 'حساب مشترک سامانه ساخته شد. برای اعلان، آن را به فرد مقصد متصل کنید.'); }); };
-pq('#passwordForm').onsubmit = event => { event.preventDefault(); action(async () => { requireAdmin(); const form = event.target, user = adminState.users.find(u => u.id === form.elements.userId.value); if (!user) throw new Error('حساب را انتخاب کنید.'); await Platform.api('/admin/users/' + user.id, { method: 'PUT', body: { active: user.active, password: form.elements.password.value } }); form.elements.password.value = ''; text('#portalStatus', 'رمز تغییر کرد و نشست‌های قبلی لغو شدند.'); }); };
-pq('#importLegacyBtn').onclick = () => { if (pq('#importLegacyBtn').disabled) return; legacyImportWorkspaceId = activeWorkspace.id; text('#legacyImportName', `انتقال اطلاعات فعلی به ${activeWorkspace.name}`); showDialog(pq('#legacyImportDialog')); };
-pq('#cancelLegacyImport').onclick = () => { if (!mutations) { closeDialog(pq('#legacyImportDialog')); legacyImportWorkspaceId = null; } };
-pq('#legacyImportDialog').addEventListener('cancel', event => { if (mutations) event.preventDefault(); else legacyImportWorkspaceId = null; });
-pq('#confirmLegacyImport').onclick = () => action(async () => {
-  requireAdmin(); const id = legacyImportWorkspaceId;
-  if (!id || id !== activeWorkspace.id) { closeDialog(pq('#legacyImportDialog')); legacyImportWorkspaceId = null; throw new Error('محیط انتخاب‌شده تغییر کرده است؛ انتقال را دوباره از همان محیط آغاز کنید.'); }
-  pq('#confirmLegacyImport').disabled = true;
-  try { await Platform.api('/admin/workspaces/' + encodeURIComponent(id) + '/import-legacy', { method: 'POST', body: {} }); closeDialog(pq('#legacyImportDialog')); legacyImportWorkspaceId = null; await refreshWorkspaces(); await navigate(committedHash, { replace: true, reload: true, allowMutation: true }); text('#portalStatus', 'اطلاعات قبلی به این محیط منتقل شد.'); }
-  catch (e) { closeDialog(pq('#legacyImportDialog')); legacyImportWorkspaceId = null; throw e; }
-  finally { pq('#confirmLegacyImport').disabled = false; }
-});
-window.addEventListener('hashchange', () => navigate(location.hash, { browser: true }));
-window.addEventListener('popstate', () => { if (location.hash !== committedHash) navigate(location.hash, { browser: true }); });
-window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
-function updateConnection(connection = Platform.connection) {
-  const state = connection.state === 'ready' && (!Platform.user || Platform.connected) ? 'ready' : connection.state === 'checking' ? 'checking' : 'offline';
-  pq('#portalConnection').dataset.state = state;
-  text('#portalConnection', state === 'ready' ? Platform.user ? 'متصل' : 'سرور آماده است' : state === 'checking' ? 'بررسی اتصال' : 'ارتباط قطع است');
+$p('organizationForm').onsubmit = e => { e.preventDefault(); act(async () => {
+  await api('/profile', { method: 'PUT', body: { name: $p('organizationName').value.trim(), description: $p('organizationDescription').value, logo, robotId: robot()?.id || '', ...(documentFile !== undefined ? { document: documentFile } : {}), ...(importedDirectory ? { directory: importedDirectory } : {}) } });
+  const result = await api('/state'); state.profile = result.profile; applyBrand(); $p('appStatus').textContent = 'اطلاعات سازمان ذخیره شد.'; importedDirectory = undefined; documentFile = undefined;
+}, e.submitter); };
+$p('downloadDocument').onclick = () => act(async () => { const file = await api('/document'); download(Uint8Array.from(atob(file.data), c => c.charCodeAt(0)), file.mime, file.name.replace(/[\\/]/g, '_')); });
+function personPage(from) { returnScreen = from; show('personScreen'); $p('personForm').reset(); }
+$p('wizardPerson').onclick = () => personPage('wizardScreen'); $p('openPerson').onclick = () => personPage('settingsScreen');
+$p('personBack').onclick = () => returnScreen === 'wizardScreen' ? setStep(5) : show('settingsScreen');
+$p('personForm').onsubmit = e => { e.preventDefault(); act(async () => { await Platform.api('/admin/users', { method: 'POST', body: Object.fromEntries(new FormData(e.target)) }); e.target.reset(); $p('appStatus').textContent = 'همکار جدید با حساب و عنوان شغلی ثبت شد.'; }, e.submitter); };
+$p('openReset').onclick = () => { $p('resetForm').reset(); $p('resetError').textContent = ''; $p('resetDialog').showModal(); };
+$p('cancelReset').onclick = () => $p('resetDialog').close();
+$p('resetForm').onsubmit = async e => { e.preventDefault(); const b = e.submitter; b.disabled = true; try { await api('/reset', { method: 'POST', body: { confirm: 'RESET', password: e.target.password.value } }); $p('resetDialog').close(); await loadState(); setStep(1); } catch (e) { $p('resetError').textContent = e.message; } finally { b.disabled = false; } };
+function contactRow(contact, onClick) {
+  const b = document.createElement('button'); b.className = 'glass expert-row';
+  const avatar = document.createElement('span'); avatar.className = 'avatar'; avatar.textContent = contact.name.slice(0, 1);
+  const copy = document.createElement('span'); copy.className = 'contact-copy'; const name = document.createElement('strong'), title = document.createElement('p'); name.textContent = contact.name; title.textContent = contact.title; copy.append(name, title);
+  const status = document.createElement('span'); status.className = 'online-label'; status.textContent = contact.online ? 'آنلاین' : 'آفلاین'; b.append(avatar, copy, status); b.onclick = () => act(onClick, b); return b;
 }
-Platform.on('expired', () => { routeGeneration++; loading = false; pq('#portalAuthed').hidden = true; pq('#authScreen').hidden = false; pq('#logoutBtn').hidden = true; pq('#adminPanel').hidden = true; text('#accountName', ''); if (unsavedResolve) finishUnsaved(false); closeDialog(pq('#legacyImportDialog')); legacyImportWorkspaceId = null; updateConnection(); });
-Platform.on('backend:status', updateConnection);
-Platform.on('connected', () => { updateConnection(); loadInbox(); });
-Platform.on('disconnected', () => updateConnection());
-Platform.on('connection:error', () => updateConnection());
-Platform.on('visit', () => loadInbox());
-Platform.on('robots', list => {
-  if (!Array.isArray(list) || !activeWorkspace || !currentMode || !['admin', 'operator'].includes(Platform.user?.role)) return;
-  if (loading) { pendingRobotSnapshot = list; return; }
-  reconcileRobotSnapshot(list); refreshAccountRobots(); renderOverview(); renderRobots(); refreshMigration();
+function empty(box, message) { const e = document.createElement('p'); e.className = 'empty'; e.textContent = message; box.append(e); }
+async function expertsPage() {
+  show('expertsScreen'); const result = await api('/state'); state.experts = result.experts;
+  $p('expertList').replaceChildren(); for (const c of state.experts) $p('expertList').append(contactRow(c, async () => openThread(await api('/threads', { method: 'POST', body: { expertId: c.id } }))));
+  if (!state.experts.length) empty($p('expertList'), 'هنوز همکاری ثبت نشده است. مدیر می‌تواند از تنظیمات فرد جدیدی اضافه کند.');
+  const threads = await api('/threads'); $p('threadList').replaceChildren();
+  for (const t of threads) $p('threadList').append(contactRow(t.contact, async () => openThread(await api('/threads/' + t.id))));
+  if (!threads.length) empty($p('threadList'), 'گفتگوهای شما از اینجا در دسترس خواهند بود.');
+}
+$p('expertCard').onclick = () => act(expertsPage, $p('expertCard')); $p('chatBack').onclick = () => act(expertsPage);
+function appendMessage(m) {
+  if (messageIds.has(m.id)) return; messageIds.add(m.id);
+  const e = document.createElement('div'); e.className = 'message' + (m.senderId === Platform.user.id ? ' mine' : '');
+  const content = document.createElement('span'); content.textContent = m.text; const time = document.createElement('small'); time.textContent = new Date(m.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }); e.append(content, time); $p('messages').append(e); $p('messages').scrollTop = $p('messages').scrollHeight;
+}
+function openThread(t) { thread = t; show('chatScreen'); $p('chatName').textContent = t.contact.name; $p('chatTitle').textContent = t.contact.title + (t.contact.online ? ' · آنلاین' : ' · آفلاین'); $p('messages').replaceChildren(); messageIds.clear(); t.messages.forEach(appendMessage); $p('messageInput').value = ''; }
+$p('messageForm').onsubmit = e => { e.preventDefault(); act(async () => { if (!thread) return; const message = await api('/threads/' + thread.id + '/messages', { method: 'POST', body: { text: $p('messageInput').value } }); appendMessage(message); $p('messageInput').value = ''; }, e.submitter); };
+Platform.on('expert:message', e => { if (thread?.id === e.threadId && screen === 'chatScreen') appendMessage(e.message); else $p('appStatus').textContent = 'پیام جدیدی در گفتگوهای شما ثبت شد.'; });
+function closeRobot() { $p('robotCallScreen').hidden = true; $p('robotCallFrame').removeAttribute('src'); }
+$p('robotCard').onclick = () => act(async () => {
+  const selected = robot(); if (!selected) throw new Error('ابتدا ربات را انتخاب کنید.');
+  const frame = $p('robotCallFrame'); $p('robotCallScreen').hidden = false;
+  frame.onload = async () => { try {
+    if ($p('robotCallScreen').hidden) return;
+    const auth = await api('/robot-token', { method: 'POST', body: { robotId: selected.id } });
+    if (!$p('robotCallScreen').hidden) frame.contentWindow.postMessage({ type: 'organization:robot-auth', auth: { ...auth, base: Platform.connection.base } }, location.origin);
+  } catch (e) { closeRobot(); error(e); } };
+  frame.src = 'user.html?minimal=1&serial=' + encodeURIComponent(selected.serial);
+}, $p('robotCard'));
+window.addEventListener('message', e => { if (e.origin === location.origin && e.source === $p('robotCallFrame').contentWindow && e.data?.type === 'organization:robot-ended') { closeRobot(); if (e.data.error) error(new Error(e.data.error)); } });
+async function media() { if (!navigator.mediaDevices?.getUserMedia) throw new Error('دوربین و میکروفن به HTTPS و مرورگر پشتیبان نیاز دارند.'); return navigator.mediaDevices.getUserMedia({ video: true, audio: true }); }
+function callScreen(text) { $p('expertCallScreen').hidden = false; $p('expertCallStatus').textContent = text; if (stream) $p('expertSelf').srcObject = stream; }
+async function buildPeer(c, localStream, generation) {
+  const ice = await Platform.api('/ice'); if (generation !== callGeneration) { localStream?.getTracks().forEach(t => t.stop()); return; }
+  await Platform.socketRequest('expert:join', { callId: c.id }); if (generation !== callGeneration) return;
+  peer = new RTCPeerConnection({ iceServers: [...(CONFIG.iceServers || []), ...ice.servers] });
+  remoteStream = new MediaStream(); $p('expertRemote').srcObject = remoteStream;
+  for (const track of localStream.getTracks()) peer.addTrack(track, localStream);
+  peer.ontrack = e => { if (generation === callGeneration) { remoteStream.addTrack(e.track); $p('expertCallStatus').textContent = 'تماس برقرار شد'; } };
+  peer.onicecandidate = e => { if (generation === callGeneration) Platform.socketRequest('expert:signal', { callId: c.id, type: 'ice', candidate: e.candidate?.toJSON() || null }).catch(() => endExpert('ارتباط سیگنال قطع شد.')); };
+  peer.onconnectionstatechange = () => { if (generation === callGeneration && peer?.connectionState === 'failed') endExpert('برقراری تماس ممکن نشد.'); };
+  for (const item of signalQueue.splice(0)) queueSignal(item);
+  if (c.from === Platform.user.id) { const offer = await peer.createOffer(); await peer.setLocalDescription(offer); await Platform.socketRequest('expert:signal', { callId: c.id, type: 'offer', description: peer.localDescription.toJSON() }); }
+}
+function queueSignal(e) { signalChain = signalChain.then(async () => {
+  if (e.callId !== (activeCall || pendingIncoming)?.id) return;
+  if (!activeCall) { signalQueue.push(e); return; }
+  if (!peer) { signalQueue.push(e); return; }
+  if (e.type === 'ice') { if (!peer.remoteDescription) iceQueue.push(e.candidate); else if (e.candidate) await peer.addIceCandidate(e.candidate); return; }
+  await peer.setRemoteDescription(e.description); for (const candidate of iceQueue.splice(0)) if (candidate) await peer.addIceCandidate(candidate);
+  if (e.type === 'offer') { const answer = await peer.createAnswer(); await peer.setLocalDescription(answer); await Platform.socketRequest('expert:signal', { callId: activeCall.id, type: 'answer', description: peer.localDescription.toJSON() }); }
+}).catch(() => endExpert('تماس قطع شد؛ دوباره تلاش کنید.')); }
+async function endExpert(message, notify = true) {
+  const c = activeCall || pendingIncoming; callGeneration++; activeCall = pendingIncoming = null; signalQueue = []; iceQueue = [];
+  peer?.close(); peer = null; stream?.getTracks().forEach(t => t.stop()); stream = null; remoteStream = null;
+  $p('expertRemote').srcObject = $p('expertSelf').srcObject = null; $p('expertCallScreen').hidden = true; $p('incomingDialog').close();
+  if (c && notify) await api('/calls/' + c.id, { method: 'DELETE' }).catch(() => {});
+  if (message) $p('appStatus').textContent = message;
+}
+$p('expertCallButton').onclick = () => act(async () => {
+  if (activeCall || pendingIncoming || !thread) return;
+  const generation = ++callGeneration; const obtained = await media();
+  if (generation !== callGeneration) { obtained.getTracks().forEach(t => t.stop()); return; } stream = obtained;
+  try { activeCall = await api('/threads/' + thread.id + '/call', { method: 'POST', body: {} }); callScreen('در انتظار پاسخ کارشناس…'); await Platform.socketRequest('expert:join', { callId: activeCall.id }); }
+  catch (e) { await endExpert(); throw e; }
+}, $p('expertCallButton'));
+$p('expertHangup').onclick = () => act(() => endExpert());
+$p('acceptExpert').onclick = () => act(async () => {
+  if (!pendingIncoming || activeCall) return; const c = pendingIncoming, generation = ++callGeneration;
+  const obtained = await media(); if (!pendingIncoming || generation !== callGeneration) { obtained.getTracks().forEach(t => t.stop()); return; }
+  stream = obtained;
+  try { activeCall = await api('/calls/' + c.id + '/accept', { method: 'POST', body: {} }); pendingIncoming = null; $p('incomingDialog').close(); callScreen('در حال اتصال…'); await buildPeer(activeCall, stream, generation); }
+  catch (e) { await endExpert(); throw e; }
+}, $p('acceptExpert'));
+$p('rejectExpert').onclick = () => act(() => endExpert());
+$p('incomingDialog').addEventListener('cancel', e => { e.preventDefault(); endExpert(); });
+Platform.on('expert:signal', e => queueSignal(e));
+Platform.on('expert:call', c => {
+  if (c.state === 'ended') { if (activeCall?.id === c.id || pendingIncoming?.id === c.id) endExpert(c.reason, false); return; }
+  if (c.state === 'ringing' && c.to === Platform.user?.id && !activeCall) { pendingIncoming = c; $p('incomingName').textContent = c.name; if (!$p('incomingDialog').open) $p('incomingDialog').showModal(); }
+  if (c.state === 'active' && activeCall?.id === c.id && c.from === Platform.user?.id && !peer) { activeCall = c; callScreen('در حال اتصال…'); buildPeer(c, stream, callGeneration).catch(e => { endExpert(); error(e); }); }
 });
-Platform.loginForm(pq('#portalAuth'), async user => {
-  if (!permitted[user.role]) throw new Error('این پنل مخصوص اعضای تیم و مدیر سامانه است.');
-  if (authenticatedUserId && (authenticatedUserId !== user.id || authenticatedRole !== user.role)) { adminState = draft = null; activeWorkspace = null; loadedWorkspaceId = loadedMode = null; robots = []; formStates.clear(); directoryDirty = jsonPending = false; refreshDirty(); }
-  authenticatedUserId = user.id; authenticatedRole = user.role; text('#accountName', user.name); pq('#logoutBtn').hidden = false; pq('#adminPanel').hidden = user.role !== 'admin';
-  await refreshWorkspaces(); pq('#authScreen').hidden = true; pq('#portalAuthed').hidden = false; updateConnection(); await navigate(location.hash, { replace: true });
-}, ['admin', 'staff', 'operator']);
-updateConnection();
+Platform.on('organization:reset', () => act(async () => { closeRobot(); await endExpert(); await loadState(); setStep(1); }));
+function connection() { const status = Platform.connection; $p('connectionStatus').dataset.state = status.state; $p('connectionStatus').textContent = status.state === 'ready' ? 'متصل' : status.state === 'checking' ? 'در حال اتصال' : 'اتصال قطع است'; }
+Platform.on('backend:status', connection); Platform.on('connected', () => { connection(); if (screen === 'chatScreen' && thread) api('/threads/' + thread.id).then(openThread).catch(error); });
+Platform.on('disconnected', () => { connection(); closeRobot(); endExpert('اتصال قطع شد. برای تماس دوباره تلاش کنید.', false); });
+Platform.on('expired', () => { closeRobot(); endExpert(undefined, false); show('loginScreen'); $p('logoutButton').hidden = true; state = null; });
+Platform.loginForm($p('portalAuth'), ready, ['admin', 'operator', 'staff']); connection();
+window.addEventListener('pagehide', () => { stream?.getTracks().forEach(t => t.stop()); peer?.close(); if (activeCall) api('/calls/' + activeCall.id, { method: 'DELETE', keepalive: true }).catch(() => {}); });

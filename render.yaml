@@ -1,0 +1,21 @@
+# Paid instance and disk: review costs in Render before creating resources.
+services:
+  - type: web
+    name: robot-telepresence
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    numInstances: 1
+    disk:
+      name: robot-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATA_FILE
+        value: /app/data/site.json
+      - key: ALLOWED_ORIGINS
+        value: https://shadigivian.github.io
+      - key: TURN_CREDENTIALS_URL
+        sync: false

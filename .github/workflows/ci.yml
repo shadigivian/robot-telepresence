@@ -18,6 +18,9 @@ jobs:
       - run: npm run test:browser
         env:
           PLAYWRIGHT_CHANNEL: chromium
+      - run: npm run test:organization
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
