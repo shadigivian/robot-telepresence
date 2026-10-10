@@ -11,12 +11,12 @@ async function act(fn, button) { if (button?.disabled) return; if (button) butto
 const api = (path, options) => Platform.api('/organization' + path, options);
 function robot() { return state?.robots.find(r => r.id === $p('setupRobot').value); }
 function selectedName() { const selected = robot(); return selected?.id === state?.setup.robotId ? state.setup.name || selected.name : selected?.name || 'ربات من'; }
-function qrURL() { const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname); const url = new URL(local && CONFIG.publicUserPage ? CONFIG.publicUserPage : 'portal.html', location.href); url.pathname = url.pathname.replace(/user(?:\.html)?$/, 'portal.html'); url.search = ''; url.hash = ''; if (robot()) url.searchParams.set('robot', robot().id); return url.href; }
+function qrURL() { const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname); const url = new URL(local && CONFIG.publicUserPage ? CONFIG.publicUserPage : 'portal.html', location.href); url.pathname = url.pathname.replace(/user(?:\.html)?$/, 'portal.html'); url.search = ''; url.hash = ''; url.searchParams.set('organization', '1'); if (robot()) url.searchParams.set('robot', robot().id); return url.href; }
 function renderQR(id) { const code = qrcode(0, 'M'); code.addData(qrURL()); code.make(); $p(id).innerHTML = code.createSvgTag({ cellSize: 5, margin: 20, scalable: true }); }
 function setStep(n) {
   step = n; show('wizardScreen');
   for (let i = 1; i <= 5; i++) $p('step' + i).hidden = i !== n;
-  $p('stepIndicator').replaceChildren(...Array.from({ length: 5 }, (_, i) => { const e = document.createElement('span'); e.className = i < n ? 'active' : ''; if (i + 1 === n) e.setAttribute('aria-current', 'step'); return e; }));
+  $p('stepIndicator').replaceChildren(...Array.from({ length: 4 }, (_, i) => { const e = document.createElement('span'); e.className = i <= [1,4,3,5].indexOf(n) ? 'active' : ''; if ([1,4,3,5][i] === n) e.setAttribute('aria-current', 'step'); return e; }));
   $p('wizardOrganization').hidden = !admin(); $p('wizardPerson').hidden = !admin();
   if (n === 4) renderQR('setupQR');
   history.replaceState(null, '', location.pathname + location.search + '#setup/' + n);
@@ -24,19 +24,18 @@ function setStep(n) {
 function applyBrand() {
   $p('brandName').textContent = state.profile.name || 'فضای ربات';
   $p('splashBrand').textContent = state.profile.name || 'فضای ربات';
-  $p('splashLogo').src = state.profile.logo || 'robot-avatar.svg';
+  $p('splashLogo').src = state.profile.logo || 'feedar-logo.png';
   $p('splashLogo').style.borderRadius = state.profile.logo ? '18px' : '';
 }
 async function loadState() {
   state = await api('/state'); applyBrand();
   const select = $p('setupRobot'), wanted = new URLSearchParams(location.search).get('robot') || state.setup.robotId;
   select.replaceChildren();
-  for (const r of state.robots) select.add(new Option(`${r.name} · ${r.serial}`, r.id));
+  for (const r of state.robots) select.add(new Option(`${r.name} · ${r.online ? 'آنلاین' : 'آفلاین'} · ${r.serial}`, r.id));
   if (admin()) select.add(new Option('+ ربات جدید', ''));
-  if (state.robots.some(r => r.id === wanted)) select.value = wanted;
+  if (state.robots.some(r => r.id === wanted)) select.value = wanted; else if (state.robots.some(r => r.online)) select.value = state.robots.find(r => r.online).id;
   $p('setupName').value = selectedName() === 'ربات من' ? 'آوا' : selectedName();
-  $p('robotAddress').value = state.setup.address || '';
-  $p('robotAddress').required = Platform.user.role !== 'staff';
+  renderConnections();
   $p('openPerson').hidden = $p('openReset').hidden = !admin();
 }
 function home() {
@@ -47,17 +46,30 @@ function home() {
   $p('robotCard').disabled = !robot() || Platform.user.role === 'staff';
   history.replaceState(null, '', location.pathname + location.search + '#home');
 }
-async function ready(user) { if (!['admin', 'operator', 'staff'].includes(user.role)) throw new Error('با حساب عضو سازمان وارد شوید.'); await loadState(); $p('loginScreen').hidden = true; $p('logoutButton').hidden = false; if (state.setup.completed) home(); else setStep(1); }
+async function ready(user) { if (!['admin', 'operator', 'staff'].includes(user.role)) throw new Error('با حساب عضو سازمان وارد شوید.'); await loadState(); $p('loginScreen').hidden = true; $p('logoutButton').hidden = false; $p('loginDialog').close(); if (new URLSearchParams(location.search).get('organization') === '1') organizationPage('qrScreen'); else if (state.setup.completed) home(); else setStep(1); }
 for (const button of document.querySelectorAll('[data-next]')) button.onclick = () => setStep(Number(button.dataset.next));
 for (const button of document.querySelectorAll('[data-back]')) button.onclick = () => setStep(Number(button.dataset.back));
 for (const button of document.querySelectorAll('[data-home]')) button.onclick = home;
-$p('setupRobot').onchange = () => { $p('setupName').value = robot()?.name || ''; };
-$p('robotNameForm').onsubmit = e => { e.preventDefault(); setStep(4); };
+$p('setupRobot').onchange = () => { $p('setupName').value = robot()?.name || ''; renderConnections(); };
+function renderConnections() { const select = $p('connectionRobot'); select.replaceChildren(...Array.from($p('setupRobot').options, o => new Option(o.text, o.value))); select.value = $p('setupRobot').value; $p('robotAddress').value = robot()?.serial || 'پس از ثبت ربات ایجاد می‌شود'; $p('robotAvailability').textContent = robot() ? (robot().online ? 'ربات آنلاین و آماده ارتباط است.' : 'ربات آفلاین است؛ Robot Station را فعال کنید.') : 'ربات جدید با شناسه یکتا ثبت می‌شود.'; }
+$p('connectionRobot').onchange = () => { $p('setupRobot').value = $p('connectionRobot').value; $p('setupRobot').onchange(); };
+Platform.on('robots', robots => { if (!state) return; state.robots = robots; const select = $p('setupRobot'), selected = select.value; select.replaceChildren(...robots.map(r => new Option(r.name + ' · ' + (r.online ? 'آنلاین' : 'آفلاین') + ' · ' + r.serial, r.id))); if (admin()) select.add(new Option('+ ربات جدید', '')); if (Array.from(select.options).some(o => o.value === selected)) select.value = selected; renderConnections(); if (screen === 'homeScreen') $p('homeRobotName').textContent = selectedName(); });
+$p('robotNameForm').onsubmit = e => { e.preventDefault(); setStep(5); };
 $p('connectionForm').onsubmit = e => { e.preventDefault(); act(async () => {
-  const result = await api('/setup', { method: 'POST', body: { robotId: $p('setupRobot').value, name: $p('setupName').value.trim(), address: $p('robotAddress').value.trim() } });
+  const result = await api('/setup', { method: 'POST', body: { robotId: $p('setupRobot').value, name: $p('setupName').value.trim(), address: state.setup.address || '' } });
   await loadState(); $p('setupRobot').value = result.robotId; home();
 }, e.submitter); };
-$p('settingsButton').onclick = () => show('settingsScreen');
+let holdTimer; const holdButton = $p('settingsButton');
+function cancelHold() { clearTimeout(holdTimer); holdButton.classList.remove('holding'); }
+function startHold() { if (screen !== 'homeScreen' || holdTimer) return; holdButton.classList.add('holding'); holdTimer = setTimeout(() => { holdTimer = null; holdButton.classList.remove('holding'); show('settingsScreen'); }, 3000); }
+function releaseHold() { cancelHold(); holdTimer = null; }
+holdButton.addEventListener('pointerdown', e => { if (e.button !== 0) return; holdButton.setPointerCapture(e.pointerId); startHold(); });
+for (const event of ['pointerup','pointercancel','lostpointercapture','blur']) holdButton.addEventListener(event, releaseHold);
+holdButton.addEventListener('keydown', e => { if (['Enter',' '].includes(e.key)) { e.preventDefault(); startHold(); } });
+holdButton.addEventListener('keyup', releaseHold);
+holdButton.addEventListener('contextmenu', e => e.preventDefault());
+$p('logoStart').onclick = () => { $p('portalAuth').hidden = false; $p('loginDialog').showModal(); };
+$p('closeLogin').onclick = () => $p('loginDialog').close();
 $p('logoutButton').onclick = () => act(async () => { closeRobot(); await endExpert(); await Platform.logout(); location.reload(); }, $p('logoutButton'));
 function qrPage() { show('qrScreen'); renderQR('robotQR'); $p('qrRobotName').textContent = selectedName(); $p('qrLink').href = qrURL(); $p('qrLink').textContent = qrURL(); }
 $p('openQR').onclick = () => { returnScreen = 'settingsScreen'; qrPage(); };
@@ -97,9 +109,11 @@ $p('organizationFile').onchange = () => act(async () => {
 });
 $p('organizationForm').onsubmit = e => { e.preventDefault(); act(async () => {
   await api('/profile', { method: 'PUT', body: { name: $p('organizationName').value.trim(), description: $p('organizationDescription').value, logo, robotId: robot()?.id || '', ...(documentFile !== undefined ? { document: documentFile } : {}), ...(importedDirectory ? { directory: importedDirectory } : {}) } });
-  const result = await api('/state'); state.profile = result.profile; applyBrand(); $p('appStatus').textContent = 'اطلاعات سازمان ذخیره شد.'; importedDirectory = undefined; documentFile = undefined;
+  const result = await api('/state'); state.profile = result.profile; applyBrand(); importedDirectory = undefined; documentFile = undefined; if (new URLSearchParams(location.search).get('organization') === '1') { show('organizationSaved'); window.close(); } else if (returnScreen === 'wizardScreen') { setStep(3); $p('appStatus').textContent = 'اطلاعات سازمان ذخیره و تأیید شد.'; } else { qrPage(); $p('appStatus').textContent = 'اطلاعات سازمان ذخیره و تأیید شد.'; }
 }, e.submitter); };
 $p('downloadDocument').onclick = () => act(async () => { const file = await api('/document'); download(Uint8Array.from(atob(file.data), c => c.charCodeAt(0)), file.mime, file.name.replace(/[\\/]/g, '_')); });
+$p('savedContinue').onclick = () => { const url = new URL(location.href); url.searchParams.delete('organization'); history.replaceState(null, '', url); state.setup.completed ? home() : setStep(3); };
+Platform.on('organization:profile-updated', () => { if (!state || screen === 'organizationScreen') return; act(async () => { const result = await api('/state'); state.profile = result.profile; applyBrand(); if (screen === 'wizardScreen' && step === 4) { setStep(3); $p('appStatus').textContent = 'اطلاعات سازمان تأیید شد.'; } }); });
 function personPage(from) { returnScreen = from; show('personScreen'); $p('personForm').reset(); }
 $p('wizardPerson').onclick = () => personPage('wizardScreen'); $p('openPerson').onclick = () => personPage('settingsScreen');
 $p('personBack').onclick = () => returnScreen === 'wizardScreen' ? setStep(5) : show('settingsScreen');
@@ -201,4 +215,5 @@ Platform.on('backend:status', connection); Platform.on('connected', () => { conn
 Platform.on('disconnected', () => { connection(); closeRobot(); endExpert('اتصال قطع شد. برای تماس دوباره تلاش کنید.', false); });
 Platform.on('expired', () => { closeRobot(); endExpert(undefined, false); show('loginScreen'); $p('logoutButton').hidden = true; state = null; });
 Platform.loginForm($p('portalAuth'), ready, ['admin', 'operator', 'staff']); connection();
+if (new URLSearchParams(location.search).get('organization') === '1' && !Platform.user) $p('loginDialog').showModal();
 window.addEventListener('pagehide', () => { stream?.getTracks().forEach(t => t.stop()); peer?.close(); if (activeCall) api('/calls/' + activeCall.id, { method: 'DELETE', keepalive: true }).catch(() => {}); });
