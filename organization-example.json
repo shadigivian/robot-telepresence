@@ -1,5 +1,106 @@
 {
-  "name": "سازمان نمونه",
-  "description": "اطلاعات معرفی سازمان و ساعات کاری را اینجا بنویسید.",
-  "logo": ""
+    "name":  "سازمان نمونه",
+    "description":  "اطلاعات معرفی سازمان و ساعات کاری را اینجا بنویسید.",
+    "logo":  "",
+    "directory":  {
+                      "name":  "ساختمان آزمایشی — اطلاعات واقعی نیست",
+                      "floors":  [
+                                     {
+                                         "id":  "ground",
+                                         "name":  "همکف"
+                                     },
+                                     {
+                                         "id":  "first",
+                                         "name":  "طبقه اول"
+                                     }
+                                 ],
+                      "nodes":  [
+                                    {
+                                        "id":  "reception",
+                                        "name":  "پذیرش",
+                                        "floorId":  "ground",
+                                        "x":  15,
+                                        "y":  50
+                                    },
+                                    {
+                                        "id":  "lift-ground",
+                                        "name":  "آسانسور همکف",
+                                        "floorId":  "ground",
+                                        "x":  50,
+                                        "y":  50
+                                    },
+                                    {
+                                        "id":  "lift-first",
+                                        "name":  "آسانسور طبقه اول",
+                                        "floorId":  "first",
+                                        "x":  50,
+                                        "y":  50
+                                    },
+                                    {
+                                        "id":  "manager",
+                                        "name":  "اتاق مدیر",
+                                        "floorId":  "first",
+                                        "x":  80,
+                                        "y":  30
+                                    }
+                                ],
+                      "edges":  [
+                                    {
+                                        "from":  "reception",
+                                        "to":  "lift-ground",
+                                        "distance":  12,
+                                        "instruction":  "از پذیرش، راهرو را تا آسانسور ادامه دهید.",
+                                        "reverseInstruction":  "از آسانسور، راهرو را تا پذیرش ادامه دهید.",
+                                        "accessible":  true,
+                                        "bidirectional":  true
+                                    },
+                                    {
+                                        "from":  "lift-ground",
+                                        "to":  "lift-first",
+                                        "distance":  4,
+                                        "instruction":  "با آسانسور به طبقه اول بروید.",
+                                        "reverseInstruction":  "با آسانسور به همکف بروید.",
+                                        "accessible":  true,
+                                        "bidirectional":  true
+                                    },
+                                    {
+                                        "from":  "lift-first",
+                                        "to":  "manager",
+                                        "distance":  8,
+                                        "instruction":  "از آسانسور به سمت اتاق ۱۰۱ بروید.",
+                                        "reverseInstruction":  "از اتاق ۱۰۱ به سمت آسانسور بروید.",
+                                        "accessible":  true,
+                                        "bidirectional":  true
+                                    }
+                                ],
+                      "rooms":  [
+                                    {
+                                        "id":  "room-manager",
+                                        "name":  "اتاق مدیر",
+                                        "nodeId":  "manager",
+                                        "number":  "۱۰۱",
+                                        "department":  "مدیریت",
+                                        "hours":  "۹ تا ۱۵ — نمونه",
+                                        "aliases":  [
+                                                        "مدیر",
+                                                        "مدیریت"
+                                                    ],
+                                        "active":  true
+                                    }
+                                ],
+                      "people":  [
+                                     {
+                                         "id":  "person-manager",
+                                         "name":  "مدیر آزمایشی",
+                                         "title":  "مدیر",
+                                         "roomId":  "room-manager",
+                                         "aliases":  [
+                                                         "رئیس"
+                                                     ],
+                                         "active":  true,
+                                         "availability":  "برای مراجعه هماهنگ کنید",
+                                         "userId":  ""
+                                     }
+                                 ]
+                  }
 }

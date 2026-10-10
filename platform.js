@@ -126,7 +126,9 @@ const Platform = (() => {
     if (result.base !== base || typeof result.token !== 'string') throw new Error('سرور تماس تغییر کرده؛ دوباره تماس بگیرید.');
     const expected = epoch, verified = await request('/me', {}, result.token, expected);
     if (verified.user.role !== 'operator' || verified.user.username !== 'guest' || !verified.user.robotId) throw new Error('مجوز نمایش تماس معتبر نیست.');
-    return accept({ token: result.token, user: verified.user }, expected);
+    // Embedded call credentials stay in memory and must not replace an
+    // operator's saved login for the standalone driving app.
+    checkEpoch(expected); token = result.token; user = verified.user; connectSocket(); emit('login', user); return user;
   }
   async function logout() { try { await api('/logout', { method: 'POST' }); } finally { clear(); emit('logout'); } }
   async function device(robotId) { return authenticate('/device', { robotId }, true); }

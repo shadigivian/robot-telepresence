@@ -10,7 +10,7 @@ function error(e) { $p('appError').textContent = e.message || String(e); }
 async function act(fn, button) { if (button?.disabled) return; if (button) button.disabled = true; $p('appError').textContent = ''; try { await fn(); } catch (e) { error(e); } finally { if (button) button.disabled = false; } }
 const api = (path, options) => Platform.api('/organization' + path, options);
 function robot() { return state?.robots.find(r => r.id === ($p('setupRobot').value || state.setup.robotId)); }
-function qrURL() { const url = new URL(CONFIG.publicUserPage || 'user.html', location.href); url.pathname = url.pathname.replace(/user(?:\.html)?$/, 'portal.html'); url.search = ''; url.hash = ''; if (robot()) url.searchParams.set('robot', robot().id); return url.href; }
+function qrURL() { const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname); const url = new URL(local && CONFIG.publicUserPage ? CONFIG.publicUserPage : 'portal.html', location.href); url.pathname = url.pathname.replace(/user(?:\.html)?$/, 'portal.html'); url.search = ''; url.hash = ''; if (robot()) url.searchParams.set('robot', robot().id); return url.href; }
 function renderQR(id) { const code = qrcode(0, 'M'); code.addData(qrURL()); code.make(); $p(id).innerHTML = code.createSvgTag({ cellSize: 5, margin: 20, scalable: true }); }
 function setStep(n) {
   step = n; show('wizardScreen');
@@ -134,11 +134,11 @@ function closeRobot() { $p('robotCallScreen').hidden = true; $p('robotCallFrame'
 $p('robotCard').onclick = () => act(async () => {
   const selected = robot(); if (!selected) throw new Error('ابتدا ربات را انتخاب کنید.');
   const frame = $p('robotCallFrame'); $p('robotCallScreen').hidden = false;
-  frame.onload = () => act(async () => {
+  frame.onload = async () => { try {
     if ($p('robotCallScreen').hidden) return;
     const auth = await api('/robot-token', { method: 'POST', body: { robotId: selected.id } });
     if (!$p('robotCallScreen').hidden) frame.contentWindow.postMessage({ type: 'organization:robot-auth', auth: { ...auth, base: Platform.connection.base } }, location.origin);
-  });
+  } catch (e) { closeRobot(); error(e); } };
   frame.src = 'user.html?minimal=1&serial=' + encodeURIComponent(selected.serial);
 }, $p('robotCard'));
 window.addEventListener('message', e => { if (e.origin === location.origin && e.source === $p('robotCallFrame').contentWindow && e.data?.type === 'organization:robot-ended') { closeRobot(); if (e.data.error) error(new Error(e.data.error)); } });
