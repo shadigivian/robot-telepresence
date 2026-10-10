@@ -35,6 +35,8 @@ test('five pages, private organization upload, minimal home, settings, reload an
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.screenshot({ path: 'test-results/organization-mobile.png', fullPage: true, animations: 'disabled' });
+  await page.evaluate(() => Platform.api('/admin/robots', { method: 'POST', body: { id: 'r2', serial: 'RB-SECOND02', name: 'ربات دوم', mode: 'telepresence', location: '', startNodeId: '', workspaceId: 'hospital' } }));
+  await page.goto('/portal.html?robot=r2'); await expect(page.locator('#homeRobotName')).toHaveText('ربات دوم');
   expect(errors).toEqual([]);
 });
 test('real authenticated chat and expert video between two browsers', async ({ browser }) => {
@@ -78,5 +80,7 @@ test('new expert has a visible job title and reset repeats setup while preservin
   await page.locator('#resetForm [name=password]').fill('wrong-password'); await page.locator('#resetForm button.danger').click(); await expect(page.locator('#resetError')).not.toBeEmpty();
   await page.locator('#resetForm [name=password]').fill('browser-test-password'); await page.locator('#resetForm button.danger').click(); await expect(page.locator('#step1')).toBeVisible();
   await page.reload(); await expect(page.locator('#step1')).toBeVisible(); await page.locator('[data-next="2"]').click(); await page.locator('[data-next="3"]').click(); await expect(page.locator('#setupRobot')).toContainText('RB-TEST01');
+  await page.locator('#setupRobot').selectOption(''); await expect(page.locator('#setupName')).toHaveValue('');
+  await page.locator('#setupName').fill('ربات جدید'); await page.locator('#robotNameForm button').click(); await page.locator('[data-next="5"]').click(); await page.locator('#robotAddress').fill('192.168.1.22'); await page.locator('#connectionForm button.primary').click(); await expect(page.locator('#homeRobotName')).toHaveText('ربات جدید');
   await context.close();
 });
