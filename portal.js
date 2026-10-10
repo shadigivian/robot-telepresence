@@ -9,7 +9,8 @@ function show(id) { for (const section of document.querySelectorAll('#main > .sc
 function error(e) { $p('appError').textContent = e.message || String(e); }
 async function act(fn, button) { if (button?.disabled) return; if (button) button.disabled = true; $p('appError').textContent = ''; try { await fn(); } catch (e) { error(e); } finally { if (button) button.disabled = false; } }
 const api = (path, options) => Platform.api('/organization' + path, options);
-function robot() { return state?.robots.find(r => r.id === ($p('setupRobot').value || state.setup.robotId)); }
+function robot() { return state?.robots.find(r => r.id === $p('setupRobot').value); }
+function selectedName() { const selected = robot(); return selected?.id === state?.setup.robotId ? state.setup.name || selected.name : selected?.name || 'ربات من'; }
 function qrURL() { const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname); const url = new URL(local && CONFIG.publicUserPage ? CONFIG.publicUserPage : 'portal.html', location.href); url.pathname = url.pathname.replace(/user(?:\.html)?$/, 'portal.html'); url.search = ''; url.hash = ''; if (robot()) url.searchParams.set('robot', robot().id); return url.href; }
 function renderQR(id) { const code = qrcode(0, 'M'); code.addData(qrURL()); code.make(); $p(id).innerHTML = code.createSvgTag({ cellSize: 5, margin: 20, scalable: true }); }
 function setStep(n) {
@@ -33,7 +34,7 @@ async function loadState() {
   for (const r of state.robots) select.add(new Option(`${r.name} · ${r.serial}`, r.id));
   if (admin()) select.add(new Option('+ ربات جدید', ''));
   if (state.robots.some(r => r.id === wanted)) select.value = wanted;
-  $p('setupName').value = state.setup.name || robot()?.name || 'آوا';
+  $p('setupName').value = selectedName() === 'ربات من' ? 'آوا' : selectedName();
   $p('robotAddress').value = state.setup.address || '';
   $p('robotAddress').required = Platform.user.role !== 'staff';
   $p('openPerson').hidden = $p('openReset').hidden = !admin();
@@ -41,7 +42,7 @@ async function loadState() {
 function home() {
   show('homeScreen'); $p('greetingName').textContent = Platform.user.name;
   $p('organizationCaption').textContent = state.profile.name || 'فضای سازمان شما';
-  $p('homeRobotName').textContent = state.setup.name || robot()?.name || 'ربات من';
+  $p('homeRobotName').textContent = selectedName();
   $p('homeFootnote').textContent = Platform.user.role === 'staff' ? 'برای دریافت تماس، این صفحه را باز نگه دارید.' : 'ارتباطی ساده، حضوری نزدیک.';
   $p('robotCard').disabled = !robot() || Platform.user.role === 'staff';
   history.replaceState(null, '', location.pathname + location.search + '#home');
@@ -58,7 +59,7 @@ $p('connectionForm').onsubmit = e => { e.preventDefault(); act(async () => {
 }, e.submitter); };
 $p('settingsButton').onclick = () => show('settingsScreen');
 $p('logoutButton').onclick = () => act(async () => { closeRobot(); await endExpert(); await Platform.logout(); location.reload(); }, $p('logoutButton'));
-function qrPage() { show('qrScreen'); renderQR('robotQR'); $p('qrRobotName').textContent = state.setup.name || robot()?.name || 'QR ربات'; $p('qrLink').href = qrURL(); $p('qrLink').textContent = qrURL(); }
+function qrPage() { show('qrScreen'); renderQR('robotQR'); $p('qrRobotName').textContent = selectedName(); $p('qrLink').href = qrURL(); $p('qrLink').textContent = qrURL(); }
 $p('openQR').onclick = () => { returnScreen = 'settingsScreen'; qrPage(); };
 $p('qrBack').onclick = () => show(returnScreen);
 $p('copyQR').onclick = () => act(async () => { if (!navigator.clipboard) throw new Error('لینک را از متن بالای صفحه کپی کنید.'); await navigator.clipboard.writeText(qrURL()); $p('appStatus').textContent = 'لینک کپی شد.'; });
