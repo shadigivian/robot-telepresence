@@ -1,32 +1,31 @@
+async function holdSettings(page) { const b = page.locator('#settingsButton'); await b.focus(); await page.keyboard.down(' '); await page.waitForTimeout(3100); await page.keyboard.up(' '); }
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs'), path = require('node:path');
 const config = fs.readFileSync(path.join(__dirname, '..', 'public/config.js'), 'utf8').replace('peerServer: {},', "peerServer: { host: '127.0.0.1', port: 9101, path: '/peerjs', secure: false },");
 async function login(page, role) {
-  await page.goto('/portal.html');
+  await page.goto('/portal.html'); await page.locator('#logoStart').click();
   await page.locator('.auth-form [name=username]').fill(role); await page.locator('.auth-form [name=password]').fill('browser-test-password');
   await page.locator('.auth-form button').click(); await expect(page.locator('#wizardScreen')).toBeVisible();
 }
 async function setup(page) {
-  await page.locator('[data-next="2"]').click(); await page.locator('[data-next="3"]').click();
+  await page.locator('[data-next="4"]').click(); await page.locator('[data-next="3"]').click();
   await page.locator('#setupRobot').selectOption('r1'); await page.locator('#setupName').fill('آوا');
-  await page.locator('#robotNameForm button').click(); await expect(page.locator('#setupQR svg')).toBeVisible();
-  await page.locator('[data-next="5"]').click(); await page.locator('#robotAddress').fill('192.168.1.10');
+  await page.locator('#robotNameForm button').click(); await expect(page.locator('#robotAddress')).toHaveValue('RB-TEST01');
   await page.locator('#connectionForm button.primary').click(); await expect(page.locator('#homeScreen')).toBeVisible();
 }
 test('five pages, private organization upload, minimal home, settings, reload and mobile layout', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message));
-  await login(page, 'admin'); await page.locator('[data-next="2"]').click(); await page.locator('[data-next="3"]').click();
-  await page.locator('#setupRobot').selectOption('r1'); await page.locator('#setupName').fill('آوا'); await page.locator('#robotNameForm button').click();
+  await login(page, 'admin'); await page.locator('[data-next="4"]').click(); await expect(page.locator('#setupQR svg')).toBeVisible();
   await page.locator('#wizardOrganization').click(); await expect(page.locator('#organizationScreen')).toBeVisible();
   await page.locator('#organizationFile').setInputFiles({ name: 'organization.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ name: 'سازمان آزمون', description: 'نقشه و اطلاعات سازمان' })) });
   await expect(page.locator('#organizationName')).toHaveValue('سازمان آزمون');
   await page.locator('#organizationForm button.primary').click(); await expect(page.locator('#appStatus')).toContainText('ذخیره');
-  await page.locator('#organizationBack').click(); await expect(page.locator('#step4')).toBeVisible();
-  await page.locator('[data-next="5"]').click(); await page.locator('#robotAddress').fill('192.168.1.10'); await page.locator('#connectionForm button.primary').click();
+  await expect(page.locator('#step3')).toBeVisible(); await page.locator('#setupRobot').selectOption('r1'); await page.locator('#setupName').fill('آوا'); await page.locator('#robotNameForm button').click();
+  await page.locator('#connectionForm button.primary').click();
   await expect(page.locator('#homeScreen')).toBeVisible(); await expect(page.locator('#homeRobotName')).toHaveText('آوا');
   await page.reload(); await expect(page.locator('#homeScreen')).toBeVisible();
   await page.screenshot({ path: 'test-results/organization-home.png', fullPage: true, animations: 'disabled' });
-  await page.locator('#settingsButton').click(); await expect(page.locator('#settingsScreen .setting-row')).toHaveCount(3);
+  await holdSettings(page); await expect(page.locator('#settingsScreen .setting-row')).toHaveCount(3);
   await page.locator('#openQR').click(); await expect(page.locator('#robotQR svg')).toBeVisible();
   expect(await page.locator('#qrLink').textContent()).not.toMatch(/token|invite|password/);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -43,7 +42,7 @@ test('real authenticated chat and expert video between two browsers', async ({ b
   const ac = await browser.newContext(), sc = await browser.newContext(); const a = await ac.newPage(), s = await sc.newPage();
   const errors = []; for (const p of [a, s]) p.on('pageerror', e => errors.push(e.message));
   // The administrator completed setup in the preceding test; staff completes their own setup.
-  await a.goto('/portal.html'); await a.locator('.auth-form [name=username]').fill('admin'); await a.locator('.auth-form [name=password]').fill('browser-test-password'); await a.locator('.auth-form button').click();
+  await a.goto('/portal.html'); await a.locator('#logoStart').click(); await a.locator('.auth-form [name=username]').fill('admin'); await a.locator('.auth-form [name=password]').fill('browser-test-password'); await a.locator('.auth-form button').click();
   await expect(a.locator('#homeScreen')).toBeVisible(); await login(s, 'staff'); await setup(s);
   await a.locator('#expertCard').click(); await a.locator('#expertList button').filter({ hasText: 'staff' }).click();
   await a.locator('#messageInput').fill('<img src=x onerror=alert(1)>'); await a.locator('#messageForm button').click();
@@ -61,7 +60,7 @@ test('robot call is fullscreen, receives real video and has only one hangup cont
   const errors = []; for (const p of [r, u]) { p.on('pageerror', e => errors.push(e.message)); await p.route('**/config.js', route => route.fulfill({ body: config, contentType: 'application/javascript' })); }
   await r.goto('/robot.html'); await r.locator('#stationAuth [name=username]').fill('robot'); await r.locator('#stationAuth [name=password]').fill('browser-test-password'); await r.locator('#stationAuth button').click();
   await r.locator('#cameraBtn').click(); await r.locator('#onlineBtn').click(); await expect(r.locator('#netStatus')).toContainText('Online', { timeout: 15000 });
-  await u.goto('/portal.html'); await u.locator('.auth-form [name=username]').fill('admin'); await u.locator('.auth-form [name=password]').fill('browser-test-password'); await u.locator('.auth-form button').click(); await expect(u.locator('#homeScreen')).toBeVisible();
+  await u.goto('/portal.html'); await u.locator('#logoStart').click(); await u.locator('.auth-form [name=username]').fill('admin'); await u.locator('.auth-form [name=password]').fill('browser-test-password'); await u.locator('.auth-form button').click(); await expect(u.locator('#homeScreen')).toBeVisible();
   await u.locator('#robotCard').click(); const child = u.frameLocator('#robotCallFrame');
   await expect(child.locator('#call')).toBeVisible({ timeout: 20000 });
   await expect.poll(() => child.locator('#remote').evaluate(v => v.readyState), { timeout: 20000 }).toBeGreaterThanOrEqual(2);
@@ -71,16 +70,35 @@ test('robot call is fullscreen, receives real video and has only one hangup cont
   expect(errors).toEqual([]); await rc.close(); await uc.close();
 });
 test('new expert has a visible job title and reset repeats setup while preserving accounts and robots', async ({ page, browser }) => {
-  await page.goto('/portal.html'); await page.locator('.auth-form [name=username]').fill('admin'); await page.locator('.auth-form [name=password]').fill('browser-test-password'); await page.locator('.auth-form button').click(); await expect(page.locator('#homeScreen')).toBeVisible();
-  await page.locator('#settingsButton').click(); await page.locator('#openPerson').click();
-  const form = page.locator('#personForm'); await form.locator('[name=name]').fill('کارشناس جدید'); await form.locator('[name=jobTitle]').fill('مدیر پذیرش'); await form.locator('[name=username]').fill('new-expert'); await form.locator('[name=password]').fill('new-expert-test-password'); await form.locator('button.primary').click(); await expect(page.locator('#appStatus')).toContainText('ثبت');
+  await page.goto('/portal.html'); await page.locator('#logoStart').click(); await page.locator('.auth-form [name=username]').fill('admin'); await page.locator('.auth-form [name=password]').fill('browser-test-password'); await page.locator('.auth-form button').click(); await expect(page.locator('#homeScreen')).toBeVisible();
+  await holdSettings(page); await page.locator('#openPerson').click();
+  const form = page.locator('#personForm'); await form.locator('[name=name]').fill('کارشناس جدید'); await form.locator('[name=jobTitle]').fill('مدیر پذیرش'); await form.locator('[name=username]').fill('کارشناس_پذیرش'); await form.locator('[name=password]').fill('new-expert-test-password'); await form.locator('button.primary').click(); await expect(page.locator('#appStatus')).toContainText('ثبت');
   await page.locator('#personBack').click(); await page.locator('#settingsScreen [data-home]').click(); await page.locator('#expertCard').click(); await expect(page.locator('#expertList')).toContainText('مدیر پذیرش');
-  const context = await browser.newContext(), expert = await context.newPage(); await expert.goto('/portal.html'); await expert.locator('.auth-form [name=username]').fill('new-expert'); await expert.locator('.auth-form [name=password]').fill('new-expert-test-password'); await expert.locator('.auth-form button').click(); await expect(expert.locator('#wizardScreen')).toBeVisible();
-  await page.locator('#expertsScreen [data-home]').click(); await page.locator('#settingsButton').click(); await page.locator('#openReset').click();
+  const context = await browser.newContext(), expert = await context.newPage(); await expert.goto('/portal.html'); await expert.locator('#logoStart').click(); await expert.locator('.auth-form [name=username]').fill('کارشناس_پذیرش'); await expert.locator('.auth-form [name=password]').fill('new-expert-test-password'); await expert.locator('.auth-form button').click(); await expect(expert.locator('#wizardScreen')).toBeVisible();
+  await page.locator('#expertsScreen [data-home]').click(); await holdSettings(page); await page.locator('#openReset').click();
   await page.locator('#resetForm [name=password]').fill('wrong-password'); await page.locator('#resetForm button.danger').click(); await expect(page.locator('#resetError')).not.toBeEmpty();
   await page.locator('#resetForm [name=password]').fill('browser-test-password'); await page.locator('#resetForm button.danger').click(); await expect(page.locator('#step1')).toBeVisible();
-  await page.reload(); await expect(page.locator('#step1')).toBeVisible(); await page.locator('[data-next="2"]').click(); await page.locator('[data-next="3"]').click(); await expect(page.locator('#setupRobot')).toContainText('RB-TEST01');
+  await page.reload(); await expect(page.locator('#step1')).toBeVisible(); await page.locator('[data-next="4"]').click(); await page.locator('[data-next="3"]').click(); await expect(page.locator('#setupRobot')).toContainText('RB-TEST01');
   await page.locator('#setupRobot').selectOption(''); await expect(page.locator('#setupName')).toHaveValue('');
-  await page.locator('#setupName').fill('ربات جدید'); await page.locator('#robotNameForm button').click(); await page.locator('[data-next="5"]').click(); await page.locator('#robotAddress').fill('192.168.1.22'); await page.locator('#connectionForm button.primary').click(); await expect(page.locator('#homeRobotName')).toHaveText('ربات جدید');
+  await page.locator('#setupName').fill('ربات جدید'); await page.locator('#robotNameForm button').click(); await page.locator('#connectionForm button.primary').click(); await expect(page.locator('#homeRobotName')).toHaveText('ربات جدید');
+  await context.close();
+});
+test('logo landing, short hold cancellation, QR organization routing and automatic confirmation', async ({ page, browser }) => {
+  const context = await browser.newContext(); const phone = await context.newPage();
+  await page.goto('/portal.html');
+  await expect(page.locator('#loginScreen .feedar-mark')).toBeVisible();
+  await expect(page.locator('.auth-form')).toBeHidden();
+  await page.locator('#logoStart').click();
+  await page.locator('.auth-form [name=username]').fill('admin'); await page.locator('.auth-form [name=password]').fill('browser-test-password'); await page.locator('.auth-form button').click();
+  await expect(page.locator('#homeScreen')).toBeVisible();
+  await page.locator('#settingsButton').focus(); await page.keyboard.down(' '); await page.waitForTimeout(300); await page.keyboard.up(' '); await page.waitForTimeout(3000); await expect(page.locator('#settingsScreen')).toBeHidden();
+  await holdSettings(page); await page.locator('#openQR').click();
+  const link = await page.locator('#qrLink').getAttribute('href'); expect(new URL(link).searchParams.get('organization')).toBe('1');
+  // Use the isolated server, rather than the public deployment, on the second browser.
+  await phone.goto('/portal.html?' + new URL(link).searchParams.toString()); await expect(phone.locator('#loginDialog')).toBeVisible();
+  await phone.locator('.auth-form [name=username]').fill('admin'); await phone.locator('.auth-form [name=password]').fill('browser-test-password'); await phone.locator('.auth-form button').click();
+  await expect(phone.locator('#organizationScreen')).toBeVisible(); await phone.locator('#organizationName').fill('سازمان ثبت با QR'); await phone.locator('#organizationForm button.primary').click();
+  await expect(phone.locator('#organizationSaved')).toBeVisible();
+  await expect(page.locator('#brandName')).toHaveText('سازمان ثبت با QR');
   await context.close();
 });

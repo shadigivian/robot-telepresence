@@ -78,3 +78,13 @@ test('chat remains private and expert WebRTC signaling binds participants and so
   assert.equal((await ack(a, 'expert:signal', { callId: call.id, type: 'offer', description: { type: 'offer', sdp: 'v=0' } })).ok, true); assert.equal((await offer).description.sdp, 'v=0');
   const ended = event(s, 'expert:call'); a.disconnect(); assert.equal((await ended).state, 'ended');
 });
+
+test('Persian usernames register, normalize Arabic letter variants and reject duplicate or invalid accounts', async t => {
+  const f = await fixture(t), token = await f.login('admin');
+  const account = { name: 'همکار فارسی', username: 'كارشناس_پذيرش', jobTitle: 'کارشناس پذیرش', role: 'staff', password: 'organization-test-password' };
+  assert.equal((await f.api('/admin/users', token, 'POST', account)).status, 201);
+  assert.ok(await f.login('کارشناس_پذیرش'));
+  assert.ok(await f.login('كارشناس_پذيرش'));
+  assert.equal((await f.api('/admin/users', token, 'POST', { ...account, username: 'کارشناس_پذیرش' })).status, 409);
+  assert.equal((await f.api('/admin/users', token, 'POST', { ...account, username: '<script>' })).status, 400);
+});

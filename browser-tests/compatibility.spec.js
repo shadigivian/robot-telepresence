@@ -1,3 +1,4 @@
+async function holdSettings(page) { const b = page.locator('#settingsButton'); await b.focus(); await page.keyboard.down(' '); await page.waitForTimeout(3100); await page.keyboard.up(' '); }
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -41,10 +42,10 @@ test('Public tunnel serves every product page and required assets while keeping 
 });
 test('organization setup and minimal home work with browser storage disabled', async ({ page }) => {
   const errors = []; page.on('pageerror', e => errors.push(e.message)); await denyStorage(page);
-  await page.goto('/portal.html'); await login(page, 'admin'); await expect(page.locator('#step1')).toBeVisible();
-  await page.locator('[data-next="2"]').click(); await page.locator('[data-next="3"]').click(); await page.locator('#setupRobot').selectOption('r1'); await page.locator('#setupName').fill('آوا'); await page.locator('#robotNameForm button').click(); await expect(page.locator('#setupQR svg')).toBeVisible();
-  await page.locator('[data-next="5"]').click(); await page.locator('#robotAddress').fill('192.168.1.10'); await page.locator('#connectionForm button.primary').click(); await expect(page.locator('#homeScreen')).toBeVisible();
-  await page.locator('#settingsButton').click(); await expect(page.locator('#settingsScreen .setting-row')).toHaveCount(3); await page.locator('#logoutButton').click(); await expect(page.locator('#loginScreen')).toBeVisible(); expect(errors).toEqual([]);
+  await page.goto('/portal.html'); await page.locator('#logoStart').click(); await login(page, 'admin'); await expect(page.locator('#step1')).toBeVisible();
+  await page.locator('[data-next="4"]').click(); await page.locator('[data-next="3"]').click(); await page.locator('#setupRobot').selectOption('r1'); await page.locator('#setupName').fill('آوا'); await page.locator('#robotNameForm button').click(); await expect(page.locator('#robotAddress')).toHaveValue('RB-TEST01');
+  await page.locator('#connectionForm button.primary').click(); await expect(page.locator('#homeScreen')).toBeVisible();
+  await holdSettings(page); await expect(page.locator('#settingsScreen .setting-row')).toHaveCount(3); await page.locator('#logoutButton').click(); await expect(page.locator('#loginScreen')).toBeVisible(); expect(errors).toEqual([]);
 });
 
 for (const scenario of [

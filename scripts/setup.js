@@ -9,8 +9,9 @@ const store = new Store(path.resolve(process.env.DATA_FILE || path.join(__dirnam
 if (store.data.users.length) { console.error('Already initialized. Manage users from portal.html.'); process.exit(1); }
 const password = process.env.ADMIN_PASSWORD;
 if (!password || password.length < 12) { console.error('Set ADMIN_PASSWORD to at least 12 characters before running npm run setup. No default password is installed.'); process.exit(1); }
-const username = process.env.ADMIN_USERNAME || 'admin';
-if (!/^[a-zA-Z0-9_.-]{3,64}$/.test(username)) throw new Error('Invalid ADMIN_USERNAME');
+const { normalizeUsername, validUsername } = require('../lib/usernames');
+const username = normalizeUsername(process.env.ADMIN_USERNAME || 'admin');
+if (!validUsername(username)) throw new Error('Invalid ADMIN_USERNAME');
 store.change(d => {
   d.users.push({ id: crypto.randomUUID(), username, name: 'مدیر سامانه', role: 'admin', active: true, robotId: '', password: passwordHash(password) });
   if (process.argv.includes('--demo')) {

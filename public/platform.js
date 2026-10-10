@@ -114,7 +114,7 @@ const Platform = (() => {
     closeSocket();
     if (!token || backendState !== 'ready') return;
     const current = io(base || location.origin, { auth: { token }, transports: ['websocket', 'polling'], reconnection: true }); socket = current;
-    for (const event of ['robots', 'visit', 'directory:changed', 'robot:changed', 'control:lease', 'control:revoked', 'session:ended', 'expert:message', 'expert:call', 'expert:signal', 'organization:reset']) current.on(event, v => { if (socket === current) emit(event, v); });
+    for (const event of ['robots', 'visit', 'directory:changed', 'robot:changed', 'control:lease', 'control:revoked', 'session:ended', 'expert:message', 'expert:call', 'expert:signal', 'organization:reset', 'organization:profile-updated']) current.on(event, v => { if (socket === current) emit(event, v); });
     current.on('connect', () => { if (socket === current) emit('connected'); });
     current.on('disconnect', reason => { if (socket !== current) return; emit('disconnected'); if (reason === 'io server disconnect') { clear(); emit('expired'); } });
     current.on('connect_error', e => { if (socket === current) emit('connection:error', e.message); });
