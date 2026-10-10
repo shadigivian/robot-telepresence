@@ -8,6 +8,7 @@ const Platform = (() => {
   // Some private or embedded browsers deny storage. The current tab can still
   // authenticate; only restoring its session after a reload is unavailable.
   let token = '', user = null, socket = null;
+  let verifiedBase = null;
   function loadToken() {
     if (tokenLoaded) return;
     tokenLoaded = true;
@@ -48,7 +49,14 @@ const Platform = (() => {
         const registryUrl = new URL(discoveryUrl);
         if (registryUrl.protocol !== 'https:' || registryUrl.username || registryUrl.password) throw new Error('آدرس دریافت سرور معتبر نیست.');
         registryUrl.searchParams.set('_', String(Date.now()));
-        candidate = discoveredBase(await fetchJSON(registryUrl.href));
+        try { candidate = discoveredBase(await fetchJSON(registryUrl.href)); }
+        catch (error) {
+          // Discovery is not the application server. A failed registry read
+          // must not terminate a working session; recheck the last verified
+          // server anonymously instead. Never fall back to an unverified host.
+          if (!base || verifiedBase !== base) throw error;
+          candidate = base;
+        }
       }
       if (candidate !== base) {
         // Remove the old host's token before selecting a new host. A moving
@@ -59,6 +67,7 @@ const Platform = (() => {
       }
       const health = await fetchJSON(candidate + '/api/health');
       if (health?.ok !== true || health.version !== 2) throw new Error('سرور سازگار در دسترس نیست.');
+      verifiedBase = candidate;
       loadToken();
       setBackendState('ready');
       if (user && token && !socket) connectSocket();
