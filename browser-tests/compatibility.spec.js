@@ -184,6 +184,23 @@ test('Discovery checks health before login and invalidates auth when the tunnel 
   expect(errors).toEqual([]);
 });
 
+test('A registry outage preserves a healthy verified server and still locks an unavailable backend', async ({ page }) => {
+  const fixture = await discoveryFixture(page);
+  await page.goto('/user.html'); await expect.poll(() => page.evaluate(() => Platform.connection.state)).toBe('ready');
+  await login(page, 'operator'); await expect(page.locator('#joinForm')).toBeVisible();
+  await page.route('https://registry.test/connection.json*', route => route.fulfill({ status: 503, body: 'Unavailable' }));
+  await page.evaluate(() => Platform.refreshBackend());
+  expect(await page.evaluate(() => Platform.user?.role)).toBe('operator');
+  expect(await page.evaluate(() => Platform.connected)).toBe(true);
+  await expect(page.locator('#userAuth')).toBeHidden();
+  expect(fixture.requests.every(r => new URL(r.url).hostname === 'first-test.lhr.life')).toBe(true);
+  fixture.healthVersion(1);
+  expect(await page.evaluate(() => Platform.refreshBackend().then(() => false, () => true))).toBe(true);
+  expect(await page.evaluate(() => Platform.connected)).toBe(false);
+  fixture.healthVersion(2); await page.evaluate(() => Platform.refreshBackend());
+  expect(await page.evaluate(() => Platform.connected)).toBe(true);
+});
+
 test('Discovery refuses invalid registries and incompatible health without sending login credentials', async ({ page }) => {
   const fixture = await discoveryFixture(page);
   fixture.registry({ version: 1, apiBase: 'https://attacker.test' });
