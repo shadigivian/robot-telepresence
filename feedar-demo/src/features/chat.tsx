@@ -1,0 +1,16 @@
+import { useEffect, useRef, useState } from 'react';
+import { Send } from 'lucide-react';
+import { useDemo } from '../app/context';
+import { Badge, Button, Card } from '../components/ui';
+import type { Session } from '../domain/models';
+
+export function ChatPanel({session}:{session?:Session}){
+ const {db,actor,act,role}=useDemo();const [channel,setChannel]=useState<'admin'|'robot'>('admin');const [text,setText]=useState('');const [failed,setFailed]=useState(false);const log=useRef<HTMLDivElement>(null);
+ const sessionMessages=db.messages.filter(m=>m.sessionId===session?.id);
+ const messages=sessionMessages.filter(m=>m.channel===channel);
+ const unreadFor=(name:string)=>sessionMessages.filter(m=>m.channel===name&&m.status==='delivered'&&!m.readBy.includes(actor?.userId??'')).length;
+ const unread=unreadFor(channel);
+ useEffect(()=>{if(log.current)log.current.scrollTop=log.current.scrollHeight;},[messages.length]);
+ useEffect(()=>{if(unread&&session&&actor)void act('chat.read',{sessionId:session.id,channel});},[unread,session?.id,channel,actor?.userId,act]);
+ return <Card className="chat-panel"><div className="row between"><h3>{channel==='admin'?'Admin chat':'Robot chat'}</h3><Badge tone="info">Same browser</Badge></div><div className="chat-tabs">{(['admin','robot'] as const).map(name=><Button className={channel===name?'primary':''} onClick={()=>setChannel(name)} key={name}>User ↔ {name==='admin'?'Admin':'Robot'}{unreadFor(name)>0&&<Badge>{unreadFor(name)}</Badge>}</Button>)}</div><div className="chat-log" ref={log} role="log" aria-live="polite">{messages.length===0?<p className="muted">{session?'Start a local conversation. Robot replies use approved organization knowledge.':'Join a session to open chat.'}</p>:messages.map(m=><div key={m.id} className={`chat-message ${m.userId===actor?.userId?'mine':''}`}><small>{m.simulated?'Demo assistant':db.users.find(u=>u.id===m.userId)?.name??(role==='USER'?'Admin':'User')} · {new Date(m.createdAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</small><div className="chat-bubble">{m.text}</div><small>{m.simulated?'Simulated reply · ':''}{m.status}{m.readBy.some(id=>id!==m.userId)?' · Read locally':''}{m.status==='failed'&&<button className="text-link" onClick={()=>void act('chat.retry',{id:m.id})}>Retry local delivery</button>}</small></div>)}</div><form className="chat-form" onSubmit={async e=>{e.preventDefault();if(!session||!text.trim())return;await act('chat.send',{sessionId:session.id,channel,text:text.trim(),simulateFailure:failed});setText('');}}><input aria-label="Chat message" placeholder="Write a demo message…" value={text} maxLength={2000} disabled={!session||session.status!=='connected'||!session.capabilities.includes('chat')} onChange={e=>setText(e.target.value)}/><Button type="submit" variant="primary" aria-label="Send chat message" disabled={!session||session.status!=='connected'}><Send size={17}/></Button></form><label className="check" style={{fontSize:10}}><input type="checkbox" checked={failed} onChange={e=>setFailed(e.target.checked)}/> Simulate failed local delivery</label><p className="muted" style={{fontSize:10}}>Messages stay in this browser’s demo datastore. No internet messaging service is connected.</p></Card>;
+}

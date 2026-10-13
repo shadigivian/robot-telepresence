@@ -1,0 +1,35 @@
+name: Verify Feedar browser demo
+on:
+  pull_request:
+    paths: ['feedar-demo/**', '.github/workflows/feedar-*.yml']
+  push:
+    paths: ['feedar-demo/**', '.github/workflows/feedar-*.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: feedar-demo
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: feedar-demo/package-lock.json
+      - run: npm install --global npm@11.21.0
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run test:static
+      - run: npm run build
+      - name: Verify project site base
+        run: npm run build
+        env:
+          VITE_BASE_PATH: /base-check/

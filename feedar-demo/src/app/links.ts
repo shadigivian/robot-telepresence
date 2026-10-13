@@ -1,0 +1,2 @@
+export function demoLink(path:string){const base=new URL(import.meta.env.BASE_URL,window.location.origin);base.hash=path.startsWith('/')?path:`/${path}`;return base.href;}
+export async function copyText(text:string){if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return;}const el=document.createElement('textarea');el.value=text;document.body.appendChild(el);el.select();const result=document.execCommand('copy');el.remove();if(!result)throw new Error('Clipboard unavailable. Select and copy the visible link.');}

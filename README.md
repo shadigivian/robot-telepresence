@@ -151,3 +151,15 @@ Organization files accept PNG/JPEG/WebP logo, JSON information with optional val
 Expert chat is persistent and private to its participants. Expert video uses authenticated Socket signaling and browser WebRTC with configured TURN. Robot calls use a parent-session-bound, call-only guest token handed to a same-origin iframe; they show video and one hangup button and never grant motor control. Manual driving remains on `user.html` with its existing safety controls.
 
 Run `npm run test:organization` for browser setup/upload/chat/video checks. See [permanent hosting instructions](docs/hosting.md) and `render.yaml` for the account/deployment steps. A temporary laptop tunnel cannot meet an always-available hosting requirement.
+
+## Feedar Cloud browser demonstration
+
+A separate React/TypeScript application in [feedar-demo](feedar-demo/README.md) implements the dark Feedar Cloud prototype with browser-local organizations, memberships, invitations, fleet, maps, chat, simulated sessions/control, and a public robot kiosk. Use Node 24 LTS:
+
+```powershell
+cd feedar-demo
+npm ci
+npm run dev
+```
+
+The legacy backend, real media and hardware application described above remain separate. The Feedar demo calls no backend or motor/serial APIs. Its [feature checklist](feedar-demo/docs/FEATURE_CHECKLIST.md) records functionality, verification and limitations; [deployment instructions](feedar-demo/docs/DEPLOYMENT.md) explain the prepared CI and GitHub Pages workflows. No new deployment has been activated.

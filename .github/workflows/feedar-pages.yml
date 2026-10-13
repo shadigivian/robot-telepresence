@@ -1,0 +1,63 @@
+name: Deploy Feedar demo to GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths: ['feedar-demo/**', '.github/workflows/feedar-pages.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: feedar-pages
+  cancel-in-progress: false
+jobs:
+  verify-and-build:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: feedar-demo
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: feedar-demo/package-lock.json
+      - run: npm install --global npm@11.21.0
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run test:static
+      - name: Determine Pages asset base
+        shell: bash
+        env:
+          BASE_OVERRIDE: ${{ vars.FEEDAR_BASE_PATH }}
+        run: |
+          repo="${GITHUB_REPOSITORY#*/}"
+          if [ -n "$BASE_OVERRIDE" ]; then
+            base="$BASE_OVERRIDE"
+          elif [[ "$repo" == *.github.io ]]; then
+            base="/"
+          else
+            base="/$repo/"
+          fi
+          echo "VITE_BASE_PATH=$base" >> "$GITHUB_ENV"
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: feedar-demo/dist
+  deploy:
+    needs: verify-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+        id: deployment
