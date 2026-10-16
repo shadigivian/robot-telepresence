@@ -1,0 +1,7 @@
+# Role and tenant audit
+
+`src/domain/permissions.ts:5-91` defines BOSS, OWNER, ADMIN, USER and GUEST evaluation. Robot-device behavior is simulated separately; it is not a server principal. BOSS can scope globally; Owner manages one organization; Admin is restricted on organization/knowledge actions; User sees assigned robots. `scoped()` filters org-bearing arrays and then User-owned sessions, grants and audit rows.
+
+Browser lifecycle `e2e/deep-audit.spec.ts:11-45`: Boss creates Feedar Smart Hospital and invites Ali Ahmadi; Ali accepts, refreshes, logs out and signs in; he invites Admin; Admin accepts/signs in and invites User; User accepts/signs in, sees no assigned robot and is denied a foreign robot route; Ali suspends Admin; subsequent Admin login reports suspension. Unit `src/test/domain.test.ts:42` verifies active session, lease and simulated motion revocation. Existing management/browser tests cover assignment, restricted admin actions, wrong-recipient invitation, foreign route and reset.
+
+Negative provider tests found and fixed FDR-01/02. Local storage is shared by tabs but session identity is per tab (`src/app/context.tsx:25,45-60`). This makes role enforcement demonstrable only inside honest application code. Forging IndexedDB/browser JavaScript bypasses it; there is no production authentication boundary. Browser restart, eight-hour expiration, high-volume concurrent tab conflicts and every resource family were not exhaustively tested.

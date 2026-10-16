@@ -1,7 +1,9 @@
+import { signInDemo } from './helpers/demo-login';
 import { expect, test, type Page } from '@playwright/test';
+import type { Database } from '../src/domain/models';
 
 async function persona(page:Page,name:string){
-  await page.getByRole('complementary',{name:'Demo preview'}).getByRole('button',{name,exact:true}).click();
+  await signInDemo(page,name);
   await expect(page.locator('.demo-banner')).toBeVisible();
 }
 async function openRoute(page:Page,path:string){await page.goto(`./#${path}`);await expect(page.locator('.demo-banner')).toBeVisible();}
@@ -23,6 +25,17 @@ async function acceptRecipient(page:Page,email:string,name:string){
   await page.getByRole('button',{name:'Accept as fictitious recipient'}).click();
   await page.waitForURL('**/#/settings');
 }
+async function returnAsMember(page:Page,email:string){
+  await page.getByRole('button',{name:'Open profile'}).click();
+  await page.getByRole('dialog',{name:'Demo profile'}).getByRole('button',{name:'Sign out'}).click();
+  await expect(page.getByRole('heading',{name:'Demo member sign in'})).toBeVisible();
+  await page.getByLabel('Email / username').fill(email);
+  await page.getByLabel('Public demo password').fill('123456');
+  await page.getByRole('button',{name:'Sign in',exact:true}).click();
+  await page.getByLabel('Demo MFA code').fill('123456');
+  await page.getByRole('button',{name:'Enter workspace'}).click();
+  await expect(page.getByRole('button',{name:'Open profile'})).toBeVisible();
+}
 
 test.beforeEach(async({page})=>{await page.goto('./');await expect(page.getByRole('link',{name:'Enter Feedar Cloud'})).toBeVisible();});
 
@@ -36,6 +49,7 @@ test('Boss creates organization and recipient accepts Owner onboarding',async({p
   await dialog.getByLabel('Country',{exact:true}).fill('Türkiye');
   await dialog.getByLabel('Owner name',{exact:true}).fill('Demo Clinic Owner');
   await dialog.getByLabel('Owner demo email').fill('owner@e2eclinic.example');
+  await dialog.getByLabel('Organization phone number').fill('09123456789');
   await dialog.getByRole('button',{name:'Create organization & Owner invitation'}).click();
   await expect(page.getByRole('heading',{name:'E2E Clinic',exact:true})).toBeVisible();
   await page.getByRole('link',{name:'Preview acceptance'}).click();
@@ -47,12 +61,18 @@ test('Boss creates organization and recipient accepts Owner onboarding',async({p
   await expect(page.getByRole('link',{name:'Organizations',exact:true})).toHaveCount(0);
   await page.reload();
   await expect(page.getByLabel('Organization name',{exact:true})).toHaveValue('E2E Clinic');
+  await returnAsMember(page,'owner@e2eclinic.example');
+  await openRoute(page,'/settings');
+  await expect(page.getByLabel('Organization name',{exact:true})).toHaveValue('E2E Clinic');
+  await openRoute(page,'/organizations/org-airport');
+  await expect(page.getByRole('heading',{name:'Organization unavailable'})).toBeVisible();
 });
 
 test('Owner invites Admin; Admin cannot mutate existing Admin rows or invite privileged roles',async({page})=>{
   await persona(page,'Org');await openRoute(page,'/members');
   await invite(page,'new.admin@futurehealth.example','ADMIN');
   await acceptRecipient(page,'new.admin@futurehealth.example','Demo New Admin');
+  await returnAsMember(page,'new.admin@futurehealth.example');
   await openRoute(page,'/members');
   const existingAdmin=page.getByRole('row').filter({hasText:'Sara Williams'});
   await expect(existingAdmin).toContainText('View only');
@@ -68,6 +88,7 @@ test('Admin invites User assigned Nola; User cannot open another tenant robot',a
   await persona(page,'Admin');await openRoute(page,'/members');
   await invite(page,'new.user@futurehealth.example','USER','robot-7');
   await acceptRecipient(page,'new.user@futurehealth.example','Demo Assigned User');
+  await returnAsMember(page,'new.user@futurehealth.example');
   await openRoute(page,'/remote');
   await expect(page.getByRole('heading',{name:/^Nola/})).toBeVisible();
   await expect(page.getByRole('link',{name:'Members',exact:true})).toHaveCount(0);
@@ -89,6 +110,7 @@ test('POI and branding changes persist and reset restores deterministic fixtures
   await openRoute(page,'/settings');
   await page.getByLabel('Robot welcome text').fill('Welcome to the local E2E demonstration.');
   await page.getByRole('button',{name:'Save organization settings'}).click();
+  await expect(page.getByRole('status').filter({hasText:'Saved. Workspace'})).toBeVisible();
   await page.reload();
   await expect(page.getByLabel('Robot welcome text')).toHaveValue('Welcome to the local E2E demonstration.');
   await page.goto('./#/o/future-health');
@@ -126,6 +148,7 @@ test('Profile drafts survive simulator ticks and save their values',async({page}
   await page.waitForTimeout(700);
   await expect(city).toHaveValue('Demo Draft City');
   await page.getByRole('button',{name:'Save profile details'}).click();
+  await expect.poll(async()=>page.evaluate(async()=>{const path=new URL('src/app/context.tsx',window.location.href.split('#')[0]).pathname;const module=await import(path);const db=await module.store.read() as Database;return db.organizations.find(o=>o.id==='org-hospital')?.city;})).toBe('Demo Draft City');
   await page.reload();
   await expect(page.getByLabel('City',{exact:true})).toHaveValue('Demo Draft City');
 });

@@ -73,6 +73,7 @@ test('Actual local WebRTC call, authenticated movement, local takeover, and inde
   await expect(robot.locator('#netStatus')).toContainText('Online', { timeout: 15000 });
   await expect(robot.locator('#boardStatus')).toContainText('Arduino connected');
   await user.goto('/user.html'); await login(user, 'operator');
+  await expect(user.locator('#robotSelect option[value="RB-TEST01"]')).toContainText('آنلاین');
   await user.locator('#robotSelect').selectOption('RB-TEST01'); await user.locator('#checkMedia').click(); await user.locator('#joinBtn').click();
   await expect(user.locator('#call')).toBeVisible(); await expect(user.locator('#videoHealth')).toHaveText('تصویر زنده', { timeout: 20000 });
   await expect(user.locator('#dpad [data-cmd=F]')).toBeDisabled();

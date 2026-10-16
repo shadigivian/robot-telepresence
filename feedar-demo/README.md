@@ -16,14 +16,16 @@ Open the local URL printed by Vite, normally `http://127.0.0.1:5173/`. The packa
 
 ## Fictitious accounts
 
-Public demo password for every listed identity: **`FeedarDemo!42`**. Public demo MFA code: **`123456`**. The login screen offers account buttons. Never enter a real password or private information.
+Public demo password for every listed identity: **`123456`**. Public demo MFA code: **`123456`**. The demo login requires manually entering a fictitious account. Never enter a real password or private information.
 
 - Boss: `boss@feedar.example` — platform-wide tenant operations.
 - Organization Owner: `owner@futurehealth.example` — Future Health Hospital administration.
 - Admin: `admin@futurehealth.example` — ordinary User/robot/session operations in Future Health.
 - User: `user@futurehealth.example` — assigned robots and authorized sessions.
 
-Identity is tab-scoped and expires after eight hours/logout. The floating **Demo preview** switcher deliberately impersonates fictitious personas; it is not production authentication. Separate tabs can demonstrate Admin/User cooperation using same-browser records. Public robot kiosk routes carry no management login data.
+Identity is tab-scoped and expires after eight hours/logout. Local demo sign-in uses fictitious credentials and is not production authentication. Separate tabs can demonstrate Admin/User cooperation using same-browser records. Public robot kiosk routes carry no management login data.
+
+After accepting a local Owner, Admin, or User invitation, return through **Demo member sign in** with the invited `.example` email and the same public demo password above. The membership is retained only in the browser profile and origin where it was accepted. This workflow does not verify a person's identity; do not use real credentials or personal data.
 
 ## Explore
 

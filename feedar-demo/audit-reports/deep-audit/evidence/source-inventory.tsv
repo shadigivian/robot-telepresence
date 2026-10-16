@@ -1,0 +1,156 @@
+path	type	bytes	lines
+.dockerignore	text	75	8
+.env.example	text	1189	23
+.github/workflows/ci.yml	text	1369	48
+.github/workflows/feedar-ci.yml	text	1051	35
+.github/workflows/feedar-pages.yml	text	1957	63
+.gitignore	text	80	8
+AGENTS.md	text	616	7
+Dockerfile	text	427	11
+README.md	text	23433	165
+arduino/robot_controller_uno/robot_controller_uno.ino	text	4104	135
+browser-tests/compatibility.spec.js	text	15109	248
+browser-tests/organization.spec.js	text	12333	104
+browser-tests/product.spec.js	text	14121	199
+browser-tests/server.js	text	1277	18
+browser-tests/workspaces.spec.js	text	40641	565
+deploy-github.bat	text	293	7
+deploy.js	text	7710	141
+docs/arduino-uno-wiring.png	binary	297619	
+docs/hosting.md	text	3452	16
+esp32/robot_controller/robot_controller.ino	text	3588	127
+examples/directory.json	text	1774	17
+feedar-demo/.env.example	text	86	2
+feedar-demo/.gitignore	text	177	11
+feedar-demo/.nvmrc	text	3	1
+feedar-demo/AGENTS.md	text	1866	13
+feedar-demo/README.md	text	6416	78
+feedar-demo/docs/API_CONTRACTS.md	text	4841	33
+feedar-demo/docs/ARCHITECTURE.md	text	4383	48
+feedar-demo/docs/DEPLOYMENT.md	text	4707	76
+feedar-demo/docs/FEATURE_CHECKLIST.md	text	17041	145
+feedar-demo/docs/HARDWARE_AND_SAFETY.md	text	4414	35
+feedar-demo/docs/PERMISSIONS.md	text	4214	27
+feedar-demo/docs/PRODUCTION_ROADMAP.md	text	3629	29
+feedar-demo/docs/VERIFICATION.md	text	3035	39
+feedar-demo/docs/WORKFLOWS.md	text	6036	90
+feedar-demo/docs/screenshots/admin-desktop.png	binary	593495	
+feedar-demo/docs/screenshots/boss-desktop.png	binary	389155	
+feedar-demo/docs/screenshots/login-desktop.png	binary	349907	
+feedar-demo/docs/screenshots/mobile-kiosk.png	binary	239126	
+feedar-demo/docs/screenshots/mobile-operations.png	binary	382163	
+feedar-demo/docs/screenshots/org-desktop.png	binary	291468	
+feedar-demo/docs/screenshots/robot-desktop.png	binary	457737	
+feedar-demo/docs/screenshots/surface-landscape-kiosk.png	binary	445928	
+feedar-demo/docs/screenshots/surface-landscape-operations.png	binary	611787	
+feedar-demo/docs/screenshots/surface-portrait-kiosk.png	binary	377976	
+feedar-demo/docs/screenshots/surface-portrait-operations.png	binary	541710	
+feedar-demo/docs/screenshots/user-desktop.png	binary	535177	
+feedar-demo/docs/screenshots/welcome-desktop.png	binary	302003	
+feedar-demo/e2e/management.spec.ts	text	10687	162
+feedar-demo/e2e/session.spec.ts	text	8876	41
+feedar-demo/eslint.config.js	text	1064	8
+feedar-demo/index.html	text	417	2
+feedar-demo/package-lock.json	text	152981	3823
+feedar-demo/package.json	text	2068	48
+feedar-demo/playwright.config.ts	text	693	9
+feedar-demo/scripts/verify-static.mjs	text	2733	27
+feedar-demo/src/app/App.tsx	text	13009	69
+feedar-demo/src/app/context.tsx	text	8177	65
+feedar-demo/src/app/links.ts	text	544	2
+feedar-demo/src/components/FloorMap.tsx	text	5851	63
+feedar-demo/src/components/ui.tsx	text	2583	16
+feedar-demo/src/data/seed.ts	text	7043	32
+feedar-demo/src/domain/assistant.ts	text	4527	24
+feedar-demo/src/domain/models.ts	text	7838	40
+feedar-demo/src/domain/permissions.ts	text	7028	68
+feedar-demo/src/features/auth.tsx	text	7853	53
+feedar-demo/src/features/chat.tsx	text	3256	16
+feedar-demo/src/features/csv.ts	text	260	6
+feedar-demo/src/features/fleet.css	text	18461	2
+feedar-demo/src/features/fleet.tsx	text	25074	142
+feedar-demo/src/features/kiosk.tsx	text	20623	95
+feedar-demo/src/features/knowledge.tsx	text	8065	45
+feedar-demo/src/features/links.tsx	text	9596	30
+feedar-demo/src/features/management.tsx	text	50796	124
+feedar-demo/src/features/maps.tsx	text	15429	91
+feedar-demo/src/features/session.tsx	text	18743	41
+feedar-demo/src/main.tsx	text	353	8
+feedar-demo/src/services/contracts/index.ts	text	1274	17
+feedar-demo/src/services/demo/assistant.ts	text	541	10
+feedar-demo/src/services/demo/media.ts	text	1874	26
+feedar-demo/src/services/demo/service.ts	text	53653	347
+feedar-demo/src/services/demo/store.ts	text	10124	111
+feedar-demo/src/simulator/controller.ts	text	8988	84
+feedar-demo/src/styles/global.css	text	24897	11
+feedar-demo/src/styles/management.css	text	3497	2
+feedar-demo/src/test/csv.test.ts	text	779	16
+feedar-demo/src/test/domain.test.ts	text	26242	78
+feedar-demo/src/test/media.test.ts	text	1153	18
+feedar-demo/src/test/public-assistant.test.ts	text	2998	54
+feedar-demo/tsconfig.json	text	414	10
+feedar-demo/vite.config.ts	text	418	12
+feedar-demo/vitest.config.ts	text	141	2
+lib/domain.js	text	6383	87
+lib/env.js	text	2142	53
+lib/local-control.js	text	1903	37
+lib/organization.js	text	15882	182
+lib/publish-connection.js	text	5812	112
+lib/retry-loop.js	text	1929	64
+lib/service.js	text	31656	379
+lib/store.js	text	2112	46
+lib/tunnel.js	text	1572	40
+lib/usernames.js	text	315	6
+lib/workspaces.js	text	2589	60
+package-lock.json	text	56785	1596
+package.json	text	1016	27
+playwright.compat.config.js	text	911	29
+playwright.config.js	text	689	6
+playwright.organization.config.js	text	181	3
+public/admin.css	text	18860	161
+public/admin.html	text	20530	58
+public/admin.js	text	42800	433
+public/common.js	text	7276	206
+public/config.js	text	2252	47
+public/connection.js	text	1725	36
+public/feedar-logo.png	binary	568540	
+public/index.html	text	2734	49
+public/minimal-call.css	text	576	4
+public/organization-example.json	text	5973	105
+public/platform.js	text	12168	178
+public/portal.css	text	14640	5
+public/portal.html	text	12691	28
+public/portal.js	text	26193	219
+public/product.css	text	4944	73
+public/robot-avatar.svg	text	3930	13
+public/robot.html	text	12997	200
+public/robot.js	text	35957	930
+public/safety.js	text	1705	27
+public/style.css	text	4912	137
+public/user.html	text	11220	211
+public/user.js	text	32289	740
+public/vendor/README.md	text	1309	9
+public/vendor/peerjs.min.js	text	93004	8
+public/vendor/qrcode.LICENSE	text	1071	21
+public/vendor/qrcode.README.txt	text	228	4
+public/vendor/qrcode.js	text	56694	2297
+public/vendor/socket.io.min.js	text	46831	7
+public/welcome.js	text	16198	206
+render.yaml	text	536	21
+scripts/check.js	text	720	17
+scripts/setup.js	text	1658	22
+scripts/start-robot.ps1	text	14082	247
+scripts/test-compat.js	text	1110	28
+scripts/test-turn.js	text	8510	165
+server.js	text	12217	269
+start-robot.bat	text	218	7
+start-user.bat	text	208	7
+tests/domain.test.js	text	3567	52
+tests/env.test.js	text	3443	76
+tests/local-control.test.js	text	6714	149
+tests/organization.test.js	text	8267	90
+tests/publish-connection.test.js	text	9443	163
+tests/retry-loop.test.js	text	3897	103
+tests/service.test.js	text	8822	101
+tests/tunnel.test.js	text	1956	29
+tests/workspaces.test.js	text	18245	225

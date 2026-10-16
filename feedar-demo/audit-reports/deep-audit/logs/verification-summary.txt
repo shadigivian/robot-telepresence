@@ -1,0 +1,17 @@
+Audit date: 2026-10-13 (Asia/Tehran)
+Branch: feedar-demo
+HEAD: b8737711c6d1d8b216a852edb7373685d1afebc1
+Feedar npm ci: pass, 197 packages
+Feedar npm run typecheck: pass
+Feedar npm run lint: pass
+Feedar npm test: 61 passed, 0 failed, 0 skipped
+Feedar npm run build: pass
+Feedar PLAYWRIGHT_CHANNEL=chrome npm run test:static: root and /base-check/ pass
+Feedar PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- --workers=1: 15 passed, 0 failed, 0 skipped
+Legacy npm ci: pass, 134 packages
+Legacy npm run check: pass
+Legacy npm test: 46 passed, 0 failed, 0 skipped
+Legacy npx playwright test --config=/private/tmp/vares-legacy-playwright.cjs: 24 passed, 0 failed, 0 skipped
+npm audit --json: 0 advisories in both package trees
+Plain npm run test:static without Chrome channel: failed to launch missing bundled Chromium; Chrome rerun passed
+Firefox/WebKit/Node 24/physical hardware/live VPS: not tested

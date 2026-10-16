@@ -5,6 +5,7 @@ import { Activity, ArrowRight, Battery, Bot, Check, CheckCircle2, Clock, Plus, R
 import { useDemo } from '../app/context'
 import { Badge, Button, Card, Empty, Field, Modal, PageTitle } from '../components/ui'
 import { FloorMap } from '../components/FloorMap'
+import { QrIdentifierScanner } from '../components/QrIdentifierScanner'
 import type { Robot } from '../domain/models'
 import { can } from '../domain/permissions'
 import './fleet.css'
@@ -78,7 +79,6 @@ function RobotWizard({ onClose }: { onClose: () => void }) {
   const [id, setId] = useState<string>()
   const [orgId, setOrgId] = useState(organization?.id ?? db.organizations.find(o => o.status === 'active')?.id ?? '')
   const [floorId, setFloorId] = useState(db.floors.find(f => f.organizationId === orgId)?.id ?? '')
-  const [name, setName] = useState('')
   const [serial, setSerial] = useState('')
   const [deviceId, setDeviceId] = useState('')
   const [code, setCode] = useState('')
@@ -91,18 +91,18 @@ function RobotWizard({ onClose }: { onClose: () => void }) {
     <p className="muted">Pairing and connection tests are simulated. No real device credentials or hardware access are created.</p>
     <form onSubmit={event => { event.preventDefault(); void run(async () => {
       if (step === 0) setStep(1)
-      else if (step === 1) { const created = await act('robot.create', { organizationId: orgId, floorId, locationId: db.floors.find(f => f.id === floorId)?.locationId, name, serial, deviceId }); if (created) { setId(created); setStep(2) } }
+      else if (step === 1) { const created = await act('registry.pair', { organizationId: orgId, floorId, identifier: deviceId, serial }); if (created) { setId(created); setStep(2) } }
       else if (step === 2 && id) { await act('robot.pair', { id, robotId: id, code, organizationId: orgId }); }
       else if (step === 3 && id) { const checked = await act('robot.test', { id }); if (checked) setTested(true) }
       else if (step === 4 && id) { let saved = true; for (const userId of assigned) if (!await act('robot.assign', { id, robotId: id, userId, capabilities: ['video', 'chat', 'screen', 'control'] })) saved = false; if (saved) setStep(5) }
       else if (step === 5 && id) { const activated = await act('robot.activate', { id }); if (activated) { notify('Demo robot activated. Open details to inspect simulated telemetry.'); onClose() } }
     }) }}>
       {step === 0 && <div className="form-grid"><Field label="Organization"><select required disabled={!!organization} value={orgId} onChange={e => { setOrgId(e.target.value); setFloorId(db.floors.find(f => f.organizationId === e.target.value)?.id ?? '') }}>{db.organizations.filter(o => o.status === 'active').map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></Field><Field label="Branch / floor"><select required value={floorId} onChange={e => setFloorId(e.target.value)}><option value="">Select a floor</option>{db.floors.filter(f => f.organizationId === orgId).map(f => <option key={f.id} value={f.id}>{db.locations.find(l => l.id === f.locationId)?.name} / {f.name}</option>)}</select></Field></div>}
-      {step === 1 && <div className="stack"><Field label="Robot name"><input required maxLength={60} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Nola" /></Field><div className="form-grid"><Field label="Serial / fleet label"><input required maxLength={60} value={serial} onChange={e => setSerial(e.target.value)} placeholder="R-11" /></Field><Field label="Demo device identifier"><input required pattern="[A-Za-z0-9_-]{3,80}" value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="FD-DEMO-0011" /></Field></div></div>}
+      {step === 1 && <div className="stack"><Field label="Robot name"><input readOnly value={db.registeredRobots.find(r=>r.identifier===deviceId.toUpperCase())?.name??'Robot'} placeholder="Set by Boss registry" /></Field><div className="form-grid"><Field label="Serial / fleet label"><input required maxLength={60} value={serial} onChange={e => setSerial(e.target.value)} placeholder="R-11" /></Field><Field label="Boss-registered device identifier"><input required pattern="[A-Za-z0-9_-]{3,80}" value={deviceId} onChange={e => setDeviceId(e.target.value)} placeholder="FD-DEMO-0011" /></Field><QrIdentifierScanner onScan={setDeviceId}/></div></div>}
       {step === 2 && <div className="stack"><div className="pairing-card"><PairingQr code={robot?.pairingCode} organizationId={orgId} /><Smartphone size={36} /><div><span className="kicker">Simulated pairing code</span><strong>{robot?.pairingCode ?? 'Generating…'}</strong><small>Expires {robot?.pairingExpiresAt ? new Date(robot.pairingExpiresAt).toLocaleTimeString() : 'soon'} · organization bound</small></div></div><Field label="Enter code shown above"><input required value={code} onChange={e => setCode(e.target.value)} placeholder="Demo pairing code" /></Field><div className="row"><Badge>{robot?.pairing ?? 'pending'}</Badge>{robot?.pairing === 'paired' && <Button type="button" variant="primary" onClick={() => setStep(3)}>Continue to test <ArrowRight size={15} /></Button>}<Button type="button" onClick={() => id && void act('robot.rotate', { id })}>Regenerate code</Button></div><p className="muted">Wrong organization or expired codes are rejected by the demo provider.</p></div>}
       {step === 3 && <div className="test-connection"><Radio size={40} /><h3>{tested ? 'Demo connection checked' : 'Test simulated connection'}</h3><p className="muted">Surface, serial, heartbeat, and camera results are fixture states. No COM port is opened.</p>{tested && <><p><CheckCircle2 size={17} /> Simulated heartbeat received</p><Button type="button" onClick={() => setStep(4)} variant="primary">Continue to assignments</Button></>}</div>}
       {step === 4 && <div className="stack"><p>Assign ordinary users to this robot. Control still requires a separate session grant.</p>{db.memberships.filter(m => m.organizationId === orgId && m.role === 'USER' && m.status === 'active').map(m => <label className="check-row" key={m.id}><input type="checkbox" checked={assigned.includes(m.userId)} onChange={e => setAssigned(a => e.target.checked ? [...a, m.userId] : a.filter(id => id !== m.userId))} />{db.users.find(u => u.id === m.userId)?.name}</label>)}</div>}
-      {step === 5 && <div className="test-connection"><Bot size={48} /><h3>{name} is ready for the browser fleet</h3><p>Paired to {db.organizations.find(o => o.id === orgId)?.name}, {assigned.length} user assignments.</p><p className="muted">Activation starts at zero velocity. This is simulated hardware.</p></div>}
+      {step === 5 && <div className="test-connection"><Bot size={48} /><h3>{robot?.name??'Robot'} is ready for the browser fleet</h3><p>Paired to {db.organizations.find(o => o.id === orgId)?.name}, {assigned.length} user assignments.</p><p className="muted">Activation starts at zero velocity. This is simulated hardware.</p></div>}
       <div className="modal-actions">{step < 2 && step > 0 && <Button type="button" onClick={() => setStep(s => s - 1)}>Back</Button>}<Button type="button" onClick={onClose}>Close</Button>{!(step === 2 && robot?.pairing === 'paired') && !(step === 3 && tested) && <Button disabled={busy} type="submit" variant="primary">{busy ? 'Working…' : ['Next', 'Create demo device', 'Pair demo device', 'Run connection test', 'Save assignments', 'Activate robot'][step]}</Button>}</div>
     </form>
   </Modal>

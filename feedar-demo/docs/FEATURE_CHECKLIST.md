@@ -24,8 +24,8 @@ Modes: **local** means functional state persisted in this browser; **simulation*
 ## 4. Visual system/accessibility/responsiveness
 
 - Dark tokens, radial glows, glass panels, approximately 255 px sidebar/76 px header, four KPI cards, map/video split, lowercase mark, breadcrumbs/profile/Support/notifications: shared shell/styles.
-- Role-aware destinations and the labeled Demo preview switcher; standalone welcome/login and separate full-viewport kiosk: **local**. Persona switching explicitly impersonates demo identities.
-- Visible focus, semantic buttons/fields, native dialog focus, reduced motion, mobile/tablet/Surface adaptations and minimum primary control targets: CSS/UI. Kiosk fullscreen hides management/switcher chrome. English management UI; English/Persian/Turkish robot welcome/assistant with RTL infrastructure.
+- Role-aware destinations, standalone welcome/login and separate full-viewport kiosk: **local**. Demo identities require form sign-in.
+- Visible focus, semantic buttons/fields, native dialog focus, reduced motion, mobile/tablet/Surface adaptations and minimum primary control targets: CSS/UI. Kiosk fullscreen hides management chrome. English management UI; English/Persian/Turkish robot welcome/assistant with RTL infrastructure.
 - Browser screenshot coverage targets all seven persona screens plus Surface landscape/portrait/mobile. Missing source images prevent pixel-reference comparison.
 
 ## 5. Domain and authorization
@@ -36,7 +36,7 @@ Modes: **local** means functional state persisted in this browser; **simulation*
 
 ## 6. Welcome/login/onboarding
 
-- Welcome mark/tagline/entry; Boss login email/password/visibility, validation/loading, public demo account buttons, MFA code, forgot-reset message, invalid credentials/suspended/expired/logout handling: `features/auth` (**local/simulation**).
+- Welcome mark/tagline/entry; local demo login email/password/visibility, validation/loading, MFA code, invalid credentials/suspended/expired/logout handling: `features/auth` (**local/simulation**). Sample account buttons and the demo switcher have been removed.
 - No arbitrary password persistence. .example identities and public password/MFA documented in README.
 - Boss create profile/Owner → invitation preview → explicit fictitious recipient acceptance → settings → Admin/User/robot/map/knowledge workflow: management/links/provider (**local**). Secure login/MFA/email are **external**.
 
@@ -139,3 +139,7 @@ Modes: **local** means functional state persisted in this browser; **simulation*
 
 - README and concise package AGENTS; this checklist plus Workflows/Mermaid, Architecture, Permissions, API Contracts, Hardware/Safety, Deployment, Production Roadmap documentation.
 - Handoff must list implementation, fictitious accounts, commands, observed results/changed paths, missing references, browser-local/simulated/external boundaries, remaining limitations and reviewable deployment steps. Do not silently equate simulated operation with hardware readiness.
+
+## 2026-10-13 audit execution
+
+On the available Node 26.5.1/npm 11.17.0 environment, `npm ci`, typecheck, lint, 58 unit tests, build, and static root/base-path checks passed. The final installed-Chrome Playwright run passed 13/13 tests with one worker. Screenshots from that run are retained in `audit-reports/screenshots/`. The bundled Playwright browser download was blocked by a regional CDN 403; Firefox/WebKit and the requested 1920×1080, 1440×900, 768×1024 viewport profiles were not run. See `audit-reports/TEST_RESULTS.md` for the exact scope and intermediate failures. No physical hardware was tested.

@@ -1,0 +1,14 @@
+ M browser-tests/product.spec.js
+ M feedar-demo/README.md
+ M feedar-demo/docs/FEATURE_CHECKLIST.md
+ M feedar-demo/e2e/management.spec.ts
+ M feedar-demo/e2e/session.spec.ts
+ M feedar-demo/scripts/verify-static.mjs
+ M feedar-demo/src/app/context.tsx
+ M feedar-demo/src/components/ui.tsx
+ M feedar-demo/src/features/auth.tsx
+ M feedar-demo/src/features/management.tsx
+ M feedar-demo/src/services/demo/service.ts
+ M feedar-demo/src/test/domain.test.ts
+?? feedar-demo/audit-reports/
+?? feedar-demo/e2e/deep-audit.spec.ts

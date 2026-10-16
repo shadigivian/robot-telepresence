@@ -7,6 +7,6 @@ export default defineConfig({
   base,
   plugins: [tailwindcss()],
   build: { target: 'es2022' },
-  server: { port: 5173, strictPort: true },
+  server: { port: 5173, strictPort: true, watch: { ignored: ['**/.qa/**','**/test-results/**','**/playwright-report/**','**/audit-reports/**'] } },
   preview: { port: 4173, strictPort: true },
 });

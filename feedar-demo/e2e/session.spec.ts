@@ -1,10 +1,11 @@
+import { signInDemo } from './helpers/demo-login';
 import { test, expect, type Page } from '@playwright/test';
 import type { Database } from '../src/domain/models';
 
-async function persona(page:Page,name:string){await page.goto('./');await page.locator('.demo-switcher').getByRole('button',{name,exact:true}).click();}
+async function persona(page:Page,name:string){await signInDemo(page,name);}
 async function database(page:Page):Promise<Database>{return page.evaluate(async()=>{const path=new URL('src/app/context.tsx',window.location.href.split('#')[0]).pathname;const module=await import(path);return await module.store.read();});}
 test('Welcome, validated demo sign-in and MFA open Boss workspace',async({page})=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('./');await page.getByRole('link',{name:'Enter Feedar Cloud'}).click();await page.getByRole('button',{name:'Boss',exact:true}).first().click();await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByLabel('Demo MFA code').fill('123456');await page.getByRole('button',{name:'Enter workspace'}).click();await expect(page.getByRole('heading',{name:'Good morning, Boss'})).toBeVisible();expect(errors).toEqual([]);
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('./');await page.getByRole('link',{name:'Enter Feedar Cloud'}).click();await page.getByLabel('Email / username').fill('boss@feedar.example');await page.getByLabel('Public demo password').fill('123456');await page.getByRole('button',{name:'Sign in',exact:true}).click();await page.getByLabel('Demo MFA code').fill('123456');await page.getByRole('button',{name:'Enter workspace'}).click();await expect(page.getByRole('heading',{name:'Good morning, Boss'})).toBeVisible();expect(errors).toEqual([]);
 });
 test('User and Admin tabs approve an exclusive simulator lease, hold drives, release and blur stop, revoke blocks motion',async({page,context})=>{
  await persona(page,'User');await page.getByRole('button',{name:'Request session',exact:true}).click();await page.getByRole('button',{name:'Join demo session',exact:true}).click();await page.getByRole('button',{name:'Request control',exact:true}).click();await expect(page.getByText('Waiting for Admin/Owner approval.')).toBeVisible();
@@ -32,9 +33,9 @@ test('unknown invitation and forbidden tenant routes fail closed; public seeded 
 });
 test('all seven screen types and Surface/mobile layouts render without overflow or runtime errors',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.clock.setFixedTime(new Date('2026-10-13T09:00:00Z'));await page.goto('./');
- const headings:Record<string,RegExp>={Welcome:/Connected robots/,Login:/Welcome back, Boss/,Boss:/Good morning, Boss/,Org:/^Future Health Hospital$/,Admin:/^Robot operations$/,User:/^Remote session$/,Robot:/Hello! How can I help you today/};
+ const headings:Record<string,RegExp>={Welcome:/Connected robots/,Login:/Demo member sign in/,Boss:/Good morning, Boss/,Org:/^Future Health Hospital$/,Admin:/^Robot operations$/,User:/^Remote session$/,Robot:/Hello! How can I help you today/};
   for(const [name,path] of [['Welcome','/welcome'],['Login','/login'],['Boss','/overview'],['Org','/organizations/org-hospital'],['Admin','/operations'],['User','/remote'],['Robot','/display']]){
-   await page.locator('.demo-switcher').getByRole('button',{name,exact:true}).click();await page.waitForURL(`**/#${path}`);await expect(page.getByRole('heading',{name:headings[name]}).first()).toBeVisible();await page.screenshot({path:`test-results/screenshots/${name.toLowerCase()}-desktop.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+   if(name==='Welcome'||name==='Login'||name==='Robot')await page.goto(`./#${path}`);else await signInDemo(page,name);await page.goto(`./#${path}`);await page.waitForURL(`**/#${path}`);await expect(page.getByRole('heading',{name:headings[name]}).first()).toBeVisible();await page.screenshot({path:`test-results/screenshots/${name.toLowerCase()}-desktop.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  }
  for(const [label,width,height] of [['surface-landscape',1368,912],['surface-portrait',912,1368],['mobile',390,844]] as const){await page.setViewportSize({width,height});await page.goto('./#/robot/robot-7/kiosk');await page.screenshot({path:`test-results/screenshots/${label}-kiosk.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.goto('./#/operations');await page.screenshot({path:`test-results/screenshots/${label}-operations.png`,fullPage:true});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);}
  expect(errors).toEqual([]);

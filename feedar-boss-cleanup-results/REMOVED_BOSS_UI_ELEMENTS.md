@@ -1,0 +1,15 @@
+# Boss UI cleanup log
+
+All changes below are visibility changes or removals from Boss-facing product UI. No shared provider method, database record, or other-role page was deleted.
+
+| Original location and purpose | Why outside approved platform Boss scope | Action and file | Possible regression risk |
+| --- | --- | --- | --- |
+| `App.tsx` sidebar: Robot Operations, Remote Session, Robot Display, Members, Maps & locations, Invitations, Knowledge, Activity & maintenance | Boss platform navigation must contain exactly five sections | Hidden in platform Boss via contextual navigation filter; still shown for scoped Boss/eligible other roles. `App.tsx` | Context detection could hide a needed organization link; scoped Boss browser test covers it |
+| `App.tsx` direct shared routes outside an organization | Could expose unrelated workspace pages despite five-link sidebar | Platform Boss receives a workspace-required empty state; scoped Boss and other roles retain routes. `App.tsx` | Deep links from platform Boss require entering an organization first |
+| `management.tsx` Boss Overview service health, broad recent activity, diagnostics link | Outside approved Overview widgets | Platform Boss renders only approved dashboard blocks; shared overview remains for other scopes. `management.tsx` | Dashboard structure differs in height; screenshot review performed |
+| `management.tsx` Create/Edit Organization logo upload and visible quota controls | Outside exact required business fields | Removed from Boss form UI; underlying logo/quota data and organization settings remain. `management.tsx` | Existing organization data must not be overwritten accidentally; form retains current values, unit/browser tests pass |
+| `management.tsx` platform organization detail public-tour, member invitation, ownership-transfer buttons; admin/user/session stats; tabs for maps/settings/knowledge/invitations; embedded fleet management | Outside platform organization detail; management belongs inside organization panel | Hidden only when Boss has no active organization context. `management.tsx` | A direct detail page is simpler; scoped Boss and Owner flows remain tested |
+| `management.tsx` platform Boss Settings forms, organization scope picker, notification preferences and reset card | Boss Settings must have no active functionality this phase | Replaced by minimal empty state for platform Boss; scoped Boss, Owner and Admin settings unchanged. `management.tsx` | Platform Boss must enter organization panel to edit settings; browser test covers it |
+| `boss.tsx` management/monitoring links to full fleet detail, which contains maintenance and simulator scenarios | Full fleet detail exposes unrelated platform controls | Registry details now open a compact native modal; monitoring links to filtered registry. `boss.tsx` | Direct link behavior changed; monitoring-to-registry browser test covers it |
+
+The floating Demo preview persona switcher was retained as a shared demo/testing utility. Its removal is listed as an open scope question because it is outside workspace navigation yet used by all role demos and existing tests.
