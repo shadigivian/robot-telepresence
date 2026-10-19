@@ -1,0 +1,150 @@
+[
+  {
+    "theme": "light",
+    "size": "desktop",
+    "initial": {
+      "type": "button",
+      "label": "Show password",
+      "icon": "lucide lucide-eye",
+      "color": "rgb(37, 50, 71)",
+      "background": "rgb(226, 233, 241)",
+      "border": "rgb(196, 207, 221)",
+      "outline": "rgb(17, 121, 128) solid 2px",
+      "box": {
+        "x": 1249,
+        "y": 506.140625,
+        "width": 36,
+        "height": 44
+      },
+      "inputBackground": "rgb(245, 242, 237)",
+      "inputColor": "rgb(37, 50, 71)",
+      "inputOutline": "rgb(37, 50, 71) none 3px",
+      "focused": true
+    },
+    "revealed": {
+      "type": "text",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye-off",
+      "label": "Hide password",
+      "focusedInput": false,
+      "formSubmitted": false
+    },
+    "hidden": {
+      "type": "password",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye"
+    },
+    "errors": []
+  },
+  {
+    "theme": "light",
+    "size": "mobile",
+    "initial": {
+      "type": "button",
+      "label": "Show password",
+      "icon": "lucide lucide-eye",
+      "color": "rgb(37, 50, 71)",
+      "background": "rgb(226, 233, 241)",
+      "border": "rgb(196, 207, 221)",
+      "outline": "rgb(17, 121, 128) solid 2px",
+      "box": {
+        "x": 308,
+        "y": 490.78125,
+        "width": 36,
+        "height": 44
+      },
+      "inputBackground": "rgb(245, 242, 237)",
+      "inputColor": "rgb(37, 50, 71)",
+      "inputOutline": "rgb(37, 50, 71) none 3px",
+      "focused": true
+    },
+    "revealed": {
+      "type": "text",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye-off",
+      "label": "Hide password",
+      "focusedInput": false,
+      "formSubmitted": false
+    },
+    "hidden": {
+      "type": "password",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye"
+    },
+    "errors": []
+  },
+  {
+    "theme": "dark",
+    "size": "desktop",
+    "initial": {
+      "type": "button",
+      "label": "Show password",
+      "icon": "lucide lucide-eye",
+      "color": "rgb(244, 248, 255)",
+      "background": "rgb(27, 48, 75)",
+      "border": "rgba(108, 229, 216, 0.25)",
+      "outline": "rgb(108, 229, 216) solid 2px",
+      "box": {
+        "x": 1249,
+        "y": 506.140625,
+        "width": 36,
+        "height": 44
+      },
+      "inputBackground": "rgb(9, 22, 40)",
+      "inputColor": "rgb(244, 248, 255)",
+      "inputOutline": "rgb(244, 248, 255) none 3px",
+      "focused": true
+    },
+    "revealed": {
+      "type": "text",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye-off",
+      "label": "Hide password",
+      "focusedInput": false,
+      "formSubmitted": false
+    },
+    "hidden": {
+      "type": "password",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye"
+    },
+    "errors": []
+  },
+  {
+    "theme": "dark",
+    "size": "mobile",
+    "initial": {
+      "type": "button",
+      "label": "Show password",
+      "icon": "lucide lucide-eye",
+      "color": "rgb(244, 248, 255)",
+      "background": "rgb(27, 48, 75)",
+      "border": "rgba(108, 229, 216, 0.25)",
+      "outline": "rgb(108, 229, 216) solid 2px",
+      "box": {
+        "x": 308,
+        "y": 490.78125,
+        "width": 36,
+        "height": 44
+      },
+      "inputBackground": "rgb(9, 22, 40)",
+      "inputColor": "rgb(244, 248, 255)",
+      "inputOutline": "rgb(244, 248, 255) none 3px",
+      "focused": true
+    },
+    "revealed": {
+      "type": "text",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye-off",
+      "label": "Hide password",
+      "focusedInput": false,
+      "formSubmitted": false
+    },
+    "hidden": {
+      "type": "password",
+      "value": "sample-password",
+      "icon": "lucide lucide-eye"
+    },
+    "errors": []
+  }
+]

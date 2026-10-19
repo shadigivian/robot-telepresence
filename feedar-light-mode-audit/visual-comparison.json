@@ -1,0 +1,590 @@
+[
+  {
+    "name": "dark-boss-overview-laptop.png",
+    "width": 1440,
+    "height": 1691,
+    "meanDifference": 0,
+    "changedPixelShare": 0
+  },
+  {
+    "name": "dark-boss-support-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 0,
+    "changedPixelShare": 0
+  },
+  {
+    "name": "dark-kiosk-laptop.png",
+    "width": 1440,
+    "height": 1136,
+    "meanDifference": 0,
+    "changedPixelShare": 0
+  },
+  {
+    "name": "dark-login-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 0,
+    "changedPixelShare": 0
+  },
+  {
+    "name": "dark-org-status-mobile.png",
+    "width": 390,
+    "height": 2243,
+    "meanDifference": 0.44,
+    "changedPixelShare": 0.34
+  },
+  {
+    "name": "dark-org-telepresence-mobile.png",
+    "width": 390,
+    "height": 2606,
+    "meanDifference": 0,
+    "changedPixelShare": 0
+  },
+  {
+    "name": "dark-public-org-laptop.png",
+    "width": 1440,
+    "height": 1122,
+    "meanDifference": 0,
+    "changedPixelShare": 0
+  },
+  {
+    "name": "dark-welcome-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 0,
+    "changedPixelShare": 0
+  },
+  {
+    "name": "light-admin-overview-laptop.png",
+    "width": 1440,
+    "height": 1243,
+    "meanDifference": 3.08,
+    "changedPixelShare": 0.56
+  },
+  {
+    "name": "light-admin-robots-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 3.4,
+    "changedPixelShare": 0.97
+  },
+  {
+    "name": "light-admin-telepresence-laptop.png",
+    "width": 1440,
+    "height": 1661,
+    "meanDifference": 2.65,
+    "changedPixelShare": 0.55
+  },
+  {
+    "name": "light-admin-users-laptop.png",
+    "width": 1440,
+    "height": 1037,
+    "meanDifference": 3.41,
+    "changedPixelShare": 0.67
+  },
+  {
+    "name": "light-admin-users-mobile.png",
+    "width": 390,
+    "height": 1422,
+    "meanDifference": 3.51,
+    "changedPixelShare": 1.45
+  },
+  {
+    "name": "light-boss-create-org-dialog-focus-laptop.png",
+    "width": 1440,
+    "height": 1518,
+    "meanDifference": 2.24,
+    "changedPixelShare": 0.98
+  },
+  {
+    "name": "light-boss-create-org-dialog-laptop.png",
+    "width": 1440,
+    "height": 1518,
+    "meanDifference": 2.21,
+    "changedPixelShare": 0.91
+  },
+  {
+    "name": "light-boss-notifications-dialog-laptop.png",
+    "width": 1440,
+    "height": 1518,
+    "meanDifference": 1.81,
+    "changedPixelShare": 0.42
+  },
+  {
+    "name": "light-boss-organizations-laptop.png",
+    "width": 1440,
+    "height": 1518,
+    "meanDifference": 3.23,
+    "changedPixelShare": 1.29
+  },
+  {
+    "name": "light-boss-overview-desktop-large.png",
+    "width": 1920,
+    "height": 1691,
+    "meanDifference": 3.08,
+    "changedPixelShare": 0.51
+  },
+  {
+    "name": "light-boss-overview-laptop.png",
+    "width": 1440,
+    "height": 1691,
+    "meanDifference": 3.12,
+    "changedPixelShare": 0.6
+  },
+  {
+    "name": "light-boss-overview-mobile.png",
+    "width": 390,
+    "height": 2162,
+    "meanDifference": 3.41,
+    "changedPixelShare": 1.43
+  },
+  {
+    "name": "light-boss-overview-small-mobile.png",
+    "width": 360,
+    "height": 2162,
+    "meanDifference": 3.45,
+    "changedPixelShare": 1.44
+  },
+  {
+    "name": "light-boss-overview-surface-landscape.png",
+    "width": 1368,
+    "height": 1691,
+    "meanDifference": 3.12,
+    "changedPixelShare": 0.62
+  },
+  {
+    "name": "light-boss-overview-surface-portrait.png",
+    "width": 912,
+    "height": 1788,
+    "meanDifference": 3.17,
+    "changedPixelShare": 0.75
+  },
+  {
+    "name": "light-boss-overview-tablet.png",
+    "width": 768,
+    "height": 1818,
+    "meanDifference": 3.18,
+    "changedPixelShare": 0.77
+  },
+  {
+    "name": "light-boss-robot-management-laptop.png",
+    "width": 1440,
+    "height": 1727,
+    "meanDifference": 4.25,
+    "changedPixelShare": 2.49
+  },
+  {
+    "name": "light-boss-robot-monitoring-laptop.png",
+    "width": 1440,
+    "height": 1551,
+    "meanDifference": 3.71,
+    "changedPixelShare": 0.36
+  },
+  {
+    "name": "light-boss-settings-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 2.95,
+    "changedPixelShare": 0.46
+  },
+  {
+    "name": "light-boss-support-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 2.83,
+    "changedPixelShare": 0.44
+  },
+  {
+    "name": "light-kiosk-desktop-large.png",
+    "width": 1920,
+    "height": 1216,
+    "meanDifference": 6.24,
+    "changedPixelShare": 4.39
+  },
+  {
+    "name": "light-kiosk-laptop.png",
+    "width": 1440,
+    "height": 1136,
+    "meanDifference": 8.89,
+    "changedPixelShare": 6.27
+  },
+  {
+    "name": "light-kiosk-mobile.png",
+    "width": 390,
+    "height": 1643,
+    "meanDifference": 14.39,
+    "changedPixelShare": 10.55
+  },
+  {
+    "name": "light-kiosk-small-mobile.png",
+    "width": 360,
+    "height": 1674,
+    "meanDifference": 13.9,
+    "changedPixelShare": 10.33
+  },
+  {
+    "name": "light-kiosk-surface-landscape.png",
+    "width": 1368,
+    "height": 1130,
+    "meanDifference": 9.41,
+    "changedPixelShare": 6.63
+  },
+  {
+    "name": "light-kiosk-surface-portrait.png",
+    "width": 912,
+    "height": 1368,
+    "meanDifference": 8.91,
+    "changedPixelShare": 6.42
+  },
+  {
+    "name": "light-kiosk-tablet.png",
+    "width": 768,
+    "height": 1598,
+    "meanDifference": 11.46,
+    "changedPixelShare": 7.18
+  },
+  {
+    "name": "light-login-desktop-large.png",
+    "width": 1920,
+    "height": 1080,
+    "meanDifference": 2.45,
+    "changedPixelShare": 0.61
+  },
+  {
+    "name": "light-login-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 2.56,
+    "changedPixelShare": 1.02
+  },
+  {
+    "name": "light-login-mobile.png",
+    "width": 390,
+    "height": 844,
+    "meanDifference": 3.54,
+    "changedPixelShare": 3.2
+  },
+  {
+    "name": "light-login-small-mobile.png",
+    "width": 360,
+    "height": 800,
+    "meanDifference": 3.61,
+    "changedPixelShare": 3.25
+  },
+  {
+    "name": "light-login-surface-landscape.png",
+    "width": 1368,
+    "height": 912,
+    "meanDifference": 2.55,
+    "changedPixelShare": 1.05
+  },
+  {
+    "name": "light-login-surface-portrait.png",
+    "width": 912,
+    "height": 1368,
+    "meanDifference": 2.42,
+    "changedPixelShare": 0.91
+  },
+  {
+    "name": "light-login-tablet.png",
+    "width": 768,
+    "height": 1024,
+    "meanDifference": 2.74,
+    "changedPixelShare": 1.44
+  },
+  {
+    "name": "light-org-activity-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 3.03,
+    "changedPixelShare": 0.84
+  },
+  {
+    "name": "light-org-billing-support-laptop.png",
+    "width": 1440,
+    "height": 1854,
+    "meanDifference": 3.33,
+    "changedPixelShare": 1.88
+  },
+  {
+    "name": "light-org-info-laptop.png",
+    "width": 1440,
+    "height": 2403,
+    "meanDifference": 3.49,
+    "changedPixelShare": 2.75
+  },
+  {
+    "name": "light-org-knowledge-laptop.png",
+    "width": 1440,
+    "height": 1616,
+    "meanDifference": 2.49,
+    "changedPixelShare": 0.42
+  },
+  {
+    "name": "light-org-maps-laptop.png",
+    "width": 1440,
+    "height": 1653,
+    "meanDifference": 2.83,
+    "changedPixelShare": 1.08
+  },
+  {
+    "name": "light-org-operations-laptop.png",
+    "width": 1440,
+    "height": 1927,
+    "meanDifference": 3.06,
+    "changedPixelShare": 0.82
+  },
+  {
+    "name": "light-org-robot-edit-dialog-small-mobile.png",
+    "width": 360,
+    "height": 1185,
+    "meanDifference": 2.76,
+    "changedPixelShare": 2.27
+  },
+  {
+    "name": "light-org-robots-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 3.4,
+    "changedPixelShare": 0.97
+  },
+  {
+    "name": "light-org-settings-laptop.png",
+    "width": 1440,
+    "height": 2675,
+    "meanDifference": 3.55,
+    "changedPixelShare": 2.45
+  },
+  {
+    "name": "light-org-status-desktop-large.png",
+    "width": 1920,
+    "height": 1080,
+    "meanDifference": 3.27,
+    "changedPixelShare": 0.8
+  },
+  {
+    "name": "light-org-status-laptop.png",
+    "width": 1440,
+    "height": 981,
+    "meanDifference": 3.4,
+    "changedPixelShare": 0.72
+  },
+  {
+    "name": "light-org-status-mobile.png",
+    "width": 390,
+    "height": 2243,
+    "meanDifference": 3.81,
+    "changedPixelShare": 1.06
+  },
+  {
+    "name": "light-org-status-small-mobile.png",
+    "width": 360,
+    "height": 2257,
+    "meanDifference": 3.89,
+    "changedPixelShare": 1.08
+  },
+  {
+    "name": "light-org-status-surface-landscape.png",
+    "width": 1368,
+    "height": 1059,
+    "meanDifference": 3.47,
+    "changedPixelShare": 0.66
+  },
+  {
+    "name": "light-org-status-surface-portrait.png",
+    "width": 912,
+    "height": 1389,
+    "meanDifference": 3.43,
+    "changedPixelShare": 0.76
+  },
+  {
+    "name": "light-org-status-tablet.png",
+    "width": 768,
+    "height": 1441,
+    "meanDifference": 3.32,
+    "changedPixelShare": 0.69
+  },
+  {
+    "name": "light-org-telepresence-desktop-large.png",
+    "width": 1920,
+    "height": 1623,
+    "meanDifference": 2.62,
+    "changedPixelShare": 0.43
+  },
+  {
+    "name": "light-org-telepresence-laptop.png",
+    "width": 1440,
+    "height": 1661,
+    "meanDifference": 2.65,
+    "changedPixelShare": 0.55
+  },
+  {
+    "name": "light-org-telepresence-mobile.png",
+    "width": 390,
+    "height": 2606,
+    "meanDifference": 3.02,
+    "changedPixelShare": 1.21
+  },
+  {
+    "name": "light-org-telepresence-small-mobile.png",
+    "width": 360,
+    "height": 2661,
+    "meanDifference": 3.07,
+    "changedPixelShare": 1.18
+  },
+  {
+    "name": "light-org-telepresence-surface-landscape.png",
+    "width": 1368,
+    "height": 1661,
+    "meanDifference": 2.66,
+    "changedPixelShare": 0.57
+  },
+  {
+    "name": "light-org-telepresence-surface-portrait.png",
+    "width": 912,
+    "height": 1813,
+    "meanDifference": 2.79,
+    "changedPixelShare": 0.77
+  },
+  {
+    "name": "light-org-telepresence-tablet.png",
+    "width": 768,
+    "height": 2012,
+    "meanDifference": 2.86,
+    "changedPixelShare": 0.87
+  },
+  {
+    "name": "light-org-users-laptop.png",
+    "width": 1440,
+    "height": 1037,
+    "meanDifference": 3.41,
+    "changedPixelShare": 0.67
+  },
+  {
+    "name": "light-public-org-desktop-large.png",
+    "width": 1920,
+    "height": 1122,
+    "meanDifference": 3.3,
+    "changedPixelShare": 0.62
+  },
+  {
+    "name": "light-public-org-laptop.png",
+    "width": 1440,
+    "height": 1122,
+    "meanDifference": 3.45,
+    "changedPixelShare": 0.83
+  },
+  {
+    "name": "light-public-org-mobile.png",
+    "width": 390,
+    "height": 1520,
+    "meanDifference": 3.92,
+    "changedPixelShare": 2.28
+  },
+  {
+    "name": "light-public-org-small-mobile.png",
+    "width": 360,
+    "height": 1574,
+    "meanDifference": 3.93,
+    "changedPixelShare": 2.34
+  },
+  {
+    "name": "light-public-org-surface-landscape.png",
+    "width": 1368,
+    "height": 1122,
+    "meanDifference": 3.49,
+    "changedPixelShare": 0.87
+  },
+  {
+    "name": "light-public-org-surface-portrait.png",
+    "width": 912,
+    "height": 1368,
+    "meanDifference": 3.46,
+    "changedPixelShare": 1.1
+  },
+  {
+    "name": "light-public-org-tablet.png",
+    "width": 768,
+    "height": 1221,
+    "meanDifference": 3.76,
+    "changedPixelShare": 1.46
+  },
+  {
+    "name": "light-user-remote-laptop.png",
+    "width": 1440,
+    "height": 1661,
+    "meanDifference": 2.64,
+    "changedPixelShare": 0.53
+  },
+  {
+    "name": "light-user-remote-mobile.png",
+    "width": 390,
+    "height": 2588,
+    "meanDifference": 3.02,
+    "changedPixelShare": 1.21
+  },
+  {
+    "name": "light-user-status-laptop.png",
+    "width": 1440,
+    "height": 981,
+    "meanDifference": 3.42,
+    "changedPixelShare": 0.74
+  },
+  {
+    "name": "light-user-support-laptop.png",
+    "width": 1440,
+    "height": 1409,
+    "meanDifference": 3.5,
+    "changedPixelShare": 2.42
+  },
+  {
+    "name": "light-welcome-desktop-large.png",
+    "width": 1920,
+    "height": 1080,
+    "meanDifference": 2.01,
+    "changedPixelShare": 0.28
+  },
+  {
+    "name": "light-welcome-laptop.png",
+    "width": 1440,
+    "height": 900,
+    "meanDifference": 2.1,
+    "changedPixelShare": 0.46
+  },
+  {
+    "name": "light-welcome-mobile.png",
+    "width": 390,
+    "height": 844,
+    "meanDifference": 2.57,
+    "changedPixelShare": 1.82
+  },
+  {
+    "name": "light-welcome-small-mobile.png",
+    "width": 360,
+    "height": 800,
+    "meanDifference": 2.66,
+    "changedPixelShare": 2.05
+  },
+  {
+    "name": "light-welcome-surface-landscape.png",
+    "width": 1368,
+    "height": 912,
+    "meanDifference": 2.11,
+    "changedPixelShare": 0.47
+  },
+  {
+    "name": "light-welcome-surface-portrait.png",
+    "width": 912,
+    "height": 1368,
+    "meanDifference": 2.11,
+    "changedPixelShare": 0.47
+  },
+  {
+    "name": "light-welcome-tablet.png",
+    "width": 768,
+    "height": 1024,
+    "meanDifference": 2.24,
+    "changedPixelShare": 0.75
+  }
+]

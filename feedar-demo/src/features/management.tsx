@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import QRCode from 'qrcode';
 import { useDemo } from '../app/context';
+import { useTheme } from '../app/theme';
 import { Badge, Button, Card, Empty, Field, Modal, PageTitle, Stat } from '../components/ui';
 import type { Invitation, Membership, Organization } from '../domain/models';
 import { csvCell } from './csv';
@@ -114,9 +115,11 @@ function SettingsContent({target}:{target:Organization}) {
 }
 
 export function SettingsPage() {
+  const {choice,setChoice}=useTheme();
+  const appearance=<Card><h2>Appearance</h2><p className="muted">Choose a theme for this browser. System follows your device setting.</p><Field label="Color theme"><select value={choice} onChange={e=>setChoice(e.target.value as typeof choice)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></Field></Card>;
   const {organization,db,role,notify}=useDemo();const [orgId,setOrgId]=useState(organization?.id??db.organizations[0]?.id??'');const target=organization??db.organizations.find(o=>o.id===orgId);const [preferences,setPreferences]=useState(()=>{try{return JSON.parse(localStorage.getItem('feedar-notification-preferences')??'{"incidents":true,"sessions":true,"invites":true}') as Record<string,boolean>;}catch{return {incidents:true,sessions:true,invites:true};}});
-  if(role==='BOSS'&&!organization)return <div className="stack"><PageTitle title="Settings" subtitle="Boss settings are not configured in this demo phase."/><Card><Empty title="No Boss settings yet" text="Organization settings remain available inside each organization panel."/></Card></div>;
-  return <div className="stack"><PageTitle title="Settings" subtitle="Branding, public robot content, organization policy, and local preferences."/>{role==='BOSS'&&!organization&&<Field label="Organization settings scope"><select value={orgId} onChange={e=>setOrgId(e.target.value)}>{db.organizations.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></Field>}{target&&<><SettingsContent target={target}/><OrganizationProfileExtras target={target}/></>}<Card><h2>Local notification preferences</h2><p className="muted">These small preferences apply to this browser only; email/push delivery is not configured.</p><div className="row wrap">{['incidents','sessions','invites'].map(k=><label className="check" key={k}><input type="checkbox" checked={preferences[k]??true} onChange={e=>{const next={...preferences,[k]:e.target.checked};setPreferences(next);try{localStorage.setItem('feedar-notification-preferences',JSON.stringify(next));notify('Local notification preference saved.');}catch{notify('Preference storage is unavailable.');}}}/>{k}</label>)}</div></Card><ResetDemoCard/></div>;
+  if(role==='BOSS'&&!organization)return <div className="stack"><PageTitle title="Settings" subtitle="Boss settings are not configured in this demo phase."/><Card><Empty title="No Boss settings yet" text="Organization settings remain available inside each organization panel."/></Card>{appearance}</div>;
+  return <div className="stack"><PageTitle title="Settings" subtitle="Branding, public robot content, organization policy, and local preferences."/>{appearance}{role==='BOSS'&&!organization&&<Field label="Organization settings scope"><select value={orgId} onChange={e=>setOrgId(e.target.value)}>{db.organizations.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></Field>}{target&&<><SettingsContent target={target}/><OrganizationProfileExtras target={target}/></>}<Card><h2>Local notification preferences</h2><p className="muted">These small preferences apply to this browser only; email/push delivery is not configured.</p><div className="row wrap">{['incidents','sessions','invites'].map(k=><label className="check" key={k}><input type="checkbox" checked={preferences[k]??true} onChange={e=>{const next={...preferences,[k]:e.target.checked};setPreferences(next);try{localStorage.setItem('feedar-notification-preferences',JSON.stringify(next));notify('Local notification preference saved.');}catch{notify('Preference storage is unavailable.');}}}/>{k}</label>)}</div></Card><ResetDemoCard/></div>;
 }
 
 export function ActivityPage() {

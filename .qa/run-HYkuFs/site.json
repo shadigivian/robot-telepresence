@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "directory": {
+    "name": "ساختمان آزمایشی — اطلاعات واقعی نیست",
+    "floors": [
+      {
+        "id": "ground",
+        "name": "همکف"
+      },
+      {
+        "id": "first",
+        "name": "طبقه اول"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "reception",
+        "name": "پذیرش",
+        "floorId": "ground",
+        "x": 15,
+        "y": 50
+      },
+      {
+        "id": "lift-ground",
+        "name": "آسانسور همکف",
+        "floorId": "ground",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "lift-first",
+        "name": "آسانسور طبقه اول",
+        "floorId": "first",
+        "x": 50,
+        "y": 50
+      },
+      {
+        "id": "manager",
+        "name": "اتاق مدیر",
+        "floorId": "first",
+        "x": 80,
+        "y": 30
+      }
+    ],
+    "edges": [
+      {
+        "from": "reception",
+        "to": "lift-ground",
+        "distance": 12,
+        "instruction": "از پذیرش، راهرو را تا آسانسور ادامه دهید.",
+        "reverseInstruction": "از آسانسور، راهرو را تا پذیرش ادامه دهید.",
+        "accessible": true,
+        "bidirectional": true
+      },
+      {
+        "from": "lift-ground",
+        "to": "lift-first",
+        "distance": 4,
+        "instruction": "با آسانسور به طبقه اول بروید.",
+        "reverseInstruction": "با آسانسور به همکف بروید.",
+        "accessible": true,
+        "bidirectional": true
+      },
+      {
+        "from": "lift-first",
+        "to": "manager",
+        "distance": 8,
+        "instruction": "از آسانسور به سمت اتاق ۱۰۱ بروید.",
+        "reverseInstruction": "از اتاق ۱۰۱ به سمت آسانسور بروید.",
+        "accessible": true,
+        "bidirectional": true
+      }
+    ],
+    "rooms": [
+      {
+        "id": "room-manager",
+        "name": "اتاق مدیر",
+        "nodeId": "manager",
+        "number": "۱۰۱",
+        "department": "مدیریت",
+        "hours": "۹ تا ۱۵ — نمونه",
+        "aliases": [
+          "مدیر",
+          "مدیریت"
+        ],
+        "active": true
+      }
+    ],
+    "people": [
+      {
+        "id": "person-manager",
+        "name": "مدیر آزمایشی",
+        "title": "مدیر",
+        "roomId": "room-manager",
+        "aliases": [
+          "رئیس"
+        ],
+        "active": true,
+        "availability": "برای مراجعه هماهنگ کنید",
+        "userId": "staff"
+      }
+    ]
+  },
+  "users": [
+    {
+      "id": "admin",
+      "name": "admin",
+      "username": "admin",
+      "password": "f0491004e64ef3630c35ffaeb9e32cc3:6bc25e64915d9dc0e8c3310d8e7b3ed218ef06d1bf2ec427439c1f018f0bf8b6d0f5fac1d9806363ea530bdf5c227374932c341cf86f7f267ab7af3e1dcc286c",
+      "role": "admin",
+      "active": true,
+      "robotId": ""
+    },
+    {
+      "id": "staff",
+      "name": "staff",
+      "username": "staff",
+      "password": "d0e18f2a7349e0bbdc1696bf47aa4f6f:bd800463d38546a2091960dcbddf8cf8dc8c5189af4ed129594931a5f8f4138044015db1e454f6c6d1ecfe8a180e86095bd423556b28281fa1313cc2d3f12746",
+      "role": "staff",
+      "active": true,
+      "robotId": ""
+    },
+    {
+      "id": "operator",
+      "name": "operator",
+      "username": "operator",
+      "password": "9fa1be2120bca0017d042c28a9ed74e6:02e029c808ed0e763ba6da3293bef6bbc98402b5c2cf0b5b3d7a67670dee0be289f807fe78a2edcfaa17a254dac9d01bf17e4ebaf9e3ce89c6e48e8d9708252f",
+      "role": "operator",
+      "active": true,
+      "robotId": ""
+    },
+    {
+      "id": "robot",
+      "name": "robot",
+      "username": "robot",
+      "password": "777279b43e0acc189d10f0738ccb4b23:6982ee9397c064043bf43ae6f50e8414275b7d0087c070e9af20f015a4badbb60df5c925f3fdc1bc7de0f60ede695b238bb297b6c1cbaa6cb4630bf7c083ebf3",
+      "role": "robot",
+      "active": true,
+      "robotId": "r1"
+    }
+  ],
+  "robots": [
+    {
+      "id": "r1",
+      "name": "ربات آزمون",
+      "serial": "RB-TEST01",
+      "location": "پذیرش",
+      "mode": "welcome",
+      "startNodeId": "reception",
+      "active": true
+    }
+  ],
+  "visits": [],
+  "workspaces": [
+    {
+      "id": "university",
+      "name": "دانشگاه",
+      "category": "university",
+      "directory": {
+        "name": "دانشگاه",
+        "floors": [],
+        "nodes": [],
+        "edges": [],
+        "rooms": [],
+        "people": []
+      }
+    },
+    {
+      "id": "hospital",
+      "name": "بیمارستان",
+      "category": "hospital",
+      "directory": {
+        "name": "بیمارستان",
+        "floors": [],
+        "nodes": [],
+        "edges": [],
+        "rooms": [],
+        "people": []
+      }
+    },
+    {
+      "id": "office",
+      "name": "اداره",
+      "category": "office",
+      "directory": {
+        "name": "اداره",
+        "floors": [],
+        "nodes": [],
+        "edges": [],
+        "rooms": [],
+        "people": []
+      }
+    },
+    {
+      "id": "mall",
+      "name": "مرکز خرید",
+      "category": "mall",
+      "directory": {
+        "name": "مرکز خرید",
+        "floors": [],
+        "nodes": [],
+        "edges": [],
+        "rooms": [],
+        "people": []
+      }
+    },
+    {
+      "id": "museum",
+      "name": "موزه",
+      "category": "museum",
+      "directory": {
+        "name": "موزه",
+        "floors": [],
+        "nodes": [],
+        "edges": [],
+        "rooms": [],
+        "people": []
+      }
+    }
+  ]
+}

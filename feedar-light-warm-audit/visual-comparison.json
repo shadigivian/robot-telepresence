@@ -1,0 +1,506 @@
+[
+  {
+    "name": "dark-boss-overview-laptop.png",
+    "meanDifference": 0,
+    "meanBefore": 28.44,
+    "meanAfter": 28.44
+  },
+  {
+    "name": "dark-boss-support-laptop.png",
+    "meanDifference": 0,
+    "meanBefore": 25.24,
+    "meanAfter": 25.24
+  },
+  {
+    "name": "dark-kiosk-laptop.png",
+    "meanDifference": 0,
+    "meanBefore": 33.63,
+    "meanAfter": 33.63
+  },
+  {
+    "name": "dark-login-laptop.png",
+    "meanDifference": 0,
+    "meanBefore": 28.97,
+    "meanAfter": 28.97
+  },
+  {
+    "name": "dark-org-status-mobile.png",
+    "meanDifference": 0.43,
+    "meanBefore": 32.05,
+    "meanAfter": 32.04
+  },
+  {
+    "name": "dark-org-telepresence-mobile.png",
+    "meanDifference": 0,
+    "meanBefore": 45.66,
+    "meanAfter": 45.66
+  },
+  {
+    "name": "dark-public-org-laptop.png",
+    "meanDifference": 0,
+    "meanBefore": 29.35,
+    "meanAfter": 29.35
+  },
+  {
+    "name": "dark-welcome-laptop.png",
+    "meanDifference": 0,
+    "meanBefore": 27.05,
+    "meanAfter": 27.05
+  },
+  {
+    "name": "light-admin-overview-laptop.png",
+    "meanDifference": 7.851,
+    "meanBefore": 246.16,
+    "meanAfter": 238.32
+  },
+  {
+    "name": "light-admin-robots-laptop.png",
+    "meanDifference": 9.25,
+    "meanBefore": 244.85,
+    "meanAfter": 235.61
+  },
+  {
+    "name": "light-admin-telepresence-laptop.png",
+    "meanDifference": 7.554,
+    "meanBefore": 236.38,
+    "meanAfter": 228.84
+  },
+  {
+    "name": "light-admin-users-laptop.png",
+    "meanDifference": 8.384,
+    "meanBefore": 245.54,
+    "meanAfter": 237.17
+  },
+  {
+    "name": "light-admin-users-mobile.png",
+    "meanDifference": 6.127,
+    "meanBefore": 242.34,
+    "meanAfter": 236.24
+  },
+  {
+    "name": "light-boss-create-org-dialog-focus-laptop.png",
+    "meanDifference": 4.782,
+    "meanBefore": 179.44,
+    "meanAfter": 174.68
+  },
+  {
+    "name": "light-boss-create-org-dialog-laptop.png",
+    "meanDifference": 4.787,
+    "meanBefore": 179.54,
+    "meanAfter": 174.77
+  },
+  {
+    "name": "light-boss-notifications-dialog-laptop.png",
+    "meanDifference": 4.01,
+    "meanBefore": 152.6,
+    "meanAfter": 148.6
+  },
+  {
+    "name": "light-boss-organizations-laptop.png",
+    "meanDifference": 7.611,
+    "meanBefore": 244.69,
+    "meanAfter": 237.12
+  },
+  {
+    "name": "light-boss-overview-desktop-large.png",
+    "meanDifference": 7.588,
+    "meanBefore": 247.7,
+    "meanAfter": 240.13
+  },
+  {
+    "name": "light-boss-overview-laptop.png",
+    "meanDifference": 7.584,
+    "meanBefore": 247.05,
+    "meanAfter": 239.49
+  },
+  {
+    "name": "light-boss-overview-mobile.png",
+    "meanDifference": 6.077,
+    "meanBefore": 243.56,
+    "meanAfter": 237.52
+  },
+  {
+    "name": "light-boss-overview-small-mobile.png",
+    "meanDifference": 6.068,
+    "meanBefore": 243.05,
+    "meanAfter": 237.01
+  },
+  {
+    "name": "light-boss-overview-surface-landscape.png",
+    "meanDifference": 7.68,
+    "meanBefore": 246.89,
+    "meanAfter": 239.23
+  },
+  {
+    "name": "light-boss-overview-surface-portrait.png",
+    "meanDifference": 8.573,
+    "meanBefore": 246.06,
+    "meanAfter": 237.52
+  },
+  {
+    "name": "light-boss-overview-tablet.png",
+    "meanDifference": 8.447,
+    "meanBefore": 245.1,
+    "meanAfter": 236.68
+  },
+  {
+    "name": "light-boss-robot-management-laptop.png",
+    "meanDifference": 8.065,
+    "meanBefore": 243.68,
+    "meanAfter": 235.98
+  },
+  {
+    "name": "light-boss-robot-monitoring-laptop.png",
+    "meanDifference": 7.764,
+    "meanBefore": 246.51,
+    "meanAfter": 238.89
+  },
+  {
+    "name": "light-boss-settings-laptop.png",
+    "meanDifference": 9.104,
+    "meanBefore": 247.25,
+    "meanAfter": 238.16
+  },
+  {
+    "name": "light-boss-support-laptop.png",
+    "meanDifference": 9.488,
+    "meanBefore": 247.03,
+    "meanAfter": 237.56
+  },
+  {
+    "name": "light-kiosk-desktop-large.png",
+    "meanDifference": 0.016,
+    "meanBefore": 31.57,
+    "meanAfter": 31.57
+  },
+  {
+    "name": "light-kiosk-laptop.png",
+    "meanDifference": 0,
+    "meanBefore": 34.25,
+    "meanAfter": 34.25
+  },
+  {
+    "name": "light-kiosk-mobile.png",
+    "meanDifference": 0,
+    "meanBefore": 41.6,
+    "meanAfter": 41.6
+  },
+  {
+    "name": "light-kiosk-small-mobile.png",
+    "meanDifference": 0,
+    "meanBefore": 41.79,
+    "meanAfter": 41.79
+  },
+  {
+    "name": "light-kiosk-surface-landscape.png",
+    "meanDifference": 0,
+    "meanBefore": 34.68,
+    "meanAfter": 34.68
+  },
+  {
+    "name": "light-kiosk-surface-portrait.png",
+    "meanDifference": 0,
+    "meanBefore": 33.95,
+    "meanAfter": 33.95
+  },
+  {
+    "name": "light-kiosk-tablet.png",
+    "meanDifference": 0,
+    "meanBefore": 35.65,
+    "meanAfter": 35.65
+  },
+  {
+    "name": "light-login-desktop-large.png",
+    "meanDifference": 7.326,
+    "meanBefore": 242.77,
+    "meanAfter": 236
+  },
+  {
+    "name": "light-login-laptop.png",
+    "meanDifference": 6.892,
+    "meanBefore": 240.38,
+    "meanAfter": 234.1
+  },
+  {
+    "name": "light-login-mobile.png",
+    "meanDifference": 6.208,
+    "meanBefore": 236.83,
+    "meanAfter": 230.88
+  },
+  {
+    "name": "light-login-small-mobile.png",
+    "meanDifference": 6.132,
+    "meanBefore": 236.21,
+    "meanAfter": 230.26
+  },
+  {
+    "name": "light-login-surface-landscape.png",
+    "meanDifference": 6.809,
+    "meanBefore": 240.06,
+    "meanAfter": 233.91
+  },
+  {
+    "name": "light-login-surface-portrait.png",
+    "meanDifference": 6.873,
+    "meanBefore": 241.73,
+    "meanAfter": 235.61
+  },
+  {
+    "name": "light-login-tablet.png",
+    "meanDifference": 6.621,
+    "meanBefore": 239.74,
+    "meanAfter": 233.71
+  },
+  {
+    "name": "light-org-activity-laptop.png",
+    "meanDifference": 9.112,
+    "meanBefore": 246.82,
+    "meanAfter": 237.72
+  },
+  {
+    "name": "light-org-billing-support-laptop.png",
+    "meanDifference": 7.287,
+    "meanBefore": 244.71,
+    "meanAfter": 237.44
+  },
+  {
+    "name": "light-org-info-laptop.png",
+    "meanDifference": 7.31,
+    "meanBefore": 243.48,
+    "meanAfter": 236.18
+  },
+  {
+    "name": "light-org-knowledge-laptop.png",
+    "meanDifference": 7.928,
+    "meanBefore": 245.18,
+    "meanAfter": 237.27
+  },
+  {
+    "name": "light-org-maps-laptop.png",
+    "meanDifference": 6.963,
+    "meanBefore": 224.36,
+    "meanAfter": 217.41
+  },
+  {
+    "name": "light-org-operations-laptop.png",
+    "meanDifference": 6.933,
+    "meanBefore": 227.37,
+    "meanAfter": 220.46
+  },
+  {
+    "name": "light-org-robot-edit-dialog-small-mobile.png",
+    "meanDifference": 4.457,
+    "meanBefore": 173.08,
+    "meanAfter": 168.63
+  },
+  {
+    "name": "light-org-robots-laptop.png",
+    "meanDifference": 9.248,
+    "meanBefore": 244.83,
+    "meanAfter": 235.6
+  },
+  {
+    "name": "light-org-settings-laptop.png",
+    "meanDifference": 7.102,
+    "meanBefore": 243.8,
+    "meanAfter": 236.71
+  },
+  {
+    "name": "light-org-status-desktop-large.png",
+    "meanDifference": 8.885,
+    "meanBefore": 246.77,
+    "meanAfter": 238.09
+  },
+  {
+    "name": "light-org-status-laptop.png",
+    "meanDifference": 8.627,
+    "meanBefore": 245.98,
+    "meanAfter": 237.48
+  },
+  {
+    "name": "light-org-status-mobile.png",
+    "meanDifference": 6.303,
+    "meanBefore": 244.8,
+    "meanAfter": 238.73
+  },
+  {
+    "name": "light-org-status-small-mobile.png",
+    "meanDifference": 6.27,
+    "meanBefore": 244.41,
+    "meanAfter": 238.37
+  },
+  {
+    "name": "light-org-status-surface-landscape.png",
+    "meanDifference": 8.562,
+    "meanBefore": 246.14,
+    "meanAfter": 237.72
+  },
+  {
+    "name": "light-org-status-surface-portrait.png",
+    "meanDifference": 9.253,
+    "meanBefore": 246.5,
+    "meanAfter": 237.31
+  },
+  {
+    "name": "light-org-status-tablet.png",
+    "meanDifference": 8.948,
+    "meanBefore": 246.11,
+    "meanAfter": 237.19
+  },
+  {
+    "name": "light-org-telepresence-desktop-large.png",
+    "meanDifference": 7.575,
+    "meanBefore": 237.45,
+    "meanAfter": 229.89
+  },
+  {
+    "name": "light-org-telepresence-laptop.png",
+    "meanDifference": 7.554,
+    "meanBefore": 236.37,
+    "meanAfter": 228.83
+  },
+  {
+    "name": "light-org-telepresence-mobile.png",
+    "meanDifference": 5.373,
+    "meanBefore": 233.47,
+    "meanAfter": 228.12
+  },
+  {
+    "name": "light-org-telepresence-small-mobile.png",
+    "meanDifference": 5.409,
+    "meanBefore": 233.36,
+    "meanAfter": 227.96
+  },
+  {
+    "name": "light-org-telepresence-surface-landscape.png",
+    "meanDifference": 7.639,
+    "meanBefore": 236.27,
+    "meanAfter": 228.64
+  },
+  {
+    "name": "light-org-telepresence-surface-portrait.png",
+    "meanDifference": 8.736,
+    "meanBefore": 237.79,
+    "meanAfter": 229.07
+  },
+  {
+    "name": "light-org-telepresence-tablet.png",
+    "meanDifference": 8.503,
+    "meanBefore": 237.78,
+    "meanAfter": 229.3
+  },
+  {
+    "name": "light-org-users-laptop.png",
+    "meanDifference": 8.382,
+    "meanBefore": 245.52,
+    "meanAfter": 237.16
+  },
+  {
+    "name": "light-public-org-desktop-large.png",
+    "meanDifference": 7.335,
+    "meanBefore": 244.59,
+    "meanAfter": 237.27
+  },
+  {
+    "name": "light-public-org-laptop.png",
+    "meanDifference": 6.955,
+    "meanBefore": 243.66,
+    "meanAfter": 236.71
+  },
+  {
+    "name": "light-public-org-mobile.png",
+    "meanDifference": 5.89,
+    "meanBefore": 237.28,
+    "meanAfter": 231.42
+  },
+  {
+    "name": "light-public-org-small-mobile.png",
+    "meanDifference": 5.814,
+    "meanBefore": 236.89,
+    "meanAfter": 231.1
+  },
+  {
+    "name": "light-public-org-surface-landscape.png",
+    "meanDifference": 6.874,
+    "meanBefore": 243.46,
+    "meanAfter": 236.6
+  },
+  {
+    "name": "light-public-org-surface-portrait.png",
+    "meanDifference": 6.93,
+    "meanBefore": 242.31,
+    "meanAfter": 235.39
+  },
+  {
+    "name": "light-public-org-tablet.png",
+    "meanDifference": 6.46,
+    "meanBefore": 240.51,
+    "meanAfter": 234.07
+  },
+  {
+    "name": "light-user-remote-laptop.png",
+    "meanDifference": 7.587,
+    "meanBefore": 236.45,
+    "meanAfter": 228.87
+  },
+  {
+    "name": "light-user-remote-mobile.png",
+    "meanDifference": 5.375,
+    "meanBefore": 233.34,
+    "meanAfter": 227.98
+  },
+  {
+    "name": "light-user-status-laptop.png",
+    "meanDifference": 8.755,
+    "meanBefore": 246.16,
+    "meanAfter": 237.66
+  },
+  {
+    "name": "light-user-support-laptop.png",
+    "meanDifference": 7.806,
+    "meanBefore": 243.84,
+    "meanAfter": 236.05
+  },
+  {
+    "name": "light-welcome-desktop-large.png",
+    "meanDifference": 7.062,
+    "meanBefore": 241.99,
+    "meanAfter": 235.9
+  },
+  {
+    "name": "light-welcome-laptop.png",
+    "meanDifference": 6.964,
+    "meanBefore": 240.21,
+    "meanAfter": 234.21
+  },
+  {
+    "name": "light-welcome-mobile.png",
+    "meanDifference": 6.608,
+    "meanBefore": 232.93,
+    "meanAfter": 227.22
+  },
+  {
+    "name": "light-welcome-small-mobile.png",
+    "meanDifference": 6.522,
+    "meanBefore": 231.37,
+    "meanAfter": 225.74
+  },
+  {
+    "name": "light-welcome-surface-landscape.png",
+    "meanDifference": 6.958,
+    "meanBefore": 240.03,
+    "meanAfter": 234.04
+  },
+  {
+    "name": "light-welcome-surface-portrait.png",
+    "meanDifference": 7,
+    "meanBefore": 240.11,
+    "meanAfter": 234.06
+  },
+  {
+    "name": "light-welcome-tablet.png",
+    "meanDifference": 6.846,
+    "meanBefore": 237.23,
+    "meanAfter": 231.32
+  }
+]

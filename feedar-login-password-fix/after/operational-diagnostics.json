@@ -1,0 +1,114 @@
+[
+  {
+    "portal": "boss",
+    "size": "desktop",
+    "theme": "light",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(83, 101, 123)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  },
+  {
+    "portal": "boss",
+    "size": "desktop",
+    "theme": "dark",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(165, 182, 201)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  },
+  {
+    "portal": "boss",
+    "size": "mobile",
+    "theme": "light",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(83, 101, 123)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  },
+  {
+    "portal": "boss",
+    "size": "mobile",
+    "theme": "dark",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(165, 182, 201)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  },
+  {
+    "portal": "organization",
+    "size": "desktop",
+    "theme": "light",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(83, 101, 123)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  },
+  {
+    "portal": "organization",
+    "size": "desktop",
+    "theme": "dark",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(165, 182, 201)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  },
+  {
+    "portal": "organization",
+    "size": "mobile",
+    "theme": "light",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(83, 101, 123)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  },
+  {
+    "portal": "organization",
+    "size": "mobile",
+    "theme": "dark",
+    "style": {
+      "width": 44,
+      "height": 44,
+      "color": "rgb(165, 182, 201)",
+      "background": "rgba(0, 0, 0, 0)",
+      "type": "button",
+      "pressed": "false"
+    },
+    "errors": []
+  }
+]

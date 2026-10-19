@@ -143,3 +143,19 @@ Modes: **local** means functional state persisted in this browser; **simulation*
 ## 2026-10-13 audit execution
 
 On the available Node 26.5.1/npm 11.17.0 environment, `npm ci`, typecheck, lint, 58 unit tests, build, and static root/base-path checks passed. The final installed-Chrome Playwright run passed 13/13 tests with one worker. Screenshots from that run are retained in `audit-reports/screenshots/`. The bundled Playwright browser download was blocked by a regional CDN 403; Firefox/WebKit and the requested 1920×1080, 1440×900, 768×1024 viewport profiles were not run. See `audit-reports/TEST_RESULTS.md` for the exact scope and intermediate failures. No physical hardware was tested.
+
+## 2026-10-19 UI theme execution
+
+Global system/light/dark preference, shared semantic tokens, Robot Status SVG indicators and mobile status cards were implemented. On the available Node 26.5.1/npm 11.17.0 host, typecheck, lint, 88 unit tests, build, static root/base-path checks and 34/34 installed-Chrome Playwright tests passed. Existing Playwright suites exercised the seven demo screen types, Surface landscape/portrait, mobile and other viewports. New visual checks captured demo login, Boss, Robot Status, Telepresence, plus Boss/App operational login from a staging-mode build served on two local Origins. Eighteen new screenshots and detailed limits are in `../../feedar-ui-results/`. No real robot hardware, Firefox/WebKit, VPS, deploy, push or commit was involved.
+
+## 2026-10-19 Light Mode audit
+
+Installed Chrome captured 84 matched before/after screenshots across public, Boss, Owner, Admin, User and kiosk routes, seven viewport profiles for the main screens, and eight representative dark views. The audit corrected light palette, control contrast, kiosk form readability and Telepresence telemetry text. Typecheck, lint, 88 unit tests, build, static root/base-path checks and 35/35 Chrome Playwright tests passed on local Node 26.5.1. The screenshot manifest and exact scope are in `../../feedar-light-mode-audit/`. Firefox/WebKit, physical hardware, and a remote server were not tested.
+
+## 2026-10-19 Warm neutral Light Mode follow-up
+
+Installed Chrome captured 84 matched baseline/final screenshots (87 capture records, with three repeated laptop views) across public, Boss, Owner, Admin, User and kiosk routes. Login, Welcome, public organization, kiosk, Boss Overview, Robot Status and Telepresence were captured at seven viewport sizes. Four additional final screenshots pairs cover local staging Boss and Organization login at desktop/mobile in both themes. The local build previews on two Origins passed four portal checks, including role rejection and permitted sign-in on desktop. Typecheck, lint, 88 unit tests, build, static root/base-path verification and 41/41 Chrome Playwright tests passed on Node 26.5.1. See `../../feedar-light-warm-audit/` for exact routes and limitations. No VPS, hardware, deployment, push or commit was involved.
+
+## 2026-10-19 Login password control follow-up
+
+Installed Chrome inspected the Demo Login password control in light/dark themes at 1440×900 and 390×844, including computed CSS and before/after screenshots. The icon was already legible and functional; the confirmed defects were a 36×44px target, a cool hover surface in warm Light Mode, and loss of input focus after pointer activation. Boss and Organization staging login controls on two local Origins also had 42×42px targets. All three login surfaces now have 44×44px targets, scoped light styling where needed, pressed state, and pointer/touch focus restoration. Four focused Chrome tests, eight additional staging login combinations, and the full 45/45 Playwright suite passed. Typecheck, lint, 88 unit tests and build passed on Node 26.5.1. See `../../feedar-login-password-fix/`. No VPS, deploy, push, commit or hardware validation occurred.

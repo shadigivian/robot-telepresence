@@ -30,7 +30,7 @@ test('employee activation, robot permissions and organization robot lifecycle',a
 });
 
 test('Boss changes become visible in an already open Owner tab',async({page,context})=>{
- const ownerTab=await context.newPage();await owner(ownerTab);await expect(ownerTab.getByRole('heading',{name:'Future Health Hospital'})).toBeVisible();await page.goto('./');await signInDemo(page,'Boss');await page.goto('./#/organizations');await page.locator('.organization-card').filter({hasText:'Future Health Hospital'}).getByRole('button',{name:'Enter Organization Panel'}).click();await page.getByRole('textbox',{name:'Description',exact:true}).fill('Updated across local tabs');await page.getByRole('button',{name:'Save organization information'}).click();await expect(ownerTab.getByRole('textbox',{name:'Description',exact:true})).toHaveValue('Updated across local tabs');await ownerTab.close();
+ const ownerTab=await context.newPage();await owner(ownerTab);await expect(ownerTab.getByRole('heading',{name:'Future Health Hospital'})).toBeVisible();await signInDemo(page,'Boss');await page.goto('./#/organizations');await page.locator('.organization-card').filter({hasText:'Future Health Hospital'}).getByRole('button',{name:'Enter Organization Panel'}).click();await page.getByRole('textbox',{name:'Description',exact:true}).fill('Updated across local tabs');await page.getByRole('button',{name:'Save organization information'}).click();await expect(ownerTab.getByRole('textbox',{name:'Description',exact:true})).toHaveValue('Updated across local tabs');await ownerTab.close();
 });
 
 test('ordinary User opens own support history without the credit ledger',async({page})=>{

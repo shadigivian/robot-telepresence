@@ -1,0 +1,1371 @@
+{
+  "phase": "before",
+  "count": 87,
+  "records": [
+    {
+      "filename": "light-welcome-desktop-large.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1920,
+      "viewportWidth": 1920,
+      "svgCount": 5,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "light-login-desktop-large.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1920,
+      "viewportWidth": 1920,
+      "svgCount": 6,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "light-public-org-desktop-large.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1920,
+      "viewportWidth": 1920,
+      "svgCount": 13,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-kiosk-desktop-large.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1920,
+      "viewportWidth": 1920,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "light-welcome-laptop.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 5,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "light-login-laptop.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 6,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "light-public-org-laptop.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 13,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-kiosk-laptop.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "light-welcome-surface-landscape.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 1368,
+        "height": 912
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1368,
+      "viewportWidth": 1368,
+      "svgCount": 5,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "light-login-surface-landscape.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 1368,
+        "height": 912
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1368,
+      "viewportWidth": 1368,
+      "svgCount": 6,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "light-public-org-surface-landscape.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 1368,
+        "height": 912
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1368,
+      "viewportWidth": 1368,
+      "svgCount": 13,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-kiosk-surface-landscape.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 1368,
+        "height": 912
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1368,
+      "viewportWidth": 1368,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "light-welcome-surface-portrait.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 912,
+        "height": 1368
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 912,
+      "viewportWidth": 912,
+      "svgCount": 5,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "light-login-surface-portrait.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 912,
+        "height": 1368
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 912,
+      "viewportWidth": 912,
+      "svgCount": 6,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "light-public-org-surface-portrait.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 912,
+        "height": 1368
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 912,
+      "viewportWidth": 912,
+      "svgCount": 13,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-kiosk-surface-portrait.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 912,
+        "height": 1368
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 912,
+      "viewportWidth": 912,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "light-welcome-tablet.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 768,
+      "viewportWidth": 768,
+      "svgCount": 5,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "light-login-tablet.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 768,
+      "viewportWidth": 768,
+      "svgCount": 6,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "light-public-org-tablet.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 768,
+      "viewportWidth": 768,
+      "svgCount": 13,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-kiosk-tablet.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 768,
+      "viewportWidth": 768,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "light-welcome-mobile.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 5,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "light-login-mobile.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 6,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "light-public-org-mobile.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 13,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-kiosk-mobile.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "light-welcome-small-mobile.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 360,
+      "viewportWidth": 360,
+      "svgCount": 5,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "light-login-small-mobile.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 360,
+      "viewportWidth": 360,
+      "svgCount": 6,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "light-public-org-small-mobile.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 360,
+      "viewportWidth": 360,
+      "svgCount": 13,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-kiosk-small-mobile.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 360,
+      "viewportWidth": 360,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "light-boss-overview-laptop.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-organizations-laptop.png",
+      "route": "/organizations",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 29,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Organizations"
+    },
+    {
+      "filename": "light-boss-robot-management-laptop.png",
+      "route": "/robot-management",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 17,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Management"
+    },
+    {
+      "filename": "light-boss-robot-monitoring-laptop.png",
+      "route": "/robot-monitoring",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 17,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Monitoring"
+    },
+    {
+      "filename": "light-boss-support-laptop.png",
+      "route": "/boss/support",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Support / Tickets"
+    },
+    {
+      "filename": "light-boss-settings-laptop.png",
+      "route": "/settings",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Settings"
+    },
+    {
+      "filename": "light-boss-overview-desktop-large.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1920,
+      "viewportWidth": 1920,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-overview-laptop.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-overview-surface-landscape.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 1368,
+        "height": 912
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1368,
+      "viewportWidth": 1368,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-overview-surface-portrait.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 912,
+        "height": 1368
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 912,
+      "viewportWidth": 912,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-overview-tablet.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 768,
+      "viewportWidth": 768,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-overview-mobile.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-overview-small-mobile.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 360,
+      "viewportWidth": 360,
+      "svgCount": 20,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "light-boss-create-org-dialog-laptop.png",
+      "route": "/organizations",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light"
+    },
+    {
+      "filename": "light-boss-create-org-dialog-focus-laptop.png",
+      "route": "/organizations",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light"
+    },
+    {
+      "filename": "light-boss-notifications-dialog-laptop.png",
+      "route": "/organizations",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "theme": "light"
+    },
+    {
+      "filename": "light-org-info-laptop.png",
+      "route": "/org/info",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 19,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "light-org-users-laptop.png",
+      "route": "/org/users",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 18,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Users & Permissions"
+    },
+    {
+      "filename": "light-org-robots-laptop.png",
+      "route": "/org/robots",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Management"
+    },
+    {
+      "filename": "light-org-status-laptop.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-laptop.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-billing-support-laptop.png",
+      "route": "/org/billing-support",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 18,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Billing & Support"
+    },
+    {
+      "filename": "light-org-operations-laptop.png",
+      "route": "/operations",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 35,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot operations"
+    },
+    {
+      "filename": "light-org-maps-laptop.png",
+      "route": "/maps",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 37,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Maps & locations"
+    },
+    {
+      "filename": "light-org-activity-laptop.png",
+      "route": "/activity",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 17,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Activity"
+    },
+    {
+      "filename": "light-org-settings-laptop.png",
+      "route": "/settings",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 17,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Settings"
+    },
+    {
+      "filename": "light-org-knowledge-laptop.png",
+      "route": "/knowledge",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 25,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Knowledge & assistant"
+    },
+    {
+      "filename": "light-org-status-desktop-large.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1920,
+      "viewportWidth": 1920,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-desktop-large.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1920,
+      "viewportWidth": 1920,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-status-laptop.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-laptop.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-status-surface-landscape.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 1368,
+        "height": 912
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1368,
+      "viewportWidth": 1368,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-surface-landscape.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 1368,
+        "height": 912
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1368,
+      "viewportWidth": 1368,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-status-surface-portrait.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 912,
+        "height": 1368
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 912,
+      "viewportWidth": 912,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-surface-portrait.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 912,
+        "height": 1368
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 912,
+      "viewportWidth": 912,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-status-tablet.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 768,
+      "viewportWidth": 768,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-tablet.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 768,
+      "viewportWidth": 768,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-status-mobile.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-mobile.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-status-small-mobile.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 360,
+      "viewportWidth": 360,
+      "svgCount": 34,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-org-telepresence-small-mobile.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 360,
+      "viewportWidth": 360,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-org-robot-edit-dialog-small-mobile.png",
+      "route": "/org/robots",
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "theme": "light"
+    },
+    {
+      "filename": "light-admin-overview-laptop.png",
+      "route": "/overview",
+      "role": "admin",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 27,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Welcome to Future Health Hospital"
+    },
+    {
+      "filename": "light-admin-users-laptop.png",
+      "route": "/org/users",
+      "role": "admin",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 18,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Users & Permissions"
+    },
+    {
+      "filename": "light-admin-robots-laptop.png",
+      "route": "/org/robots",
+      "role": "admin",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 16,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Management"
+    },
+    {
+      "filename": "light-admin-telepresence-laptop.png",
+      "route": "/org/telepresence",
+      "role": "admin",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-admin-users-mobile.png",
+      "route": "/org/users",
+      "role": "admin",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 18,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Users & Permissions"
+    },
+    {
+      "filename": "light-user-remote-laptop.png",
+      "route": "/remote",
+      "role": "user",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 30,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "light-user-status-laptop.png",
+      "route": "/org/status",
+      "role": "user",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 32,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "light-user-support-laptop.png",
+      "route": "/org/billing-support",
+      "role": "user",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 15,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Billing & Support"
+    },
+    {
+      "filename": "light-user-remote-mobile.png",
+      "route": "/remote",
+      "role": "user",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "light",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 30,
+      "background": "rgb(246, 248, 251)",
+      "heading": "Remote session"
+    },
+    {
+      "filename": "dark-welcome-laptop.png",
+      "route": "/welcome",
+      "role": "welcome",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 5,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Connected robots.Human possibilities."
+    },
+    {
+      "filename": "dark-login-laptop.png",
+      "route": "/login",
+      "role": "login",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 6,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Your robots.One intelligentworkspace."
+    },
+    {
+      "filename": "dark-public-org-laptop.png",
+      "route": "/o/future-health",
+      "role": "public",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 13,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Future Health Hospital"
+    },
+    {
+      "filename": "dark-kiosk-laptop.png",
+      "route": "/robot/robot-7/kiosk",
+      "role": "kiosk",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 16,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Hello! How can I help you today?"
+    },
+    {
+      "filename": "dark-boss-overview-laptop.png",
+      "route": "/overview",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 20,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Good morning, Boss"
+    },
+    {
+      "filename": "dark-boss-support-laptop.png",
+      "route": "/boss/support",
+      "role": "boss",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 1440,
+      "viewportWidth": 1440,
+      "svgCount": 16,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Support / Tickets"
+    },
+    {
+      "filename": "dark-org-status-mobile.png",
+      "route": "/org/status",
+      "role": "org",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 34,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Robot Status"
+    },
+    {
+      "filename": "dark-org-telepresence-mobile.png",
+      "route": "/org/telepresence",
+      "role": "org",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "title": "feedar · Robot Cloud",
+      "theme": "dark",
+      "scrollWidth": 390,
+      "viewportWidth": 390,
+      "svgCount": 32,
+      "background": "rgb(7, 17, 31)",
+      "heading": "Remote session"
+    }
+  ],
+  "errors": []
+}
