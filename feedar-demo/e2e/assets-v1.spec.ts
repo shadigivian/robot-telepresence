@@ -88,9 +88,41 @@ test('Feedar brand, robot navigation and notification assets retain geometry and
   await expect(page.getByRole('heading', { name: 'Robot Monitoring', exact: true })).toBeVisible();
   const monitoringRows = page.locator('tbody tr');
   await expect(monitoringRows).toHaveCount(6);
-  for (const row of await monitoringRows.all()) {
-    expect((await row.boundingBox())!.height).toBeLessThanOrEqual(110);
+  const layout = await page.locator('.feedar-monitoring-assets').evaluate(wrapper => {
+    function measure(element: Element) {
+      const table = element.querySelector('table')!;
+      const style = getComputedStyle(table);
+      return { width: table.getBoundingClientRect().width, font: [style.fontFamily, style.fontSize, style.lineHeight], rows: [...table.querySelectorAll('tbody tr')].map(row => ({ text: row.textContent!.replace(/\s+/g, ' ').trim(), height: row.getBoundingClientRect().height })) };
+    }
+    const actual = measure(wrapper);
+    function reference(kind: 'prior-text' | 'broken-nowrap') {
+      const clone = wrapper.cloneNode(true) as HTMLDivElement;
+      clone.inert = true; clone.setAttribute('aria-hidden', 'true');
+      Object.assign(clone.style, { position: 'fixed', left: '-10000px', top: '0', width: `${wrapper.getBoundingClientRect().width}px`, visibility: 'hidden', pointerEvents: 'none' });
+      if (kind === 'prior-text') {
+        // This table previously contained plain text/Badges and no SVGs.
+        clone.classList.remove('feedar-monitoring-assets');
+        clone.querySelectorAll('svg').forEach(svg => svg.remove());
+        clone.querySelectorAll('.status-indicator').forEach(span => span.replaceWith(...span.childNodes));
+      } else {
+        clone.querySelectorAll<HTMLElement>('.status-indicator').forEach(span => { span.style.display = 'inline-flex'; span.style.whiteSpace = 'nowrap'; });
+        clone.querySelectorAll<SVGElement>('.status-indicator>svg').forEach(svg => { svg.style.marginInlineEnd = '0'; });
+      }
+      wrapper.parentElement!.append(clone);
+      try { return measure(clone); } finally { clone.remove(); }
+    }
+    return { actual, baseline: reference('prior-text'), broken: reference('broken-nowrap') };
+  });
+  await test.info().attach('monitoring-layout-same-browser-reference', { body: JSON.stringify(layout, null, 2), contentType: 'application/json' });
+  console.info('Feedar monitoring geometry', JSON.stringify({ width: layout.actual.width, font: layout.actual.font, actual: layout.actual.rows.map(row => row.height), baseline: layout.baseline.rows.map(row => row.height), broken: layout.broken.rows.map(row => row.height) }));
+  expect(layout.actual.font).toEqual(layout.baseline.font);
+  expect(Math.abs(layout.actual.width - layout.baseline.width)).toBeLessThanOrEqual(1);
+  expect(layout.actual.rows.map(row => row.text)).toEqual(layout.baseline.rows.map(row => row.text));
+  for (const [index, row] of layout.actual.rows.entries()) {
+    expect(row.height, JSON.stringify({ index, layout })).toBeLessThanOrEqual(layout.baseline.rows[index].height + 1);
   }
+  // Negative control: this comparison must detect the wrapping regression we fixed.
+  expect(layout.broken.rows.some((row, index) => row.height > layout.baseline.rows[index].height + 1), JSON.stringify(layout)).toBe(true);
   await expectUniqueSvgIds(page);
   expect(errors).toEqual([]);
 });
