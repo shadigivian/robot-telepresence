@@ -1,0 +1,82 @@
+[
+  {
+    "asset_id": "FDR-BRAND-FEEDAR-SYMBOL",
+    "canonical_proposed_path": "src/assets/brand/feedar-symbol.svg",
+    "sha256": "dd006c1cf01f00e5c7fe4376d717da91cc8de9b2df4fab219ae1156b266ab359"
+  },
+  {
+    "asset_id": "FDR-BRAND-FEEDAR-WORDMARK",
+    "canonical_proposed_path": "src/assets/brand/feedar-wordmark.svg",
+    "sha256": "396d185d7758f4a07861c549672734f60b123f20043b64a6ce820733af0ab5a9"
+  },
+  {
+    "asset_id": "FDR-NAV-ROBOTS",
+    "canonical_proposed_path": "src/assets/icons/navigation/nav-robots.svg",
+    "sha256": "427632a40a331f8c0bbb18a58f51b5363fe49c4798c39e820997ae0b297ede31"
+  },
+  {
+    "asset_id": "FDR-ROBOT-ONLINE",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-online.svg",
+    "sha256": "ecef5fd5487dcd46983a74679a2655a1a4cb706caf5a07cd248ff806e2360693"
+  },
+  {
+    "asset_id": "FDR-ROBOT-OFFLINE",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-offline.svg",
+    "sha256": "ff439620813d75e6f2b541d345ec716742cd0a99ca855e696d786200f5141f03"
+  },
+  {
+    "asset_id": "FDR-ROBOT-AVAILABLE",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-available.svg",
+    "sha256": "4da9953089f3b72ab1c3b32a59fda0afbf095d1231186765b971bdbe42cec0bc"
+  },
+  {
+    "asset_id": "FDR-ROBOT-BUSY",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-busy.svg",
+    "sha256": "ab78df9bc656bda8e1c40e889a4a6bce229875d54e5015f615ba2d04d24dc108"
+  },
+  {
+    "asset_id": "FDR-ROBOT-UNAVAILABLE",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-unavailable.svg",
+    "sha256": "5603b2dcc0447805f5a3af058d013568613e17a45d2aa8c5db0ff9d173ac358b"
+  },
+  {
+    "asset_id": "FDR-ROBOT-BATTERY",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-battery.svg",
+    "sha256": "536711643626bb44f30174de0fc2377eb42edebf38c6d74b6e3e5fab02ad3998"
+  },
+  {
+    "asset_id": "FDR-ROBOT-CHARGING",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-charging.svg",
+    "sha256": "a21d43b66214686fff0971df482e5b144ec05e7da17f51d74228ace4e5052d06"
+  },
+  {
+    "asset_id": "FDR-ROBOT-CRITICAL-BATTERY",
+    "canonical_proposed_path": "src/assets/icons/robot-status/robot-critical-battery.svg",
+    "sha256": "80e26af33d5f808693428f8163d6dc0396f656086b5f1eb15e3aa302f3ef82e9"
+  },
+  {
+    "asset_id": "FDR-CURRENT-CONNECTED-USER",
+    "canonical_proposed_path": "src/assets/icons/robot-status/current-connected-user.svg",
+    "sha256": "ec6dfb2e06e7d42b89c66622b741f9f5a2b214d0e12288cf2cacd8aef50a0de4"
+  },
+  {
+    "asset_id": "FDR-LAST-CONNECTED-USER",
+    "canonical_proposed_path": "src/assets/icons/robot-status/last-connected-user.svg",
+    "sha256": "5364767eb857f4a56cd1d7b623554a203e1ba087108603e4c4e8fd3c8bc9e6c7"
+  },
+  {
+    "asset_id": "FDR-NOTIFICATION-BELL",
+    "canonical_proposed_path": "src/assets/icons/notifications/notification-bell.svg",
+    "sha256": "174f74cf99e81a353ef80162a0101d1376d9058cd76dc081eee470a05efb074f"
+  },
+  {
+    "asset_id": "FDR-TICKET-STATUS-BADGE",
+    "canonical_proposed_path": "src/assets/icons/support/ticket-status-badge.svg",
+    "sha256": "7e6c404f309977d9fe349fc61180bf5fc5f1cb6d0df564097ca621153a24d386"
+  },
+  {
+    "asset_id": "FDR-SHARED-EMPTY",
+    "canonical_proposed_path": "src/assets/illustrations/empty-states/shared-empty.svg",
+    "sha256": "a13a9cfbc2777d568f35b10906e3a1a178e03395a876d892a669332a9da01f4c"
+  }
+]

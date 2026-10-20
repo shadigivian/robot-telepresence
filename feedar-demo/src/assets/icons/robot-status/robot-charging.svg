@@ -1,0 +1,7 @@
+<svg data-asset-id="FDR-ROBOT-CHARGING" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>robot-charging — Prototype — Pending Approval</title>
+  <desc>A fixed charging bolt inside the common battery shell. Charging precedence is supplied by the host and is not redefined here. Prototype — Pending Approval; not final or installed.</desc>
+  <rect x="2.5" y="7" width="17.5" height="10" rx="2.4"/>
+  <path d="M22 10.1v3.8"/>
+  <path d="m12.7 8.4-4.6 4.1h3.1l-1 3.1 5.2-4.8H12Z" fill="currentColor" stroke="none"/>
+</svg>

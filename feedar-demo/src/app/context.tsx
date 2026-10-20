@@ -5,6 +5,7 @@ import { BrowserStore } from '../services/demo/store';
 import { DemoService } from '../services/demo/service';
 import { localMedia } from '../services/demo/media';
 import {demoAvailable,stagingDemo,stagingRoleAllowed,surface} from './runtime';
+import { FeedarAsset } from '../components/feedar-asset';
 
 export const store = new BrowserStore();
 export const service = new DemoService(store);
@@ -61,7 +62,7 @@ export function DemoProvider({children}:{children:ReactNode}){
  const reset=useCallback(async()=>{localMedia.stop();await store.reset();setRaw(await store.read());notify('Demo data reset. Simulation stopped and fictional fixtures restored.');},[notify]);
  const acceptInvitationDemo=useCallback(async(token:string,name:string)=>{if(!demoAvailable||stagingDemo)return undefined;try{const result=await service.acceptDemoInvitation(token,name);const updated=await store.read();setRaw(updated);const next={userId:result.userId,organizationId:result.organizationId,expiresAt:Date.now()+8*60*60*1000};setIdentity(next);try{sessionStorage.setItem('feedar.identity',JSON.stringify(next));}catch{/* tab-only identity */}return result.id;}catch(e){notify(e instanceof Error?e.message:String(e));return undefined;}},[notify]);
  const value=useMemo<DemoContext|undefined>(()=>raw?{db:identity?scoped(raw,identity):publicRecords(raw),publicDb:publicRecords(raw),actor:identity,role:identity?roleFor(raw,identity):'GUEST',organization:raw.organizations.find(o=>o.id===identity?.organizationId),act,login,switchPersona:login,selectOrganization:organizationId=>{if(identity){login(identity.userId,organizationId);if(raw.users.find(u=>u.id===identity.userId)?.platformRole==='BOSS'&&organizationId)void service.execute(identity,'organization.support',{organizationId}).catch(e=>notify(String(e)));}},logout,reset,notify,lookupInvitation:token=>raw.invitations.find(i=>i.token===token),lookupOrganization:id=>raw.organizations.find(o=>o.id===id),findDemoIdentity:email=>email.toLowerCase().endsWith('.example')?raw.users.find(u=>u.email.toLowerCase()===email.toLowerCase()):undefined,acceptInvitationDemo}:undefined,[raw,identity,act,login,logout,reset,notify,acceptInvitationDemo]);
- if(!value)return <main className="loading"><span className="logo-tile">f</span><h1>Preparing Feedar Cloud</h1><p>Loading fictional browser demo records…</p></main>;
+ if(!value)return <main className="loading"><span className="logo-tile"><FeedarAsset name="brandSymbol" size={34} className="feedar-brand-symbol"/></span><h1>Preparing Feedar Cloud</h1><p>Loading fictional browser demo records…</p></main>;
  return <Context.Provider value={value}>{children}{toast&&<div className="toast" role="status"><span>{toast}</span><button aria-label="Dismiss notification" onClick={()=>setToast('')}>×</button></div>}{'warning' in store&&typeof store.warning==='string'&&store.warning&&<div className="storage-warning" role="status">{store.warning}</div>}</Context.Provider>;
 }
 export function useDemo(){const context=useContext(Context);if(!context)throw new Error('Demo context is unavailable.');return context;}

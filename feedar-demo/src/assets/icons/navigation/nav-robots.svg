@@ -1,0 +1,9 @@
+<svg data-asset-id="FDR-NAV-ROBOTS" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>nav-robots — Prototype — Pending Approval</title>
+  <desc>Abstract robot workspace navigation; two short sensors and a rounded face. Separate from the Feedar brand mark. Prototype — Pending Approval; not final or installed.</desc>
+  <path d="M8.3 3.8v2.7M15.7 3.8v2.7"/>
+  <rect x="4.6" y="6.5" width="14.8" height="13.5" rx="4.1"/>
+  <path d="M8.2 15.7h7.6"/>
+  <circle cx="8.7" cy="11.4" r="1.05" fill="currentColor" stroke="none"/>
+  <circle cx="15.3" cy="11.4" r="1.05" fill="currentColor" stroke="none"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg data-asset-id="FDR-ROBOT-OFFLINE" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>robot-offline — Prototype — Pending Approval</title>
+  <desc>Separated connection ends and a diagonal interruption: offline connectivity, distinct from unavailable readiness. Prototype — Pending Approval; not final or installed.</desc>
+  <path d="M8.7 7.2H7.5a4.8 4.8 0 0 0 0 9.6h1.2M15.3 7.2h1.2a4.8 4.8 0 0 1 0 9.6h-1.2"/>
+  <path d="M8.3 12h.8M14.9 12h.8M9.7 16.5l4.6-9"/>
+</svg>

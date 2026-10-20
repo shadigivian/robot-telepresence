@@ -1,0 +1,8 @@
+<svg data-asset-id="FDR-LAST-CONNECTED-USER" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>last-connected-user — Prototype — Pending Approval</title>
+  <desc>Person with an outline history clock. The last historical grant holder, not an active participant or a current grant holder. Prototype — Pending Approval; not final or installed.</desc>
+  <circle cx="8.9" cy="7.3" r="2.8"/>
+  <path d="M3.5 19v-1.4c0-3 2.3-5.1 5.4-5.1.6 0 1.1.07 1.6.2"/>
+  <circle cx="17" cy="16" r="4.2"/>
+  <path d="M17 13.7v2.5l1.7 1"/>
+</svg>

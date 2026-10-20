@@ -1,0 +1,5 @@
+/* Only the reviewed Feedar v1 vectors. Existing palettes and control layout stay with their callers. */
+.feedar-asset{display:inline-block;vertical-align:middle;flex-shrink:0;pointer-events:none;direction:ltr;transform:none;--asset-accent:var(--teal);--asset-surface:var(--panel)}
+.status-indicator[data-live=true] .feedar-asset{animation:none}
+.feedar-monitoring-assets .status-indicator{display:inline;white-space:normal}
+.feedar-monitoring-assets .status-indicator>svg{margin-inline-end:6px;vertical-align:middle}

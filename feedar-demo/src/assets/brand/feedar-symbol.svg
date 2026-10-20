@@ -1,0 +1,6 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" data-asset-id="FDR-BRAND-FEEDAR-SYMBOL" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+  <title>Feedar relay monogram</title>
+  <desc>Prototype — Pending Approval. Original rounded f monogram. A corner and a crossbar suggest relay and continuity; this is not a robot or verified hardware symbol.</desc>
+  <path d="M25 51V25C25 18.373 30.373 13 37 13H49" stroke-width="6.5"/>
+  <path d="M15 32H43" stroke="var(--asset-accent,currentColor)" stroke-width="6.5"/>
+</svg>

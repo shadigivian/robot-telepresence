@@ -1,0 +1,7 @@
+<svg data-asset-id="FDR-ROBOT-BUSY" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>robot-busy — Prototype — Pending Approval</title>
+  <desc>One person enclosed in the readiness frame: a current valid control grant is held; not merely a call or working mode. Prototype — Pending Approval; not final or installed.</desc>
+  <rect x="4.5" y="4.5" width="15" height="15" rx="4"/>
+  <circle cx="12" cy="9.5" r="1.9"/>
+  <path d="M8.4 16.1c.25-2 1.6-3.2 3.6-3.2s3.35 1.2 3.6 3.2"/>
+</svg>
