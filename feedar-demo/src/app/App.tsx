@@ -1,10 +1,11 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Building2, ChevronDown, CircleHelp, LayoutDashboard, LogOut, Map, Menu, MessageSquare, Settings, ShieldCheck, Users, Video, BookOpen, Mail, ArrowUpRight, Circle } from 'lucide-react';
+import { Building2, ChevronDown, CircleHelp, LayoutDashboard, LogOut, Map, Menu, MessageSquare, Settings, ShieldCheck, Users, Video, BookOpen, Mail, ArrowUpRight, Circle } from 'lucide-react';
 import { useDemo } from './context';
 import { Button, FeedarMark, Modal, Field, Empty, LoadingVisual } from '../components/ui';
 import { ThemeToggle } from './theme';
 import { FeedarAsset } from '../components/feedar-asset';
+import { StatusIcon } from '../components/status-icon';
 import type { Role } from '../domain/models';
 import { localMedia } from '../services/demo/media';
 import {demoAvailable,stagingDemo,stagingRoleAllowed,surface} from './runtime';
@@ -49,29 +50,30 @@ function NavigationSafety(){
 }
 
 function RobotNavigationIcon({size=19}:{size?:number}){return <FeedarAsset name="robots" size={size}/>;}
+function ActivityNavigationIcon({size=19}:{size?:number}){return <StatusIcon name="activity" size={size}/>;}
 
 const destinations=[
  {path:'/overview',label:'Overview',icon:LayoutDashboard,roles:['BOSS','OWNER','ADMIN','USER']},
  {path:'/organizations',label:'Organizations',icon:Building2,roles:['BOSS']},
  {path:'/robot-management',label:'Robot Management',icon:RobotNavigationIcon,roles:['BOSS']},
- {path:'/robot-monitoring',label:'Robot Monitoring',icon:Activity,roles:['BOSS']},
+ {path:'/robot-monitoring',label:'Robot Monitoring',icon:RobotNavigationIcon,roles:['BOSS']},
  {path:'/boss/support',label:'Support / Tickets',icon:CircleHelp,roles:['BOSS']},
  {path:'/operations',label:'Robot Operations',icon:RobotNavigationIcon,roles:['BOSS','OWNER','ADMIN']},
  {path:'/remote',label:'Remote Session',icon:Video,roles:['BOSS','OWNER','ADMIN','USER']},
- {path:'/org/status',label:'Robot Status',icon:Activity,roles:['USER']},
+ {path:'/org/status',label:'Robot Status',icon:RobotNavigationIcon,roles:['USER']},
  {path:'/display',label:'Robot Display',icon:MessageSquare,roles:['BOSS','OWNER','ADMIN','USER']},
  {path:'/members',label:'Members',icon:Users,roles:['BOSS','OWNER','ADMIN']},
  {path:'/maps',label:'Maps & locations',icon:Map,roles:['BOSS','OWNER','ADMIN']},
  {path:'/invitations',label:'Invitations',icon:Mail,roles:['BOSS','OWNER','ADMIN']},
  {path:'/knowledge',label:'Knowledge',icon:BookOpen,roles:['BOSS','OWNER']},
- {path:'/activity',label:'Activity & maintenance',icon:Activity,roles:['BOSS','OWNER','ADMIN']},
+ {path:'/activity',label:'Activity & maintenance',icon:ActivityNavigationIcon,roles:['BOSS','OWNER','ADMIN']},
  {path:'/settings',label:'Settings',icon:Settings,roles:['BOSS','OWNER','ADMIN']},
 ];
 const organizationDestinations=[
  {path:'/org/info',label:'Organization Information',icon:Building2},
  {path:'/org/users',label:'Users & Permissions',icon:Users},
  {path:'/org/robots',label:'Robot Management',icon:RobotNavigationIcon},
- {path:'/org/status',label:'Robot Status',icon:Activity},
+ {path:'/org/status',label:'Robot Status',icon:RobotNavigationIcon},
  {path:'/org/telepresence',label:'Telepresence',icon:Video},
  {path:'/org/billing-support',label:'Billing & Support',icon:CircleHelp},
 ];

@@ -92,7 +92,11 @@ test('Feedar brand, robot navigation and notification assets retain geometry and
     function measure(element: Element) {
       const table = element.querySelector('table')!;
       const style = getComputedStyle(table);
-      return { width: table.getBoundingClientRect().width, font: [style.fontFamily, style.fontSize, style.lineHeight], rows: [...table.querySelectorAll('tbody tr')].map(row => ({ text: row.textContent!.replace(/\s+/g, ' ').trim(), height: row.getBoundingClientRect().height })) };
+      return { width: table.getBoundingClientRect().width, font: [style.fontFamily, style.fontSize, style.lineHeight], rows: [...table.querySelectorAll('tbody tr')].map(row => {
+        const semantic = row.cloneNode(true) as HTMLElement;
+        semantic.querySelectorAll('.status-indicator').forEach(indicator => indicator.replaceWith(document.createTextNode((indicator.querySelector('.status-value') ?? indicator.querySelector('.status-tooltip-label') ?? indicator).textContent ?? '')));
+        return { text: semantic.textContent!.replace(/\s+/g, ' ').trim(), height: row.getBoundingClientRect().height };
+      }) };
     }
     const actual = measure(wrapper);
     function reference(kind: 'prior-text' | 'broken-nowrap') {
@@ -102,9 +106,21 @@ test('Feedar brand, robot navigation and notification assets retain geometry and
       if (kind === 'prior-text') {
         // This table previously contained plain text/Badges and no SVGs.
         clone.classList.remove('feedar-monitoring-assets');
+        clone.querySelectorAll('.status-indicator').forEach(indicator => {
+          const text = (indicator.querySelector('.status-value') ?? indicator.querySelector('.status-tooltip-label') ?? indicator).textContent ?? '';
+          const connectionCell = indicator.closest('td')?.cellIndex === 1;
+          if (connectionCell) { const badge = document.createElement('span'); badge.className = `badge ${text === 'online' ? 'success' : 'warning'}`; badge.textContent = text; indicator.replaceWith(badge); }
+          else indicator.replaceWith(document.createTextNode(text));
+        });
         clone.querySelectorAll('svg').forEach(svg => svg.remove());
-        clone.querySelectorAll('.status-indicator').forEach(span => span.replaceWith(...span.childNodes));
       } else {
+        // Reconstruct visible labels beside glyphs forced into a nowrap row.
+        // Hidden labels and trigger sizing must not invalidate this control.
+        clone.querySelectorAll('.status-indicator').forEach(indicator => {
+          const text = (indicator.querySelector('.status-value') ?? indicator.querySelector('.status-tooltip-label') ?? indicator).textContent ?? '';
+          const glyph = indicator.querySelector('svg');
+          indicator.replaceChildren(...(glyph ? [glyph] : []), document.createTextNode(text));
+        });
         clone.querySelectorAll<HTMLElement>('.status-indicator').forEach(span => { span.style.display = 'inline-flex'; span.style.whiteSpace = 'nowrap'; });
         clone.querySelectorAll<SVGElement>('.status-indicator>svg').forEach(svg => { svg.style.marginInlineEnd = '0'; });
       }
@@ -169,17 +185,26 @@ test('real robot rows distinguish connection, availability, battery and current 
   await user.getByRole('button', { name: 'Request control', exact: true }).click();
   await open(page, '/org/status');
   await expect(available).toContainText('No active user');
-  await expect(asset(available, ids.current)).toHaveCount(0);
+  await expect(asset(available, ids.current)).toHaveCount(1);
+  await expect(available.locator('[data-label="Current Connected User"] svg')).toHaveCount(1);
   await open(page, '/org/telepresence');
   await page.getByRole('button', { name: 'Approve control', exact: true }).click();
   await open(page, '/org/status');
   await expect(available.locator('[data-label="Current Connected User"]')).toContainText('Daniel Foster');
   await expect(available.locator('[data-label="Availability"]')).toContainText('Busy');
   await expectUsableAsset(asset(available, ids.current));
-  await expectUsableAsset(asset(available, ids.busy));
+  // Busy is now consistently rendered in both Availability and the disabled
+  // Action explanation. Assert each semantic location instead of an ambiguous
+  // row-wide SVG lookup, and retain the absence of a Connect action.
+  const busyAvailability = asset(available.locator('[data-label="Availability"]'), ids.busy);
+  await expect(busyAvailability).toHaveCount(1);
+  await expectUsableAsset(busyAvailability);
+  await expect(asset(available.locator('[data-label="Action"]'), ids.busy)).toHaveCount(1);
+  await expect(available.getByRole('link', { name: 'Connect to Robot', exact: true })).toHaveCount(0);
   await user.getByRole('button', { name: 'Release control', exact: true }).click();
   await expect(available.locator('[data-label="Current Connected User"]')).toContainText('No active user');
-  await expect(asset(available, ids.current)).toHaveCount(0);
+  await expect(asset(available, ids.current)).toHaveCount(1);
+  await expect(available.locator('[data-label="Current Connected User"] svg')).toHaveCount(1);
   await expect(available.locator('[data-label="Last Connected User"]')).toContainText('Daniel Foster');
   await expectUsableAsset(asset(available, ids.last));
   await expect(available.locator('[data-label="Availability"]')).toContainText('Available');
