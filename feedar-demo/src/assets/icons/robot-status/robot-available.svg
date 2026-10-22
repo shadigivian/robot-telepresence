@@ -1,0 +1,6 @@
+<svg data-asset-id="FDR-ROBOT-AVAILABLE" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>robot-available — Prototype — Pending Approval</title>
+  <desc>Open readiness frame with a check: ready and no current valid control grant. Prototype — Pending Approval; not final or installed.</desc>
+  <path d="M10.1 4.5H8a3.5 3.5 0 0 0-3.5 3.5v8A3.5 3.5 0 0 0 8 19.5h8a3.5 3.5 0 0 0 3.5-3.5v-2.1"/>
+  <path d="m10.1 9.6 3 3 6.4-7"/>
+</svg>

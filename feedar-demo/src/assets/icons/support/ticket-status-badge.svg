@@ -1,0 +1,10 @@
+<svg data-asset-id="FDR-TICKET-STATUS-BADGE" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>ticket-status-badge — Prototype — Pending Approval</title>
+  <desc>One template with exactly five states: open, in_review, awaiting_reply, resolved and closed. Legacy new is an alias of open, not a separate state or permission. Prototype — Pending Approval; not final or installed.</desc>
+  <path d="M7 4.5h10A2.5 2.5 0 0 1 19.5 7v10a2.5 2.5 0 0 1-2.5 2.5H7A2.5 2.5 0 0 1 4.5 17v-2.3a3 3 0 0 0 0-5.4V7A2.5 2.5 0 0 1 7 4.5Z"/>
+  <g data-ticket-state="open"><circle cx="12.4" cy="12" r="2.2" fill="currentColor" stroke="none"/></g>
+  <g data-ticket-state="in_review" display="none"><path d="M9.1 8.8h6.6M9.1 12h6.6M9.1 15.2h4.4"/></g>
+  <g data-ticket-state="awaiting_reply" display="none"><path d="m11.5 8.5-3.2 3.2 3.2 3.2M8.6 11.7h4.6a2.9 2.9 0 0 1 2.9 2.9v1.3"/></g>
+  <g data-ticket-state="resolved" display="none"><path d="m8.7 12.1 2.5 2.5 5.1-5.3"/></g>
+  <g data-ticket-state="closed" display="none"><rect x="9.2" y="10.2" width="6.2" height="6.2" rx=".8"/><path d="M8.5 7.5h7.6"/></g>
+</svg>

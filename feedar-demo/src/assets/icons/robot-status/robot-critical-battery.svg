@@ -1,0 +1,9 @@
+<svg data-asset-id="FDR-ROBOT-CRITICAL-BATTERY" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" role="img">
+  <title>robot-critical-battery — Prototype — Pending Approval</title>
+  <desc>A fixed low segment and exclamation inside the battery shell. No flash, pulse, threshold selection or policy. Prototype — Pending Approval; not final or installed.</desc>
+  <rect x="2.5" y="7" width="17.5" height="10" rx="2.4"/>
+  <path d="M22 10.1v3.8"/>
+  <rect x="5.15" y="9.6" width="1.85" height="4.8" rx=".6" fill="currentColor" stroke="none"/>
+  <path d="M13.7 9.6v1.8"/>
+  <circle cx="13.7" cy="14.45" r=".85" fill="currentColor" stroke="none"/>
+</svg>

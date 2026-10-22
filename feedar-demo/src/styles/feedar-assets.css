@@ -1,0 +1,13 @@
+/* Only the reviewed Feedar v1 vectors. Existing palettes and control layout stay with their callers. */
+.feedar-asset{display:inline-block;vertical-align:middle;flex-shrink:0;pointer-events:none;direction:ltr;transform:none;--asset-accent:var(--teal);--asset-surface:var(--panel)}
+.status-indicator[data-live=true] .feedar-asset{animation:none}
+.status-indicator.feedar-status,.feedar-monitoring-assets .status-indicator.feedar-status{display:inline-flex;align-items:center;gap:6px;white-space:normal;vertical-align:middle;max-width:100%}
+.feedar-status .status-value{min-width:0;overflow-wrap:anywhere}
+.feedar-status:is([data-status=battery],[data-status=lowBattery],[data-status=criticalBattery],[data-status=charging]) .status-value{white-space:nowrap;overflow-wrap:normal;flex-shrink:0}
+.status-tooltip-trigger{position:relative;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:28px;height:28px;padding:5px;border:1px solid var(--border);border-radius:8px;background:var(--secondary);color:inherit;font:inherit;vertical-align:middle;touch-action:manipulation;cursor:help}
+.status-tooltip-trigger.passive{width:24px;height:24px;padding:3px;cursor:inherit}
+.status-tooltip-trigger:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.status-tooltip-trigger svg{margin:0;pointer-events:none}
+.status-tooltip-label{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}
+.feedar-tooltip{position:fixed;inset:auto;margin:0;box-sizing:border-box;width:max-content;max-width:min(18rem,calc(100vw - 16px));padding:8px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface-raised);color:var(--text);box-shadow:var(--shadow);font:500 12px/1.5 Inter,ui-sans-serif,system-ui,sans-serif;overflow-wrap:anywhere;overflow:auto;pointer-events:auto;z-index:10000}
+@media(pointer:coarse){.status-tooltip-trigger:not(.passive){margin-inline:6px}.status-tooltip-trigger:not(.passive)::after{content:'';position:absolute;inset:-8px}}

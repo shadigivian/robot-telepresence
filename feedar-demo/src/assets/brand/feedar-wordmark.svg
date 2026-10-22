@@ -1,0 +1,11 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" data-asset-id="FDR-BRAND-FEEDAR-WORDMARK" viewBox="0 0 280 72" fill="none" stroke="currentColor" stroke-width="6.2" stroke-linecap="round" stroke-linejoin="round">
+  <title>feedar.</title>
+  <desc>Prototype — Pending Approval. Original hand-authored vector lettering spelling lowercase feedar with its final dot. No installed font, font file, library outline or raster image is used.</desc>
+  <path d="M22 58V27C22 20.373 27.373 15 34 15H37M11 35H34"/>
+  <path d="M47 43H78C78 33.611 71.284 27 62.5 27C53.716 27 47 33.611 47 43C47 52.389 53.716 59 62.5 59C68.45 59 72.6 57.1 76.4 53.2"/>
+  <path d="M90 43H121C121 33.611 114.284 27 105.5 27C96.716 27 90 33.611 90 43C90 52.389 96.716 59 105.5 59C111.45 59 115.6 57.1 119.4 53.2"/>
+  <path d="M164 15V58M164 43C164 33.611 157.284 27 148.5 27C139.716 27 133 33.611 133 43C133 52.389 139.716 59 148.5 59C157.284 59 164 52.389 164 43Z"/>
+  <path d="M207 28V58M207 43C207 33.611 200.284 27 191.5 27C182.716 27 176 33.611 176 43C176 52.389 182.716 59 191.5 59C200.284 59 207 52.389 207 43Z"/>
+  <path d="M222 58V28M222 42C222 33.5 227.9 27 236.5 27H241"/>
+  <circle cx="260" cy="55.5" r="3.7" fill="var(--asset-accent,currentColor)" stroke="none"/>
+</svg>

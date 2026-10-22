@@ -1,0 +1,5 @@
+/* Preserve the existing brand's font metrics, tile, gap and responsive footprint. */
+.brand-wordmark{display:inline-block;position:relative}
+.brand-wordmark-measure{visibility:hidden}
+.brand-wordmark .brand-wordmark-asset{position:absolute;inset:0;width:100%;height:100%}
+.logo-tile .feedar-brand-symbol{--asset-accent:currentColor}
